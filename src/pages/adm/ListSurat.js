@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import DataTable from "react-data-table-component";
 import { QRCode } from 'react-qrcode-logo';
-import { Input, Badge, Button, Modal, ModalBody } from 'reactstrap';
+import { Input, Badge, Button, Modal, ModalBody, ModalHeader } from 'reactstrap';
 import dayjs from "dayjs";
 import 'dayjs/locale/id';
 import { confirmAlert } from "react-confirm-alert";
@@ -300,6 +300,20 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         return null;
     }
 
+    const handleRowClick = (row) => {
+        if (valueNow === `2` && type === 'review') {
+            api.post(`dapi/adm/read/${row.no_document}`).then((res) => {
+                console.log(res?.data);
+                refresh();
+            });
+            lihatparaf(row.id);
+        } else {
+            console.log("Row clicked:", row);
+        }
+
+    };
+
+
     const columsMasuk = [
         {
             name: 'Action',
@@ -424,7 +438,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         {
             when: row => row.read_by === null,
             style: {
-                backgroundColor: "#d7e9f7", // Light red for inactive users 
+                backgroundColor: "#d7e9f7", // Light red for inactive users
             },
         },
     ];
@@ -483,12 +497,31 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         },
     ];
 
+    const pointerRowStyles = [
+        {
+            when: () => valueNow === '2' && type === 'review',
+            style: {
+                cursor: 'pointer'
+            }
+        }
+    ];
 
+    // Tambahkan style gelap untuk row review jika baca=0
+    const reviewRowStyles = [
+        {
+            when: row => valueNow === '2' && type === 'review' && row.baca === 0,
+            style: {
+                fontWeight: 'bold', // warna abu gelap
+                cursor: 'pointer'
+            }
+        }
+    ];
 
     const columns = [
         {
             name: 'Actions',
             width: `${valueNow === '3' || type === 'approved' ? '270px' : '450px'}`,
+            omit: valueNow === '2' && type === 'review',
             selector: (row) => (
                 <>
                     {valueNow === '1' && <Button
@@ -521,6 +554,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                         value="Approval"
                         onClick={() => openApproval(row.id)}
                     />
+
                     <Button
                         className="me-2"
                         size="sm"
@@ -533,35 +567,81 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                             openLog(row.id)
                         }
                     />
-                    {valueNow === `2` && type === 'review' && 
-                    <><Button
-                        className="me-2"
-                        size="sm"
-                        outline
-                        color="warning"
-                        tag="input"
-                        type="button"
-                        value={row.current_type}
-                        onClick={() => startReview(row.id)}
-                    />
 
-                    <Button
-                        className="me-2"
-                        size="sm"
-                        outline
-                        color="info"
-                        tag="input"
-                        type="button"
-                        value={loadingView === row.id ? 'Loading . . .' : `Lihat & ${row.current_type}`}
-                        onClick={() => lihatparaf(row.id)}
-                    />
-                    
-                    </>}
+                    {valueNow === `2` && type === 'review' &&
+                        <><Button
+                            className="me-2"
+                            size="sm"
+                            outline
+                            color="warning"
+                            tag="input"
+                            type="button"
+                            value={row.current_type}
 
+                            onClick={() => startReview(row.id)}
+                        />
+
+                            <Button
+                                className="me-2"
+                                size="sm"
+                                outline
+                                color="info"
+                                tag="input"
+                                type="button"
+                                value={loadingView === row.id ? 'Loading . . .' : `Lihat & ${row.current_type}`}
+                                onClick={() => lihatparaf(row.id)}
+                            />
+
+                        </>}
                 </>
-
-
             ),
+        },
+        // Kolom status baca (titik biru)
+        {
+            name: '',
+            width: '150px',
+            omit: !(valueNow === '2' && type === 'review'),
+
+            selector: (row) => <>
+                {row.baca === 0 ? (
+                    <span style={{
+                        display: 'inline-block',
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: '#2196f3',
+                        marginLeft: 8,
+                        marginRight: 8,
+                        verticalAlign: 'middle'
+                    }} />
+                ) : <span style={{
+                        display: 'inline-block',
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: 'transparent',
+                        marginLeft: 8,
+                        marginRight: 8,
+                        verticalAlign: 'middle'
+                    }} />
+                }
+
+                <Button
+                    className="me-2"
+                    size="sm"
+                    outline
+                    color="success"
+                    tag="input"
+                    type="button"
+                    value="Logs"
+                    onClick={() =>
+                        openLog(row.id)
+                    }
+                />
+
+
+
+            </>
         },
         {
             name: 'Nomor Surat',
@@ -626,9 +706,13 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
 
     ];
 
+
+
     const openLembarDispo = (item) => {
         GenerateDispo(item)
     }
+
+
 
 
 
@@ -652,8 +736,12 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                 columns={type === 'masuk' ? columsMasuk : type === 'cc' ? columsCC : columns}
                 data={listP}
                 pagination
+                onRowClicked={handleRowClick}
                 subHeader
-                conditionalRowStyles={type === 'cc' && ccRowStyles}
+                conditionalRowStyles={
+                    type === 'cc' ? ccRowStyles :
+                        (valueNow === '2' && type === 'review' ? [...pointerRowStyles, ...reviewRowStyles] : undefined)
+                }
                 subHeaderComponent={
                     <div className="d-flex justify-content-end w-100">
                         <Input
@@ -668,6 +756,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
             />
 
             <Modal isOpen={modal} toggle={toggleModal} size="xl">
+                <ModalHeader toggle={toggleModal}></ModalHeader>
                 <ModalBody >
                     {isiModal === 'log' ? (
                         <ViewLogs type={typeLog} data={dataIsi} func1={openLembarDispo} />
@@ -682,9 +771,9 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                             <div style={{ height: '60vh' }}>
                                 <iframe src={`${pdfmerge}#toolbar=0&navpanes=0`} title="Surat" width="100%" height="100%" style={{ border: 'none' }} />
                             </div>
-                             <Review data={dataIsi} className="mt-3" refresh={refresh} closeModal={toggleModal} />
-                           
-                           
+                            <Review data={dataIsi} className="mt-3" refresh={refresh} closeModal={toggleModal} />
+
+
                         </div>
                     ) : (
                         'te'

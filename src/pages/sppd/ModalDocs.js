@@ -325,6 +325,11 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.tujuan_sppd[i].sumber_biaya
         }</td>
         </tr>
+        <tr style="border:none">
+          <td style="width: 30%; text-align: left; height:15px; vertical-align:middle!important">NAMA PROYEK</td>
+          <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.tujuan_sppd[i].renbis
+        }</td>
+        </tr>
         </tbody>
       </table><br>`;
     }
@@ -349,8 +354,8 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           </tr>
         </tbody>
       </table>
-      <br>${tujuans} 
-      
+      <br>${tujuans}
+
      `;
     setTimeout(() => {
       print(html, 'potrait', image.headSurat, image.footSurat, '595', 60, 100, 60, 80, 'sign');
@@ -395,12 +400,12 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
       paraf = `<tr><td style="width: 43%;margin-bottom:5px; margin-top:4px;">
                       Tiba di\t\t :<br>
                       Tanggal\t  :<br><br>
-                      Kepala \t. . . . . 
+                      Kepala \t. . . . .
                     </td>
                     <td style="width: 50%;margin-bottom:5px; margin-top:4px;">
                       Kembali dari\t:<br>
                       Tanggal\t\t\t :<br><br>
-                      Kepala \t. . . . . 
+                      Kepala \t. . . . .
                     </td></tr>`;
     } else {
       tujuan = `<ol>`;
@@ -437,12 +442,12 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         paraf += `<tr><td style="width: 43%;margin-bottom:5px; margin-top:4px;">
                       Tiba di\t\t :<br>
                       Tanggal\t  :<br><br>
-                      Kepala \t. . . . . 
+                      Kepala \t. . . . .
                     </td>
                     <td style="width: 50%;margin-bottom:5px; margin-top:4px;">
                       Kembali dari\t:<br>
                       Tanggal\t\t\t :<br><br>
-                      Kepala \t. . . . . 
+                      Kepala \t. . . . .
                     </td></tr>`;
       }
       tujuan += `</ol>`;
@@ -502,7 +507,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
                     <td style="width: 43%;margin-bottom:5px; margin-top:4px;">Pembebanan Biaya Perjalanan Dinas </td>
                     <td style="width: 50%;margin-bottom:5px; margin-top:4px;">${sumber}</td>
                   </tr>
-                  
+
                 </tbody>
               </table>
 
@@ -521,9 +526,9 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
       }">8.</td>
                     <td style="width: 93%;margin-bottom:5px; margin-top:4px;" colspan="2">MENGETAHUI PEJABAT DAERAH YANG DIKUNJUNGI<br><span>Tempat Kedudukan Melaksanakan Perintah</span></td>
                   </tr>
-                  
+
                     ${paraf}
-                  
+
                    <tr>
                     <td style="width: 7%;margin-bottom:5px; margin-top:4px;" rowspan="2">9.</td>
                     <td style="width: 93%;margin-bottom:5px; margin-top:4px;" colspan="2">CATATAN</td>
@@ -534,7 +539,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
                   </tr>
                 </tbody>
               </table>
-              
+
             </td>
           </tr>
         </tbody>
@@ -575,13 +580,13 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             .format('dddd, DD MMMM YYYY HH:mm')} (${detailSppd?.realisasi_biaya[i].rate_wt * 100
           }%*) </span>
       <table cellspacing="0" width="100%" style="margin-top:-10">
-        <tbody>    
+        <tbody>
         <tr>
             <td style="width:40%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Daftar Rincian</strong> </td>
             <td style="width:29%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Sumber Biaya</strong> </td>
             <td style="width:29%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" ><strong>Total Biaya</strong></td>
-          </tr> 
-                 
+          </tr>
+
             <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Tiket </td>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${detailSppd?.realisasi_biaya[i]?.p_tiket
@@ -589,7 +594,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.rill_tiket,
           )}</td>
-          </tr> 
+          </tr>
 
           <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Makan</td>
@@ -598,7 +603,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i].fix_um,
           )}</td>
-          </tr>  
+          </tr>
 
           <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Transportasi Lokal</td </td>
@@ -607,7 +612,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.fix_tr,
           )}</td>
-          </tr> 
+          </tr>
 
           <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Saku </td </td>
@@ -616,7 +621,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.fix_us,
           )}</td>
-          </tr>  
+          </tr>
 
             <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Hotel</td>
@@ -625,7 +630,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.rill_hotel,
           )}</td>
-          </tr>  
+          </tr>
 
           <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang BBM</td>
@@ -633,7 +638,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.rill_bbm,
           )}</td>
-          </tr> 
+          </tr>
 
            <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Tranportasi Umum</td>
@@ -641,17 +646,17 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >${rupiah(
             detailSppd?.realisasi_biaya[i]?.rill_t_umum,
           )}</td>
-          </tr> 
-         
+          </tr>
+
           <tr>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total Biaya</strong></td </td>
             <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"</td>
             <td style="margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" ><strong>${rupiah(
             detailSppd?.realisasi_biaya[i]?.jumlah_rill,
           )}</strong></td>
-          </tr>  
-          
-        
+          </tr>
+
+
         </tbody>
       </table>
     </li>`;
@@ -661,7 +666,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         'ST',
         'SPPD',
       )}</p><br>
-        
+
         <table cellpadding="5" cellspacing="0" width="100%">
           <tbody>
             <tr>
@@ -701,14 +706,14 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           Total Uang Muka _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _<u>${rupiah(detailSppd?.uang_muka)}  </u>
           <br/>
           Total Selisih Biaya _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _   <i style="color:${(detailSppd?.rill_biaya - detailSppd?.uang_muka - detailSppd?.rill_tiket) < 0 ? 'red' : 'green'}">${rupiah((detailSppd?.rill_biaya) - (detailSppd?.uang_muka) - (detailSppd?.rill_tiket))}</i>
-          </strong>   
+          </strong>
           </span>
       </td>
      </tr>
     </tbody>
    </table>
-        <br> 
-        
+        <br>
+
         `;
       setTimeout(() => {
         print(
@@ -760,7 +765,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         </tbody>
       </table>
       <p style="text-align:justify; line-height:1.3; margin-top:-3">
-        Dengan ini menyatakan bahwa atas nama <strong>${detailSppd?.nama}</strong> Jabatan <strong>${detailSppd?.jabatan}</strong> sesuai dengan Surat Tugas Nomor <strong>${detailSppd?.nomor_sppd}</strong> tanggal ${dayjs(detailSppd?.approval?.find((f) => f.type === 'sign')?.updated_at).format('DD MMMM YYYY')} melakukan penambahan perjalanan dinas selama 
+        Dengan ini menyatakan bahwa atas nama <strong>${detailSppd?.nama}</strong> Jabatan <strong>${detailSppd?.jabatan}</strong> sesuai dengan Surat Tugas Nomor <strong>${detailSppd?.nomor_sppd}</strong> tanggal ${dayjs(detailSppd?.approval?.find((f) => f.type === 'sign')?.updated_at).format('DD MMMM YYYY')} melakukan penambahan perjalanan dinas selama
         ${detailektend?.start && detailektend?.end ? dayjs(detailektend?.end).diff(dayjs(detailektend?.start), 'day') + 1 : '-'} hari mulai  tanggal ${dayjs(detailektend?.start).format('DD MMMM YYYY')} - ${dayjs(detailektend?.end).format('DD MMMM YYYY')} dikarenakan ${detailektend?.alasan}.
       </p>
       <p style="text-align:justify; line-height:1.3; margin-top:-3">
@@ -805,7 +810,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         'SPPD',
       )}</p><br>
 
-      
+
       <table cellpadding="5" cellspacing="0" width="100%" >
         <tbody>
           <tr>
@@ -828,7 +833,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none" >: ${detailSppd?.jabatan
         }</td>
           </tr>
-         
+
         </tbody>
       </table>
 
@@ -849,7 +854,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           ? detailSppd?.approval?.filter((f) => f.type === 'check_document')[0]?.first_name
           : '-'
         }</strong></p>
-      
+
       `;
       setTimeout(() => {
         print(
@@ -884,43 +889,43 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         console.log(detailSppd?.tujuan_sppd[i]?.termin[j]?.id)
         termin += `
         <tr>
-                                                                                                                                                                                                    
+
          <td style="width:4%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${(detailSppd?.tujuan_sppd[i]?.termin[j]?.id + 1)}</td>
-         <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${dayjs(detailSppd?.tujuan_sppd[i]?.termin[j]?.tgl_bayar).format('DD MMMM YYYY')}</td> 
+         <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${dayjs(detailSppd?.tujuan_sppd[i]?.termin[j]?.tgl_bayar).format('DD MMMM YYYY')}</td>
          <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${rupiah(detailSppd?.tujuan_sppd[i]?.termin[j]?.jumlah)}</td>
         </tr>`;
       }
 
       tets += `<li style="margin-bottom:10px;">
 
-     
+
       <table cellspacing="0" width="100%" style="margin-top:-17">
         <tbody>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Jenis Perjalanan Dinas</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.jenis_sppd
         }</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Kategori</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.categori_sppd
         }</td>
-          </tr> 
+          </tr>
            <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Detail Tujuan</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.detail_tujuan
         }</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Sumber Biaya</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.sumber_biaya
         }</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">RKAP</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.renbis || '-'
         }</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Waktu Berangkat</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${dayjs(
@@ -929,7 +934,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           .locale('id')
           .format('dddd, DD MMMM YYYY HH:mm')} (${detailSppd?.tujuan_sppd[i].rate_wb * 100
         }%*)</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Waktu Kembali</td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${dayjs(
@@ -938,63 +943,63 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           .locale('id')
           .format('dddd, DD MMMM YYYY HH:mm')} (${detailSppd?.tujuan_sppd[i].rate_wt * 100
         }%*)</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Tiket </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: aktual</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Makan </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
           detailSppd?.tujuan_sppd[i].fix_um,
         )}</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Transportasi Lokal </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
           detailSppd?.tujuan_sppd[i]?.fix_tl,
         )}</td>
-          </tr>         
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Saku </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
           detailSppd?.tujuan_sppd[i]?.fix_us,
         )}</td>
-          </tr>         
+          </tr>
             <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Hotel </td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.fix_hotel > 0 ? (rupiah(detailSppd?.tujuan_sppd[i]?.fix_hotel,)) : `Sharing dengan SPPD No. ${detailSppd?.tujuan_sppd[i]?.share_label}`}</td>
-          </tr> 
+          </tr>
           <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang BBM </td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
           detailSppd?.tujuan_sppd[i]?.bbm,
         )}</td>
-              
-          </tr>         
+
+          </tr>
             <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total Perkiraan Biaya</strong></td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >:  <strong>${rupiah(
           detailSppd?.tujuan_sppd[i]?.total_biaya,
         )}</strong></td>
-          </tr>  
-          </tr>         
+          </tr>
+          </tr>
             <tr>
             <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total Uang Muka</strong></td </td>
             <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >:  <strong>${rupiah(
           detailSppd?.tujuan_sppd[i]?.uang_muka,
         )}</strong></td>
-          </tr>    
+          </tr>
         </tbody>
       </table>
-      
+
       <p><strong>Termin Pembayaran Uang Muka</strong></p>
         <table cellspacing="0" width="100%" style="margin-top:-17">
         <tbody>
         ${termin}
         </tbody>
       </table>
-     
+
     </li>`;
     }
 
@@ -1002,7 +1007,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
       'ST',
       'SPPD',
     )}</p><br>
-      
+
       <table cellpadding="5" cellspacing="0" width="100%">
         <tbody>
           <tr>
@@ -1065,7 +1070,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
      </tr>
     </tbody>
    </table>
-        <br>    
+        <br>
       `;
     setTimeout(() => {
       print(
@@ -1116,7 +1121,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           .locale('id')
           .format('DD')} - ${dayjs(tjn?.tigapuluh?.selesai).locale('id').format('DD MMMM YYYY')}, memohon untuk persetujuan pembayaran sebesar 30% dari standar anggaran penginapan yang sudah ditetapkan oleh perusahaan.</p>
     <p>Demikian surat keterangan ini kami buat dengan sebenarnya untuk disetujui sebagaimana mestinya.</p>
-    
+
       `;
     setTimeout(() => {
       print2(

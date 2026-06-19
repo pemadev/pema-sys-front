@@ -102,7 +102,7 @@ const Absen = () => {
 
                     setTimeout(() => {
                         const distance = getDistance(userLocation, office);
-                        if (distance <= 100) { // Cek radius dalam satuan meter
+                        if (distance <= 50) { // Cek radius dalam satuan meter
                             setIsCameraOpen(true);
                         } else {
                             setInout('')

@@ -46,7 +46,7 @@ const KontrakPage = Loadable(lazy(() => import('../pages/kontrak')));
 /***** Mobilo****/
 const MobilPage = Loadable(lazy(() => import('../pages/mobil')));
 /***** abse****/
-const AbsenPage = Loadable(lazy(() => import('../pages/absen')));
+// const AbsenPage = Loadable(lazy(() => import('../pages/absen')));
 
 /***** Pengajuan ****/
 const Pengajuan = Loadable(lazy(() => import('../pages/pengajuan/Pengajuan')));
@@ -151,11 +151,11 @@ const ThemeRoutes = [
     path: '/',
     element: <RequireAuth allowedRoles={[ROLES.Employee]} />,
     children: [
-      {
-        path: 'absen',
-        name: 'Absensi',
-        element: <AbsenPage />,
-      },
+      // {
+      //   path: 'absen',
+      //   name: 'Absensi',
+      //   element: <AbsenPage />,
+      // },
       {
         path: '/',
         element: <FullLayout />,

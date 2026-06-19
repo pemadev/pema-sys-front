@@ -2,7 +2,11 @@
 //     table-layout: auto; /* Pastikan tabel menyesuaikan lebar */
 //     width: auto !important;
 //   }
-  
+
 //   .dataTables_wrapper table th {
 //     width: auto !important; /* Hapus lebar default */
 //   }
+
+.rdt_TableCell {
+  cursor: pointer!important;
+}

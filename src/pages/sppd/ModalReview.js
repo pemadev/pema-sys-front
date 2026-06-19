@@ -69,7 +69,7 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
     <>
       <Modal isOpen={modalR} toggle={toggleR} size="lg">
         <ModalHeader toggle={toggleR}>
-          Lembar Persetujuan <small className="fst-italic">({detailSppd?.current_type==='extend'?'Pengajuan Penambahan Hari':detailSppd?.current_type})</small>
+          Lembar Persetujuan <small className="fst-italic">({detailSppd?.current_type})</small>
         </ModalHeader>
         <ModalBody className="p-5">
           {detailSppd ? (
@@ -163,7 +163,7 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
                           <span style={{ minWidth: 10, display: 'inline-block' }}>:</span>
                           <span>{item.alasan}</span>
                         </div>
-                       
+
                       </Box>
                     ))
                   ) : ''}
