@@ -11,6 +11,8 @@ const FullLayout = Loadable(lazy(() => import('../layouts/FullLayout')));
 const BlankLayout = Loadable(lazy(() => import('../layouts/BlankLayout')));
 const StarterKit = Loadable(lazy(() => import('../pages/Starterkit')));
 
+const Saham = Loadable(lazy(() => import('../pages/Saham')));
+
 /***** Profile ****/
 const ProfilePage = Loadable(lazy(() => import('../pages/profile')));
 /***** Profile ****/
@@ -418,7 +420,14 @@ const ThemeRoutes = [
       },
     ],
   },
+
+
   // report
+
+  {
+    path: '/saham',
+    element: <Saham />,
+  },
   {
     path: '/pema-report',
     element: <PemaReport />,

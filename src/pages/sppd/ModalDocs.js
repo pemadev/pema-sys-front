@@ -566,7 +566,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   const printRealisasi = () => {
     setLoading(true);
     setTypeSign('verif_realisasi');
-    if (detailSppd.realisasi_status) {
+    if (detailSppd.realisasi) {
       console.log(detailSppd);
 
       let tets = ``;
