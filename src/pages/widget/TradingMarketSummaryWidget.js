@@ -6,12 +6,12 @@ function TradingMarketSummaryWidget() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const existingScript = document.getElementById('tradingview-market-summary-script');
+    const existingScript = document.getElementById('tradingview-market-overview-script');
 
     if (!existingScript) {
       const script = document.createElement('script');
-      script.id = 'tradingview-market-summary-script';
-      script.src = 'https://widgets.tradingview-widget.com/w/en/tv-market-summary.js';
+      script.id = 'tradingview-market-overview-script';
+      script.src = 'https://widgets.tradingview-widget.com/w/en/tv-market-overview.js';
       script.type = 'module';
       script.async = true;
       document.head.appendChild(script);
@@ -32,17 +32,11 @@ function TradingMarketSummaryWidget() {
         overflow: 'hidden',
       }}
     >
-      <tv-market-summary
-      background-color="#000000"
-        color-theme="dark"
-        font-family="Arial, sans-serif"
-        font-size="14px"
-      layout-mode="grid"
+      <tv-market-overview
         exchange="IDX"
-        direction="vertical"
-        item-size="compact"
+        mode="market-movers"
         style={{ display: 'block', width: '100%', height: '100%', minHeight: 320 }}
-      ></tv-market-summary>
+      ></tv-market-overview>
     </div>
   );
 }
