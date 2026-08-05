@@ -486,6 +486,13 @@ const SidebarData = [
       },
     ],
   },
+  {
+    title: 'Rapat',
+    href: '/book-meeting',
+    id: 8,
+    icon: <MaterialIcon icon="meeting_room" />,
+    collapisble: false,
+  },
 ];
 
 export default SidebarData;

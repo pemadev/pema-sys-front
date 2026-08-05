@@ -66,6 +66,10 @@ const ProjectReport = Loadable(lazy(() => import('../pages/projects/Report')));
 const TimelinePage = Loadable(lazy(() => import('../pages/timeline/Timeline')));
 /***** Timeline ****/
 
+/***** Meeting ****/
+const MeetingPage = Loadable(lazy(() => import('../pages/meeting')));
+/***** Meeting ****/
+
 /***** Tickets ****/
 const TicketPage = Loadable(lazy(() => import('../pages/tickets')));
 /***** Tickets ****/
@@ -202,6 +206,11 @@ const ThemeRoutes = [
             path: 'timeline',
             name: 'Timeline',
             element: <TimelinePage />,
+          },
+          {
+            path: 'book-meeting',
+            name: 'Rapat',
+            element: <MeetingPage />,
           },
           // {
           //   path: 'daily-old',

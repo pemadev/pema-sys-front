@@ -40,6 +40,12 @@ const SidebarData = [
         allowedRoles: ['Employee'],
         icon: <MaterialIcon icon="event" />,
       },
+      {
+        title: 'Rapat',
+        href: '/book-meeting',
+        allowedRoles: ['Employee'],
+        icon: <MaterialIcon icon="meeting_room" />,
+      },
       //   {
       //     title: 'Daily Old',
       //     href: '/daily-old',
@@ -146,7 +152,7 @@ const SidebarData = [
     allowedRoles: ['Employee'],
   },
 
-  
+
   { caption: 'Pengajuan' },
   {
     title: 'Pengajuan',
