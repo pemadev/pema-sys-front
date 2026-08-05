@@ -12,6 +12,7 @@ const BlankLayout = Loadable(lazy(() => import('../layouts/BlankLayout')));
 const StarterKit = Loadable(lazy(() => import('../pages/Starterkit')));
 
 const Saham = Loadable(lazy(() => import('../pages/Saham')));
+const PublicRoomSchedule = Loadable(lazy(() => import('../pages/meeting/PublicRoomSchedule')));
 
 /***** Profile ****/
 const ProfilePage = Loadable(lazy(() => import('../pages/profile')));
@@ -436,6 +437,10 @@ const ThemeRoutes = [
   {
     path: '/saham',
     element: <Saham />,
+  },
+  {
+    path: '/jadwal-rapat',
+    element: <PublicRoomSchedule />,
   },
   {
     path: '/pema-report',

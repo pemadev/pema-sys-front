@@ -1,0 +1,588 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Card, CardBody, Spinner } from 'reactstrap';
+
+const DEFAULT_ROOMS = [
+  {
+    name: 'Growth',
+    emoji: '📈',
+    accent: '#1d4ed8',
+    surface: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+    titleColor: '#0f172a',
+    mutedColor: '#334155',
+    countBackground: 'rgba(15, 23, 42, 0.08)',
+    countColor: '#0f172a',
+    iconBackground: 'rgba(30, 64, 175, 0.14)',
+    iconColor: '#1d4ed8',
+  },
+  {
+    name: 'Harmoni',
+    emoji: '🎵',
+    accent: '#047857',
+    surface: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+    titleColor: '#0f172a',
+    mutedColor: '#334155',
+    countBackground: 'rgba(15, 23, 42, 0.08)',
+    countColor: '#0f172a',
+    iconBackground: 'rgba(4, 120, 87, 0.14)',
+    iconColor: '#047857',
+  },
+  {
+    name: 'Kopiah',
+    emoji: '🧢',
+    accent: '#b45309',
+    surface: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+    titleColor: '#0f172a',
+    mutedColor: '#334155',
+    countBackground: 'rgba(15, 23, 42, 0.08)',
+    countColor: '#0f172a',
+    iconBackground: 'rgba(180, 83, 9, 0.14)',
+    iconColor: '#b45309',
+  },
+  {
+    name: 'Internasional',
+    emoji: '🌍',
+    accent: '#0f766e',
+    surface: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)',
+    titleColor: '#0f172a',
+    mutedColor: '#334155',
+    countBackground: 'rgba(15, 23, 42, 0.08)',
+    countColor: '#0f172a',
+    iconBackground: 'rgba(15, 118, 110, 0.14)',
+    iconColor: '#0f766e',
+  },
+];
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
+    padding: '18px',
+    color: '#e5eefb',
+    background:
+      'radial-gradient(circle at top left, rgba(56, 189, 248, 0.26), transparent 34%), radial-gradient(circle at top right, rgba(16, 185, 129, 0.18), transparent 32%), linear-gradient(135deg, #08121f 0%, #0b1729 45%, #09101a 100%)',
+  },
+  shell: {
+    maxWidth: '1440px',
+    margin: '0 auto',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  hero: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1.6fr) minmax(280px, 0.8fr)',
+    gap: '12px',
+    flex: '0 0 auto',
+  },
+  heroPanel: {
+    borderRadius: '24px',
+    padding: '18px',
+    border: '1px solid rgba(148, 163, 184, 0.18)',
+    background: 'rgba(7, 12, 24, 0.78)',
+    boxShadow: '0 18px 40px rgba(2, 6, 23, 0.28)',
+    backdropFilter: 'blur(18px)',
+  },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    borderRadius: '999px',
+    background: 'rgba(15, 23, 42, 0.7)',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    color: '#dbeafe',
+    fontWeight: 700,
+    fontSize: '13px',
+    letterSpacing: '0.02em',
+  },
+  title: {
+    margin: '12px 0 8px',
+    fontSize: 'clamp(26px, 3vw, 42px)',
+    lineHeight: 1.05,
+    fontWeight: 800,
+    letterSpacing: '-0.04em',
+  },
+  subtitle: {
+    margin: 0,
+    maxWidth: '70ch',
+    color: '#9fb2c9',
+    fontSize: '13px',
+    lineHeight: 1.45,
+  },
+  statLabel: {
+    color: '#94a3b8',
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    marginBottom: '8px',
+  },
+  statValue: {
+    fontSize: '28px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#f8fafc',
+  },
+  statHint: {
+    marginTop: '6px',
+    color: '#8ea2ba',
+    fontSize: '13px',
+  },
+  topActions: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+  },
+  refreshButton: {
+    borderRadius: '999px',
+    padding: '8px 14px',
+    border: '1px solid rgba(96, 165, 250, 0.4)',
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(14, 165, 233, 0.14))',
+    color: '#eff6ff',
+    fontWeight: 700,
+    fontSize: '13px',
+  },
+  contentGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '12px',
+    flex: '1 1 auto',
+    minHeight: 0,
+  },
+  roomCard: {
+    borderRadius: '22px',
+    padding: '16px',
+    minHeight: 0,
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+    boxShadow: '0 16px 30px rgba(2, 6, 23, 0.22)',
+    overflow: 'hidden',
+  },
+  roomHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '12px',
+    alignItems: 'flex-start',
+    marginBottom: '10px',
+  },
+  roomTitleWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    minWidth: 0,
+  },
+  roomIcon: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '14px',
+    display: 'grid',
+    placeItems: 'center',
+    fontSize: '20px',
+  },
+  roomName: {
+    margin: 0,
+    fontSize: '20px',
+    lineHeight: 1.1,
+    fontWeight: 800,
+  },
+  roomMeta: {
+    marginTop: '2px',
+    color: 'inherit',
+    fontSize: '12px',
+  },
+  roomCount: {
+    borderRadius: '999px',
+    padding: '6px 10px',
+    fontWeight: 800,
+    fontSize: '12px',
+    whiteSpace: 'nowrap',
+  },
+  nextCard: {
+    borderRadius: '16px',
+    padding: '12px',
+    marginBottom: '10px',
+    background: 'rgba(15, 23, 42, 0.5)',
+    border: '1px solid rgba(148, 163, 184, 0.12)',
+  },
+  nextLabel: {
+    color: '#94a3b8',
+    fontSize: '11px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+    marginBottom: '4px',
+  },
+  nextTopic: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: 800,
+    color: 'inherit',
+  },
+  nextInfo: {
+    marginTop: '6px',
+    color: 'inherit',
+    fontSize: '13px',
+    lineHeight: 1.5,
+  },
+  compactInfo: {
+    display: 'grid',
+    gap: '6px',
+    marginTop: '4px',
+    padding: '10px 12px',
+    borderRadius: '16px',
+    background: 'rgba(15, 23, 42, 0.38)',
+    border: '1px solid rgba(148, 163, 184, 0.1)',
+  },
+  meetingList: {
+    display: 'grid',
+    gap: '6px',
+    marginTop: '8px',
+  },
+  meetingItem: {
+    display: 'grid',
+    gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+    gap: '10px',
+    alignItems: 'center',
+    padding: '8px 10px',
+    borderRadius: '12px',
+    background: 'rgba(15, 23, 42, 0.34)',
+    border: '1px solid rgba(148, 163, 184, 0.1)',
+  },
+  picAvatar: {
+    width: '30px',
+    height: '30px',
+    borderRadius: '999px',
+    display: 'grid',
+    placeItems: 'center',
+    fontSize: '11px',
+    fontWeight: 800,
+    color: '#0f172a',
+    background: 'rgba(255, 255, 255, 0.82)',
+    flex: '0 0 auto',
+  },
+  meetingText: {
+    minWidth: 0,
+    display: 'grid',
+    gap: '2px',
+  },
+  meetingTitle: {
+    margin: 0,
+    fontSize: '13px',
+    fontWeight: 800,
+    lineHeight: 1.2,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  meetingMeta: {
+    margin: 0,
+    fontSize: '11px',
+    lineHeight: 1.2,
+    color: 'inherit',
+    opacity: 0.9,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  liveBadge: {
+    borderRadius: '999px',
+    padding: '4px 8px',
+    fontSize: '10px',
+    fontWeight: 800,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+  },
+  emptyState: {
+    borderRadius: '16px',
+    padding: '14px',
+    color: '#cbd5e1',
+    background: 'rgba(15, 23, 42, 0.38)',
+    border: '1px dashed rgba(148, 163, 184, 0.22)',
+  },
+  loadingState: {
+    borderRadius: '16px',
+    padding: '12px 14px',
+    color: '#cbd5e1',
+    background: 'rgba(15, 23, 42, 0.38)',
+    border: '1px solid rgba(148, 163, 184, 0.12)',
+  },
+};
+
+const buildApiUrl = (path) => {
+  const baseURL = process.env.REACT_APP_BASEURL || '';
+
+  if (!baseURL) {
+    return `/${path}`;
+  }
+
+  return `${baseURL.replace(/\/$/, '')}/${path}`;
+};
+
+const getValue = (item, keys) => keys.map((key) => item?.[key]).find((value) => value !== undefined && value !== null && value !== '') || '';
+
+const getRoomName = (item) => String(getValue(item, ['room', 'ruangan', 'location']) || '').trim();
+
+const formatTime = (value) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const isSameDay = (leftValue, rightValue) => {
+  const leftDate = new Date(leftValue);
+  const rightDate = new Date(rightValue);
+
+  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) {
+    return false;
+  }
+
+  return (
+    leftDate.getFullYear() === rightDate.getFullYear()
+    && leftDate.getMonth() === rightDate.getMonth()
+    && leftDate.getDate() === rightDate.getDate()
+  );
+};
+
+const isMeetingActive = (item, currentTime) => {
+  const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
+  const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
+  const startDate = new Date(startValue);
+  const endDate = new Date(endValue);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return false;
+  }
+
+  return startDate <= currentTime && currentTime <= endDate;
+};
+
+const sortMeetings = (items) => [...items].sort((left, right) => {
+  const leftTime = new Date(getValue(left, ['start_time', 'startTime', 'start_at', 'start'])).getTime();
+  const rightTime = new Date(getValue(right, ['start_time', 'startTime', 'start_at', 'start'])).getTime();
+
+  if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) return 0;
+  if (Number.isNaN(leftTime)) return 1;
+  if (Number.isNaN(rightTime)) return -1;
+  return leftTime - rightTime;
+});
+
+const PublicRoomSchedule = () => {
+  const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [now, setNow] = useState(new Date());
+  const hasLoadedRef = useRef(false);
+  const inFlightRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+      setRefreshTick((value) => value + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadMeetings = async () => {
+      if (inFlightRef.current) {
+        return;
+      }
+
+      inFlightRef.current = true;
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch(buildApiUrl('dapi/meeting/room/list'), {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const data = payload?.data ?? payload ?? [];
+        setMeetings(Array.isArray(data) ? data : []);
+        hasLoadedRef.current = true;
+      } catch (fetchError) {
+        if (fetchError?.name !== 'AbortError') {
+          if (!hasLoadedRef.current) {
+            setMeetings([]);
+          }
+        }
+      } finally {
+        setLoading(false);
+        inFlightRef.current = false;
+      }
+    };
+
+    loadMeetings();
+
+    return () => controller.abort();
+  }, [refreshTick]);
+
+  const roomCards = useMemo(() => {
+    const grouped = DEFAULT_ROOMS.map((room) => {
+      const roomMeetings = sortMeetings(
+        meetings.filter((item) => getRoomName(item).toLowerCase() === room.name.toLowerCase()),
+      ).filter((item) => isSameDay(getValue(item, ['start_time', 'startTime', 'start_at', 'start']), now));
+
+      const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
+
+      return {
+        ...room,
+        meetings: roomMeetings,
+        total: roomMeetings.length,
+        next: activeMeeting || roomMeetings[0] || null,
+        activeMeeting,
+      };
+    });
+
+    const extraRooms = Array.from(new Set(meetings.map((item) => getRoomName(item)).filter(Boolean)))
+      .filter((roomName) => !DEFAULT_ROOMS.some((room) => room.name.toLowerCase() === roomName.toLowerCase()))
+      .map((roomName, index) => {
+        const roomMeetings = sortMeetings(meetings.filter((item) => getRoomName(item).toLowerCase() === roomName.toLowerCase()))
+          .filter((item) => isSameDay(getValue(item, ['start_time', 'startTime', 'start_at', 'start']), now));
+        const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
+        return {
+          name: roomName,
+          emoji: ['🏢', '🪑', '📅', '📍'][index % 4],
+          accent: ['#4f46e5', '#be185d', '#0f766e', '#7c3aed'][index % 4],
+          surface: 'linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 41, 59, 0.95) 100%)',
+          meetings: roomMeetings,
+          total: roomMeetings.length,
+          next: activeMeeting || roomMeetings[0] || null,
+          activeMeeting,
+        };
+      });
+
+    return [...grouped, ...extraRooms];
+  }, [meetings]);
+
+  const totalMeetings = meetings.length;
+  const activeRooms = roomCards.filter((room) => room.total > 0).length;
+
+  return (
+    <div style={styles.page}>
+      <div style={styles.shell}>
+        <div style={styles.hero}>
+          <Card style={styles.heroPanel} className="border-0">
+            <CardBody className="p-0">
+              <div style={styles.badge}>Pusat Informasi</div>
+              <h1 style={styles.title}>Jadwal Rapat PT Pembangunan Aceh</h1>
+              <p style={styles.subtitle}>
+                Informasi Agenda Rapat yang berlangsung hari ini di setiap Ruang rapat PT Pembangunan Aceh (Perseroda)
+              </p>
+            </CardBody>
+          </Card>
+
+          <Card style={styles.heroPanel} className="border-0">
+            <CardBody className="p-0 d-flex flex-column h-100 justify-content-between">
+              <div style={styles.topActions}>
+                <Button style={styles.refreshButton} onClick={() => setRefreshTick((value) => value + 1)} disabled={loading}>
+                  {loading ? 'Memuat...' : 'Muat ulang'}
+                </Button>
+              </div>
+
+              <div style={{ marginTop: '12px' }}>
+                <div style={styles.statLabel}>Waktu server</div>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: '#f8fafc' }}>{now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
+                <div style={styles.statHint}>{now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        <div style={styles.contentGrid}>
+          {roomCards.map((room) => (
+            <Card key={room.name} style={{ ...styles.roomCard, background: room.surface, color: room.titleColor || '#f8fafc' }} className="border-0">
+              <CardBody className="p-0 d-flex flex-column h-100">
+                <div style={styles.roomHeader}>
+                  <div style={styles.roomTitleWrap}>
+                    <div
+                      style={{
+                        ...styles.roomIcon,
+                        background: room.iconBackground || 'rgba(255, 255, 255, 0.46)',
+                        color: room.iconColor || '#0f172a',
+                      }}
+                    >
+                      {room.emoji}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <h2 style={styles.roomName}>{room.name}</h2>
+                      <div style={styles.roomMeta}>Pembaruan jadwal ruang</div>
+                    </div>
+                  </div>
+                  <div style={{ ...styles.roomCount, background: room.countBackground || 'rgba(255, 255, 255, 0.8)', color: room.countColor || '#08111f' }}>{room.total} rapat</div>
+                </div>
+
+                <div style={styles.meetingList}>
+                  {room.meetings.slice(0, 4).map((item) => {
+                    const title = getValue(item, ['topic', 'title', 'name']) || 'Rapat';
+                    const start = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
+                    const end = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
+                    const pic = getValue(item, ['created_by_name', 'created_by', 'creator_name', 'user_name', 'name']) || '-';
+                    const picInitial = String(pic).trim().charAt(0).toUpperCase() || 'P';
+                    const active = isMeetingActive(item, now);
+                    const rowKey = [room.name, title, start, end, pic].filter(Boolean).join('-');
+
+                    return (
+                      <div key={rowKey} style={styles.meetingItem}>
+                        <div style={styles.picAvatar}>{picInitial}</div>
+                        <div style={styles.meetingText}>
+                          <p style={styles.meetingTitle}>{title}</p>
+                          <p style={styles.meetingMeta}>
+                            {pic} • {formatTime(start)} - {formatTime(end)}
+                          </p>
+                        </div>
+                        {active ? (
+                          <div
+                            style={{
+                              ...styles.liveBadge,
+                              background: 'rgba(34, 197, 94, 0.18)',
+                              color: '#166534',
+                              border: '1px solid rgba(34, 197, 94, 0.26)',
+                            }}
+                          >
+                            Live
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+
+                  {!loading && room.meetings.length === 0 ? <div style={styles.emptyState}>Tidak ada jadwal hari ini.</div> : null}
+                </div>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+
+        <div className="d-flex justify-content-between align-items-center" style={{ flex: '0 0 auto', color: '#cbd5e1', fontSize: '13px' }}>
+          <div>{loading ? <span className="d-inline-flex align-items-center gap-2"><Spinner size="sm" color="light" /> Memuat jadwal rapat...</span> : `${totalMeetings} booking aktif • ${activeRooms} ruangan terisi`}</div>
+          <div>PT PEMA</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PublicRoomSchedule;
