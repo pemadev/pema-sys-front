@@ -129,12 +129,73 @@ const styles = {
     color: '#8ea2ba',
     fontSize: '13px',
   },
+  clockWrap: {
+    marginTop: '10px',
+    marginBottom: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+  },
+  analogClock: {
+    position: 'relative',
+    margin: '4px 10px 6px 0',
+    width: '128px',
+    height: '128px',
+    borderRadius: '999px',
+    background: 'radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.26), rgba(30, 41, 59, 0.95) 62%, rgba(15, 23, 42, 0.98) 100%)',
+    border: '1px solid rgba(148, 163, 184, 0.28)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -12px 24px rgba(2, 6, 23, 0.4), 0 16px 34px rgba(2, 6, 23, 0.35)',
+    display: 'grid',
+    placeItems: 'center',
+  },
+  clockInnerRing: {
+    position: 'absolute',
+    width: '102px',
+    height: '102px',
+    borderRadius: '999px',
+    border: '1px solid rgba(148, 163, 184, 0.22)',
+  },
+  clockCenterDot: {
+    position: 'absolute',
+    width: '10px',
+    height: '10px',
+    borderRadius: '999px',
+    background: '#f8fafc',
+    boxShadow: '0 0 0 2px rgba(15, 23, 42, 0.7)',
+    zIndex: 5,
+  },
+  clockHand: {
+    position: 'absolute',
+    left: '50%',
+    bottom: '50%',
+    transformOrigin: 'bottom center',
+    borderRadius: '999px',
+  },
+  clockMarksLayer: {
+    position: 'absolute',
+    inset: '0',
+    borderRadius: '999px',
+  },
+  clockMark: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: '2px',
+    borderRadius: '999px',
+    transformOrigin: '50% 0%',
+  },
+  clockCaption: {
+    color: '#cbd5e1',
+    fontSize: '12px',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
   topActions: {
     display: 'flex',
     gap: '10px',
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   refreshButton: {
     borderRadius: '999px',
@@ -148,13 +209,13 @@ const styles = {
   contentGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '12px',
+    gap: '10px',
     flex: '1 1 auto',
     minHeight: 0,
   },
   roomCard: {
     borderRadius: '22px',
-    padding: '16px',
+    padding: '12px',
     minHeight: 0,
     border: '1px solid rgba(148, 163, 184, 0.16)',
     boxShadow: '0 16px 30px rgba(2, 6, 23, 0.22)',
@@ -165,7 +226,7 @@ const styles = {
     justifyContent: 'space-between',
     gap: '12px',
     alignItems: 'flex-start',
-    marginBottom: '10px',
+    marginBottom: '8px',
   },
   roomTitleWrap: {
     display: 'flex',
@@ -236,15 +297,15 @@ const styles = {
   },
   meetingList: {
     display: 'grid',
-    gap: '6px',
-    marginTop: '8px',
+    gap: '5px',
+    marginTop: '6px',
   },
   meetingItem: {
     display: 'grid',
     gridTemplateColumns: 'auto minmax(0, 1fr) auto',
-    gap: '10px',
+    gap: '8px',
     alignItems: 'center',
-    padding: '8px 10px',
+    padding: '7px 9px',
     borderRadius: '12px',
     background: 'rgba(15, 23, 42, 0.34)',
     border: '1px solid rgba(148, 163, 184, 0.1)',
@@ -492,6 +553,12 @@ const PublicRoomSchedule = () => {
 
   const totalMeetings = roomCards.reduce((sum, room) => sum + room.total, 0);
   const activeRooms = roomCards.filter((room) => room.total > 0).length;
+  const secondProgress = now.getSeconds() + (now.getMilliseconds() / 1000);
+  const minuteProgress = now.getMinutes() + (secondProgress / 60);
+  const hourProgress = (now.getHours() % 12) + (minuteProgress / 60);
+  const secondRotation = secondProgress * 6;
+  const minuteRotation = minuteProgress * 6;
+  const hourRotation = hourProgress * 30;
   const responsiveStyles = useMemo(() => ({
     page: {
       ...styles.page,
@@ -532,22 +599,63 @@ const PublicRoomSchedule = () => {
     },
     topActions: {
       ...styles.topActions,
-      justifyContent: isMobile ? 'flex-start' : styles.topActions.justifyContent,
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
     },
     refreshButton: {
       ...styles.refreshButton,
-      width: isCompact ? '100%' : 'auto',
+      width: 'auto',
       fontSize: isCompact ? '12px' : styles.refreshButton.fontSize,
+      padding: isCompact ? '7px 12px' : styles.refreshButton.padding,
+      whiteSpace: 'nowrap',
+    },
+    statLabel: {
+      ...styles.statLabel,
+      fontSize: isCompact ? '11px' : styles.statLabel.fontSize,
+      marginBottom: isCompact ? '6px' : styles.statLabel.marginBottom,
+    },
+    statHint: {
+      ...styles.statHint,
+      fontSize: isCompact ? '11px' : styles.statHint.fontSize,
+      marginTop: isCompact ? '4px' : styles.statHint.marginTop,
+    },
+    clockWrap: {
+      ...styles.clockWrap,
+      gap: isCompact ? '8px' : '10px',
+      alignItems: 'center',
+      marginTop: 0,
+      marginBottom: isCompact ? '4px' : styles.clockWrap.marginBottom,
+    },
+    analogClock: {
+      ...styles.analogClock,
+      margin: isCompact ? '3px 8px 5px 0' : (isMobile ? '4px 9px 6px 0' : styles.analogClock.margin),
+      width: isCompact ? '78px' : (isMobile ? '88px' : '104px'),
+      height: isCompact ? '78px' : (isMobile ? '88px' : '104px'),
+    },
+    clockInnerRing: {
+      ...styles.clockInnerRing,
+      width: isCompact ? '58px' : (isMobile ? '68px' : '80px'),
+      height: isCompact ? '58px' : (isMobile ? '68px' : '80px'),
+    },
+    clockCenterDot: {
+      ...styles.clockCenterDot,
+      width: isCompact ? '8px' : styles.clockCenterDot.width,
+      height: isCompact ? '8px' : styles.clockCenterDot.height,
+    },
+    clockCaption: {
+      ...styles.clockCaption,
+      fontSize: isCompact ? '10px' : styles.clockCaption.fontSize,
     },
     contentGrid: {
       ...styles.contentGrid,
       gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : styles.contentGrid.gridTemplateColumns,
-      gap: isCompact ? '10px' : styles.contentGrid.gap,
+      gap: isCompact ? '8px' : styles.contentGrid.gap,
     },
     roomCard: {
       ...styles.roomCard,
       borderRadius: isCompact ? '16px' : styles.roomCard.borderRadius,
-      padding: isCompact ? '12px' : styles.roomCard.padding,
+      padding: isCompact ? '10px' : (isMobile ? '11px' : styles.roomCard.padding),
     },
     roomHeader: {
       ...styles.roomHeader,
@@ -635,18 +743,79 @@ const PublicRoomSchedule = () => {
           </Card>
 
           <Card style={responsiveStyles.heroPanel} className="border-0">
-            <CardBody className="p-0 d-flex flex-column h-100 justify-content-between">
+            <CardBody className="p-0">
               <div style={responsiveStyles.topActions}>
+                <div>
+                  {/* <div style={responsiveStyles.statLabel}>Waktu server</div> */}
+                  <div style={responsiveStyles.clockWrap}>
+                  <div style={responsiveStyles.analogClock}>
+                    <div style={responsiveStyles.clockInnerRing} />
+                    <div style={styles.clockMarksLayer}>
+                      {Array.from({ length: 12 }).map((_, index) => {
+                        const isMajorMark = index % 3 === 0;
+                        const angle = index * 30;
+                        const markLength = isMajorMark ? (isCompact ? 12 : 16) : (isCompact ? 7 : 10);
+                        const markOffset = isCompact ? -42 : (isMobile ? -49 : -57);
+                        return (
+                          <div
+                            key={`mark-${angle}`}
+                            style={{
+                              ...styles.clockMark,
+                              height: `${markLength}px`,
+                              background: isMajorMark ? 'rgba(226, 232, 240, 0.82)' : 'rgba(148, 163, 184, 0.64)',
+                              transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(${markOffset}px)`,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    <div
+                      style={{
+                        ...styles.clockHand,
+                        width: isCompact ? '4px' : '5px',
+                        height: isCompact ? '19px' : (isMobile ? '23px' : '30px'),
+                        background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
+                        transform: `translateX(-50%) rotate(${hourRotation}deg)`,
+                        zIndex: 3,
+                      }}
+                    />
+                    <div
+                      style={{
+                        ...styles.clockHand,
+                        width: '3px',
+                        height: isCompact ? '24px' : (isMobile ? '29px' : '38px'),
+                        background: 'linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%)',
+                        transform: `translateX(-50%) rotate(${minuteRotation}deg)`,
+                        zIndex: 4,
+                      }}
+                    />
+                    <div
+                      style={{
+                        ...styles.clockHand,
+                        width: '2px',
+                        height: isCompact ? '29px' : (isMobile ? '34px' : '43px'),
+                        background: 'linear-gradient(180deg, #f43f5e 0%, #fb7185 100%)',
+                        transform: `translateX(-50%) rotate(${secondRotation}deg)`,
+                        zIndex: 4,
+                      }}
+                    />
+                    <div style={responsiveStyles.clockCenterDot} />
+                  </div>
+
+                  <div>
+                    <div style={{ ...styles.statValue, fontSize: isCompact ? '18px' : (isMobile ? '20px' : '24px') }}>
+                      {now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                    </div>
+                    <div style={responsiveStyles.clockCaption}>Server Time</div>
+                  </div>
+                </div>
+                </div>
                 <Button style={responsiveStyles.refreshButton} onClick={() => setRefreshTick((value) => value + 1)} disabled={loading}>
                   {loading ? 'Memuat...' : 'Muat ulang'}
                 </Button>
               </div>
-
-              <div style={{ marginTop: '12px' }}>
-                <div style={styles.statLabel}>Waktu server</div>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: '#f8fafc' }}>{now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
-                <div style={styles.statHint}>{now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
-              </div>
+              <div style={responsiveStyles.statHint}>{now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
             </CardBody>
           </Card>
         </div>
@@ -675,7 +844,7 @@ const PublicRoomSchedule = () => {
                 </div>
 
                 <div style={styles.meetingList}>
-                  {room.meetings.slice(0, 4).map((item) => {
+                  {room.meetings.slice(0, 3).map((item) => {
                     const title = getValue(item, ['topic', 'title', 'name']) || 'Rapat';
                     const start = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
                     const end = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
