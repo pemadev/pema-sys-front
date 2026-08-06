@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -50,6 +50,11 @@ const roomIcons = {
   Harmoni: '🎵',
   Kopiah: '🧢',
   Internasional: '🌍',
+};
+
+const SCHEDULE_FILTER = {
+  UPCOMING: 'upcoming',
+  PREVIOUS: 'previous',
 };
 
 const formatZoomDateTime = (value) => {
@@ -207,6 +212,8 @@ const Meeting = () => {
   const api = useAxios();
   const { auth } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('meeting');
+  const [scheduleFilter, setScheduleFilter] = useState(SCHEDULE_FILTER.UPCOMING);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
   const [meetingFormData, setMeetingFormData] = useState({
@@ -324,6 +331,75 @@ const Meeting = () => {
     } catch (error) {
       // Keep fallback approver when endpoint is unavailable.
     }
+  };
+
+  const isIncomingSchedule = (dateValue) => {
+    const meetingDate = new Date(dateValue);
+    if (Number.isNaN(meetingDate.getTime())) {
+      return true;
+    }
+
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return meetingDate >= startOfToday;
+  };
+
+  const filterByScheduleGroup = (items, getDateValue) => {
+    return items.filter((item) => {
+      const incoming = isIncomingSchedule(getDateValue(item));
+      if (scheduleFilter === SCHEDULE_FILTER.PREVIOUS) {
+        return !incoming;
+      }
+      return incoming;
+    });
+  };
+
+  const filteredRoomMeetings = useMemo(() => {
+    return filterByScheduleGroup(roomMeetings, (item) => item.start_time || item.startTime || item.start_at || item.start);
+  }, [roomMeetings, scheduleFilter]);
+
+  const filteredZoomMeetings = useMemo(() => {
+    return filterByScheduleGroup(zoomMeetings, (item) => getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']));
+  }, [zoomMeetings, scheduleFilter]);
+
+  const getMeetingStatusMeta = (startValue, endValue) => {
+    const nowTime = currentTime.getTime();
+    const startDate = new Date(startValue);
+    const endDate = new Date(endValue);
+    const hasStart = !Number.isNaN(startDate.getTime());
+    const hasEnd = !Number.isNaN(endDate.getTime());
+
+    if (hasStart && hasEnd) {
+      if (nowTime < startDate.getTime()) {
+        return { label: 'Scheduled', color: 'primary', textClassName: 'text-white' };
+      }
+      if (startDate.getTime() <= nowTime && nowTime <= endDate.getTime()) {
+        return { label: 'Live', color: 'success', textClassName: 'text-white' };
+      }
+      if (nowTime > endDate.getTime()) {
+        return { label: 'Finished', color: 'secondary', textClassName: 'text-white' };
+      }
+    }
+
+    if (hasStart && nowTime >= startDate.getTime()) {
+      return { label: 'Live', color: 'success', textClassName: 'text-white' };
+    }
+
+    return { label: 'Scheduled', color: 'primary', textClassName: 'text-white' };
+  };
+
+  const getRoomMeetingStatusMeta = (item) => {
+    return getMeetingStatusMeta(
+      item?.start_time || item?.startTime || item?.start_at || item?.start,
+      item?.end_time || item?.endTime || item?.end_at || item?.end,
+    );
+  };
+
+  const getZoomMeetingStatusMeta = (item) => {
+    return getMeetingStatusMeta(
+      getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']),
+      getZoomValue(item, ['end_time', 'endTime', 'end_at', 'end']),
+    );
   };
 
 
@@ -590,6 +666,14 @@ const Meeting = () => {
     fetchGeneralDivisionApprover();
   }, []);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   return (
     <>
       <BreadCrumbs />
@@ -790,6 +874,7 @@ const Meeting = () => {
                 const zoomPassword = getZoomDataValue(selectedRoomDetail, ['password', 'passcode', 'pwd']);
                 const zoomFlag = getZoomDataValue(selectedRoomDetail, ['zoom_required', 'zoom', 'is_zoom', 'need_zoom', 'with_zoom']);
                 const consumptionFlag = getZoomDataValue(selectedRoomDetail, ['consumption_required', 'consumption', 'is_consumption', 'need_consumption']);
+                const roomStatusMeta = getRoomMeetingStatusMeta(selectedRoomDetail);
                 const detailRows = [
                   { label: 'Topik', value: getZoomValue(selectedRoomDetail, ['topic', 'title', 'name']) || '-' },
                   { label: 'Deskripsi', value: getZoomValue(selectedRoomDetail, ['description', 'note', 'remarks']) || '-' },
@@ -797,7 +882,7 @@ const Meeting = () => {
                   { label: 'Peserta', value: getZoomValue(selectedRoomDetail, ['participants', 'jumlah_peserta']) || '-' },
                   { label: 'Waktu Mulai', value: formatZoomDateTime(getZoomValue(selectedRoomDetail, ['start_time', 'startTime', 'start_at', 'start'])) },
                   { label: 'Waktu Selesai', value: formatZoomDateTime(getZoomValue(selectedRoomDetail, ['end_time', 'endTime', 'end_at', 'end'])) },
-                  { label: 'Status', value: getZoomValue(selectedRoomDetail, ['status', 'meeting_status']) || 'Scheduled' },
+                  { label: 'Status', value: roomStatusMeta.label },
                   { label: 'Dibooking oleh', value: getCreatorName(selectedRoomDetail) || '-' },
                   { label: 'Butuh Zoom', value: getBooleanLabel(zoomFlag, Boolean(zoomLink)) },
                   { label: 'Butuh Konsumsi', value: getBooleanLabel(consumptionFlag) },
@@ -906,6 +991,7 @@ const Meeting = () => {
               const zoomLink = getZoomDataValue(selectedZoomDetail, ['join_url', 'link', 'zoom_link', 'meeting_url', 'start_url', 'url']);
               const zoomMeetingId = getZoomMeetingId(selectedZoomDetail);
               const zoomPassword = getZoomDataValue(selectedZoomDetail, ['password', 'passcode', 'pwd']);
+              const zoomStatusMeta = getZoomMeetingStatusMeta(selectedZoomDetail);
 
               return (
                 <div className="d-flex flex-column" style={{ gap: '10px' }}>
@@ -923,7 +1009,7 @@ const Meeting = () => {
                   </div>
                   <div className="d-flex justify-content-between gap-3">
                     <div className="text-muted">Status</div>
-                    <div className="text-end">{getZoomValue(selectedZoomDetail, ['status', 'meeting_status']) || 'Scheduled'}</div>
+                    <div className="text-end">{zoomStatusMeta.label}</div>
                   </div>
                   <div className="d-flex justify-content-between gap-3">
                     <div className="text-muted">Dibuat oleh</div>
@@ -1006,63 +1092,79 @@ const Meeting = () => {
         </ModalBody>
       </Modal>
 
-      <div className="d-flex gap-2 mb-3 p-2 rounded-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)', border: '1px solid #e6eefc' }}>
-        <Button
-          onClick={() => setActiveTab('meeting')}
-          style={{
-            borderRadius: '999px',
-            padding: '8px 16px',
-            fontWeight: 600,
-            border: activeTab === 'meeting' ? 'none' : '1px solid #cfe0ff',
-            background: activeTab === 'meeting' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'white',
-            color: activeTab === 'meeting' ? 'white' : '#2563eb',
-            boxShadow: activeTab === 'meeting' ? '0 6px 18px rgba(37, 99, 235, 0.2)' : 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>List Rapat</span>
-          <span
-            className="rounded-pill px-2 py-1"
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-3 p-2 rounded-3 shadow-sm flex-wrap" style={{ background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)', border: '1px solid #e6eefc' }}>
+        <div className="d-flex gap-2 flex-wrap">
+          <Button
+            onClick={() => setActiveTab('meeting')}
             style={{
-              background: activeTab === 'meeting' ? 'rgba(255,255,255,0.22)' : '#eaf2ff',
+              borderRadius: '999px',
+              padding: '8px 16px',
+              fontWeight: 600,
+              border: activeTab === 'meeting' ? 'none' : '1px solid #cfe0ff',
+              background: activeTab === 'meeting' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'white',
               color: activeTab === 'meeting' ? 'white' : '#2563eb',
-              fontSize: '12px',
-              fontWeight: 700,
+              boxShadow: activeTab === 'meeting' ? '0 6px 18px rgba(37, 99, 235, 0.2)' : 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
-            {roomMeetings.length}
-          </span>
-        </Button>
-        <Button
-          onClick={() => setActiveTab('zoom')}
-          style={{
-            borderRadius: '999px',
-            padding: '8px 16px',
-            fontWeight: 600,
-            border: activeTab === 'zoom' ? 'none' : '1px solid #c6f6d5',
-            background: activeTab === 'zoom' ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : 'white',
-            color: activeTab === 'zoom' ? 'white' : '#16a34a',
-            boxShadow: activeTab === 'zoom' ? '0 6px 18px rgba(22, 163, 74, 0.2)' : 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>List Zoom</span>
-          <span
-            className="rounded-pill px-2 py-1"
+            <span>List Rapat</span>
+            <span
+              className="rounded-pill px-2 py-1"
+              style={{
+                background: activeTab === 'meeting' ? 'rgba(255,255,255,0.22)' : '#eaf2ff',
+                color: activeTab === 'meeting' ? 'white' : '#2563eb',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              {filteredRoomMeetings.length}
+            </span>
+          </Button>
+          <Button
+            onClick={() => setActiveTab('zoom')}
             style={{
-              background: activeTab === 'zoom' ? 'rgba(255,255,255,0.22)' : '#ecfdf3',
+              borderRadius: '999px',
+              padding: '8px 16px',
+              fontWeight: 600,
+              border: activeTab === 'zoom' ? 'none' : '1px solid #c6f6d5',
+              background: activeTab === 'zoom' ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : 'white',
               color: activeTab === 'zoom' ? 'white' : '#16a34a',
-              fontSize: '12px',
-              fontWeight: 700,
+              boxShadow: activeTab === 'zoom' ? '0 6px 18px rgba(22, 163, 74, 0.2)' : 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
-            {zoomMeetings.length}
-          </span>
-        </Button>
+            <span>List Zoom</span>
+            <span
+              className="rounded-pill px-2 py-1"
+              style={{
+                background: activeTab === 'zoom' ? 'rgba(255,255,255,0.22)' : '#ecfdf3',
+                color: activeTab === 'zoom' ? 'white' : '#16a34a',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              {filteredZoomMeetings.length}
+            </span>
+          </Button>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+
+          <Input
+            id="scheduleFilter"
+            type="select"
+            value={scheduleFilter}
+            onChange={(event) => setScheduleFilter(event.target.value)}
+            style={{ minWidth: '280px', borderRadius: '999px', fontWeight: 600 }}
+          >
+            <option value={SCHEDULE_FILTER.UPCOMING}>Upcoming</option>
+            <option value={SCHEDULE_FILTER.PREVIOUS}>Previous</option>
+          </Input>
+        </div>
       </div>
 
       <div className="d-flex flex-column" style={{ gap: '10px' }}>
@@ -1071,12 +1173,12 @@ const Meeting = () => {
             <Card className="shadow-sm border-0" style={{ borderRadius: '16px' }}>
               <CardBody className="text-muted">Memuat daftar booking ruang...</CardBody>
             </Card>
-          ) : roomMeetings.length === 0 ? (
+          ) : filteredRoomMeetings.length === 0 ? (
             <Card className="shadow-sm border-0" style={{ borderRadius: '16px' }}>
-              <CardBody className="text-muted">Belum ada booking ruang rapat.</CardBody>
+              <CardBody className="text-muted">Tidak ada data untuk filter jadwal ini.</CardBody>
             </Card>
           ) : (
-            roomMeetings.map((item) => {
+            filteredRoomMeetings.map((item) => {
               const id = item.id || item.booking_id || item.meeting_id;
               const title = item.topic || item.title || item.name || 'Rapat';
               const description = item.description || item.note || item.remarks || '';
@@ -1084,6 +1186,7 @@ const Meeting = () => {
               const participants = item.participants || item.jumlah_peserta || '';
               const start = formatZoomDateTime(item.start_time || item.startTime || item.start_at || item.start);
               const end = formatZoomDateTime(item.end_time || item.endTime || item.end_at || item.end);
+              const roomStatusMeta = getRoomMeetingStatusMeta(item);
 
               return (
                 <Card key={id} className="shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openRoomDetailModal(item)}>
@@ -1152,8 +1255,8 @@ const Meeting = () => {
                     </div>
 
                     <div className="mt-3">
-                      <Badge color="light" className="text-dark">
-                        Status: {item.status || item.meeting_status || 'Scheduled'}
+                      <Badge color={roomStatusMeta.color} className={roomStatusMeta.textClassName}>
+                        Status: {roomStatusMeta.label}
                       </Badge>
                       {getCreatorName(item) ? (
                         <Badge color="secondary" className="text-white ms-2">
@@ -1186,16 +1289,17 @@ const Meeting = () => {
             <Card className="shadow-sm border-0" style={{ borderRadius: '16px' }}>
               <CardBody className="text-muted">Memuat daftar zoom meeting...</CardBody>
             </Card>
-          ) : zoomMeetings.length === 0 ? (
+          ) : filteredZoomMeetings.length === 0 ? (
             <Card className="shadow-sm border-0" style={{ borderRadius: '16px' }}>
-              <CardBody className="text-muted">Belum ada booking zoom meeting.</CardBody>
+              <CardBody className="text-muted">Tidak ada data untuk filter jadwal ini.</CardBody>
             </Card>
           ) : (
-            zoomMeetings.map((item) => {
+            filteredZoomMeetings.map((item) => {
               const zid = item.id || item.meeting_id || item.meetingId;
               const title = getZoomValue(item, ['topic', 'title', 'name']) || 'Zoom Meeting';
               const start = formatZoomDateTime(getZoomValue(item, ['start_time', 'startTime', 'start_at']));
               const end = formatZoomDateTime(getZoomValue(item, ['end_time', 'endTime', 'end_at']));
+              const zoomStatusMeta = getZoomMeetingStatusMeta(item);
 
               return (
                 <Card key={zid} className="shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openZoomDetailModal(item)}>
@@ -1236,8 +1340,8 @@ const Meeting = () => {
                     </div>
 
                     <div className="mt-3 d-flex flex-wrap gap-2">
-                      <Badge color="light" className="text-dark">
-                        Status: {getZoomValue(item, ['status', 'meeting_status']) || 'Scheduled'}
+                      <Badge color={zoomStatusMeta.color} className={zoomStatusMeta.textClassName}>
+                        Status: {zoomStatusMeta.label}
                       </Badge>
                       {getCreatorName(item) ? (
                         <Badge color="secondary" className="text-white">

@@ -382,8 +382,12 @@ const PublicRoomSchedule = () => {
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
   const [now, setNow] = useState(new Date());
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const hasLoadedRef = useRef(false);
   const inFlightRef = useRef(false);
+
+  const isMobile = viewportWidth <= 768;
+  const isCompact = viewportWidth <= 430;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -391,6 +395,15 @@ const PublicRoomSchedule = () => {
       setRefreshTick((value) => value + 1);
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -477,27 +490,154 @@ const PublicRoomSchedule = () => {
     return [...grouped, ...extraRooms];
   }, [meetings]);
 
-  const totalMeetings = meetings.length;
+  const totalMeetings = roomCards.reduce((sum, room) => sum + room.total, 0);
   const activeRooms = roomCards.filter((room) => room.total > 0).length;
+  const responsiveStyles = useMemo(() => ({
+    page: {
+      ...styles.page,
+      height: isMobile ? 'auto' : styles.page.height,
+      minHeight: '100vh',
+      overflow: isMobile ? 'auto' : styles.page.overflow,
+      padding: isCompact ? '10px' : (isMobile ? '12px' : styles.page.padding),
+    },
+    shell: {
+      ...styles.shell,
+      height: isMobile ? 'auto' : styles.shell.height,
+      gap: isCompact ? '10px' : styles.shell.gap,
+    },
+    hero: {
+      ...styles.hero,
+      gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : styles.hero.gridTemplateColumns,
+      gap: isCompact ? '10px' : styles.hero.gap,
+    },
+    heroPanel: {
+      ...styles.heroPanel,
+      borderRadius: isCompact ? '16px' : styles.heroPanel.borderRadius,
+      padding: isCompact ? '12px' : (isMobile ? '14px' : styles.heroPanel.padding),
+    },
+    badge: {
+      ...styles.badge,
+      fontSize: isCompact ? '11px' : styles.badge.fontSize,
+      padding: isCompact ? '6px 10px' : styles.badge.padding,
+    },
+    title: {
+      ...styles.title,
+      fontSize: isCompact ? '22px' : (isMobile ? '26px' : styles.title.fontSize),
+      lineHeight: isCompact ? 1.15 : styles.title.lineHeight,
+    },
+    subtitle: {
+      ...styles.subtitle,
+      maxWidth: isMobile ? '100%' : styles.subtitle.maxWidth,
+      fontSize: isCompact ? '12px' : styles.subtitle.fontSize,
+    },
+    topActions: {
+      ...styles.topActions,
+      justifyContent: isMobile ? 'flex-start' : styles.topActions.justifyContent,
+    },
+    refreshButton: {
+      ...styles.refreshButton,
+      width: isCompact ? '100%' : 'auto',
+      fontSize: isCompact ? '12px' : styles.refreshButton.fontSize,
+    },
+    contentGrid: {
+      ...styles.contentGrid,
+      gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : styles.contentGrid.gridTemplateColumns,
+      gap: isCompact ? '10px' : styles.contentGrid.gap,
+    },
+    roomCard: {
+      ...styles.roomCard,
+      borderRadius: isCompact ? '16px' : styles.roomCard.borderRadius,
+      padding: isCompact ? '12px' : styles.roomCard.padding,
+    },
+    roomHeader: {
+      ...styles.roomHeader,
+      flexWrap: isCompact ? 'wrap' : 'nowrap',
+      gap: isCompact ? '8px' : styles.roomHeader.gap,
+    },
+    roomTitleWrap: {
+      ...styles.roomTitleWrap,
+      gap: isCompact ? '10px' : styles.roomTitleWrap.gap,
+    },
+    roomIcon: {
+      ...styles.roomIcon,
+      width: isCompact ? '34px' : styles.roomIcon.width,
+      height: isCompact ? '34px' : styles.roomIcon.height,
+      borderRadius: isCompact ? '11px' : styles.roomIcon.borderRadius,
+      fontSize: isCompact ? '17px' : styles.roomIcon.fontSize,
+    },
+    roomName: {
+      ...styles.roomName,
+      fontSize: isCompact ? '17px' : styles.roomName.fontSize,
+    },
+    roomMeta: {
+      ...styles.roomMeta,
+      fontSize: isCompact ? '11px' : styles.roomMeta.fontSize,
+    },
+    roomCount: {
+      ...styles.roomCount,
+      fontSize: isCompact ? '11px' : styles.roomCount.fontSize,
+      padding: isCompact ? '5px 9px' : styles.roomCount.padding,
+    },
+    meetingItem: {
+      ...styles.meetingItem,
+      gridTemplateColumns: isCompact ? 'auto minmax(0, 1fr)' : styles.meetingItem.gridTemplateColumns,
+      gap: isCompact ? '8px' : styles.meetingItem.gap,
+      padding: isCompact ? '8px' : styles.meetingItem.padding,
+    },
+    picAvatar: {
+      ...styles.picAvatar,
+      width: isCompact ? '26px' : styles.picAvatar.width,
+      height: isCompact ? '26px' : styles.picAvatar.height,
+      fontSize: isCompact ? '10px' : styles.picAvatar.fontSize,
+    },
+    meetingTitle: {
+      ...styles.meetingTitle,
+      fontSize: isCompact ? '12px' : styles.meetingTitle.fontSize,
+      whiteSpace: isCompact ? 'normal' : styles.meetingTitle.whiteSpace,
+      overflow: isCompact ? 'visible' : styles.meetingTitle.overflow,
+      textOverflow: isCompact ? 'clip' : styles.meetingTitle.textOverflow,
+    },
+    meetingMeta: {
+      ...styles.meetingMeta,
+      fontSize: isCompact ? '10px' : styles.meetingMeta.fontSize,
+      whiteSpace: isCompact ? 'normal' : styles.meetingMeta.whiteSpace,
+      overflow: isCompact ? 'visible' : styles.meetingMeta.overflow,
+      textOverflow: isCompact ? 'clip' : styles.meetingMeta.textOverflow,
+    },
+    liveBadge: {
+      ...styles.liveBadge,
+      display: isCompact ? 'none' : 'inline-block',
+    },
+    footer: {
+      flex: '0 0 auto',
+      color: '#cbd5e1',
+      fontSize: isCompact ? '12px' : '13px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '6px' : 0,
+    },
+  }), [isMobile, isCompact]);
 
   return (
-    <div style={styles.page}>
-      <div style={styles.shell}>
-        <div style={styles.hero}>
-          <Card style={styles.heroPanel} className="border-0">
+    <div style={responsiveStyles.page}>
+      <div style={responsiveStyles.shell}>
+        <div style={responsiveStyles.hero}>
+          <Card style={responsiveStyles.heroPanel} className="border-0">
             <CardBody className="p-0">
-              <div style={styles.badge}>Pusat Informasi</div>
-              <h1 style={styles.title}>Jadwal Rapat PT Pembangunan Aceh</h1>
-              <p style={styles.subtitle}>
+              <div style={responsiveStyles.badge}>Pusat Informasi</div>
+              <h1 style={responsiveStyles.title}>Jadwal Rapat PT Pembangunan Aceh</h1>
+              <p style={responsiveStyles.subtitle}>
                 Informasi Agenda Rapat yang berlangsung hari ini di setiap Ruang rapat PT Pembangunan Aceh (Perseroda)
               </p>
             </CardBody>
           </Card>
 
-          <Card style={styles.heroPanel} className="border-0">
+          <Card style={responsiveStyles.heroPanel} className="border-0">
             <CardBody className="p-0 d-flex flex-column h-100 justify-content-between">
-              <div style={styles.topActions}>
-                <Button style={styles.refreshButton} onClick={() => setRefreshTick((value) => value + 1)} disabled={loading}>
+              <div style={responsiveStyles.topActions}>
+                <Button style={responsiveStyles.refreshButton} onClick={() => setRefreshTick((value) => value + 1)} disabled={loading}>
                   {loading ? 'Memuat...' : 'Muat ulang'}
                 </Button>
               </div>
@@ -511,15 +651,15 @@ const PublicRoomSchedule = () => {
           </Card>
         </div>
 
-        <div style={styles.contentGrid}>
+        <div style={responsiveStyles.contentGrid}>
           {roomCards.map((room) => (
-            <Card key={room.name} style={{ ...styles.roomCard, background: room.surface, color: room.titleColor || '#f8fafc' }} className="border-0">
+            <Card key={room.name} style={{ ...responsiveStyles.roomCard, background: room.surface, color: room.titleColor || '#f8fafc' }} className="border-0">
               <CardBody className="p-0 d-flex flex-column h-100">
-                <div style={styles.roomHeader}>
-                  <div style={styles.roomTitleWrap}>
+                <div style={responsiveStyles.roomHeader}>
+                  <div style={responsiveStyles.roomTitleWrap}>
                     <div
                       style={{
-                        ...styles.roomIcon,
+                        ...responsiveStyles.roomIcon,
                         background: room.iconBackground || 'rgba(255, 255, 255, 0.46)',
                         color: room.iconColor || '#0f172a',
                       }}
@@ -527,11 +667,11 @@ const PublicRoomSchedule = () => {
                       {room.emoji}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <h2 style={styles.roomName}>{room.name}</h2>
-                      <div style={styles.roomMeta}>Pembaruan jadwal ruang</div>
+                      <h2 style={responsiveStyles.roomName}>{room.name}</h2>
+                      <div style={responsiveStyles.roomMeta}>Pembaruan jadwal ruang</div>
                     </div>
                   </div>
-                  <div style={{ ...styles.roomCount, background: room.countBackground || 'rgba(255, 255, 255, 0.8)', color: room.countColor || '#08111f' }}>{room.total} rapat</div>
+                  <div style={{ ...responsiveStyles.roomCount, background: room.countBackground || 'rgba(255, 255, 255, 0.8)', color: room.countColor || '#08111f' }}>{room.total} rapat</div>
                 </div>
 
                 <div style={styles.meetingList}>
@@ -545,18 +685,18 @@ const PublicRoomSchedule = () => {
                     const rowKey = [room.name, title, start, end, pic].filter(Boolean).join('-');
 
                     return (
-                      <div key={rowKey} style={styles.meetingItem}>
-                        <div style={styles.picAvatar}>{picInitial}</div>
+                      <div key={rowKey} style={responsiveStyles.meetingItem}>
+                        <div style={responsiveStyles.picAvatar}>{picInitial}</div>
                         <div style={styles.meetingText}>
-                          <p style={styles.meetingTitle}>{title}</p>
-                          <p style={styles.meetingMeta}>
+                          <p style={responsiveStyles.meetingTitle}>{title}</p>
+                          <p style={responsiveStyles.meetingMeta}>
                             {pic} • {formatTime(start)} - {formatTime(end)}
                           </p>
                         </div>
                         {active ? (
                           <div
                             style={{
-                              ...styles.liveBadge,
+                              ...responsiveStyles.liveBadge,
                               background: 'rgba(34, 197, 94, 0.18)',
                               color: '#166534',
                               border: '1px solid rgba(34, 197, 94, 0.26)',
@@ -576,8 +716,8 @@ const PublicRoomSchedule = () => {
           ))}
         </div>
 
-        <div className="d-flex justify-content-between align-items-center" style={{ flex: '0 0 auto', color: '#cbd5e1', fontSize: '13px' }}>
-          <div>{loading ? <span className="d-inline-flex align-items-center gap-2"><Spinner size="sm" color="light" /> Memuat jadwal rapat...</span> : `${totalMeetings} booking aktif • ${activeRooms} ruangan terisi`}</div>
+        <div style={responsiveStyles.footer}>
+          <div>{loading ? <span className="d-inline-flex align-items-center gap-2"><Spinner size="sm" color="light" /> Memuat jadwal rapat...</span> : `${totalMeetings} booking aktif • ${activeRooms} ruangan terisi (data hari ini)`}</div>
           <div>PT PEMA</div>
         </div>
       </div>
