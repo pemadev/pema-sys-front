@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardBody, Spinner } from 'reactstrap';
+import { Button, Card, CardBody, Spinner } from 'reactstrap';
 
 const DEFAULT_ROOMS = [
   {
@@ -196,6 +196,15 @@ const styles = {
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  refreshButton: {
+    borderRadius: '999px',
+    padding: '8px 14px',
+    border: '1px solid rgba(96, 165, 250, 0.4)',
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(14, 165, 233, 0.14))',
+    color: '#eff6ff',
+    fontWeight: 700,
+    fontSize: '13px',
   },
   contentGrid: {
     display: 'grid',
@@ -567,15 +576,11 @@ const PublicRoomSchedule = () => {
       ...styles.hero,
       gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : styles.hero.gridTemplateColumns,
       gap: isCompact ? '10px' : styles.hero.gap,
-      maxHeight: isMobile ? 'none' : '20vh',
-      alignItems: 'stretch',
     },
     heroPanel: {
       ...styles.heroPanel,
       borderRadius: isCompact ? '16px' : styles.heroPanel.borderRadius,
-      padding: isCompact ? '12px' : (isMobile ? '14px' : '14px'),
-      height: isMobile ? 'auto' : '100%',
-      overflow: 'hidden',
+      padding: isCompact ? '12px' : (isMobile ? '14px' : styles.heroPanel.padding),
     },
     badge: {
       ...styles.badge,
@@ -594,9 +599,16 @@ const PublicRoomSchedule = () => {
     },
     topActions: {
       ...styles.topActions,
-      justifyContent: 'flex-start',
+      justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
+    },
+    refreshButton: {
+      ...styles.refreshButton,
+      width: 'auto',
+      fontSize: isCompact ? '12px' : styles.refreshButton.fontSize,
+      padding: isCompact ? '7px 12px' : styles.refreshButton.padding,
+      whiteSpace: 'nowrap',
     },
     statLabel: {
       ...styles.statLabel,
@@ -799,6 +811,9 @@ const PublicRoomSchedule = () => {
                   </div>
                 </div>
                 </div>
+                <Button style={responsiveStyles.refreshButton} onClick={() => setRefreshTick((value) => value + 1)} disabled={loading}>
+                  {loading ? 'Memuat...' : 'Muat ulang'}
+                </Button>
               </div>
               <div style={responsiveStyles.statHint}>{now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
             </CardBody>
