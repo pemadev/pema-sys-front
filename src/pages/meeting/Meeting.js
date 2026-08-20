@@ -57,11 +57,30 @@ const SCHEDULE_FILTER = {
   PREVIOUS: 'previous',
 };
 
+const parseApiDateValue = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const normalizedValue = String(value).trim();
+  if (!normalizedValue) return null;
+
+  const withSeparator = new Date(normalizedValue.replace(' ', 'T'));
+  if (!Number.isNaN(withSeparator.getTime())) {
+    return withSeparator;
+  }
+
+  const directValue = new Date(normalizedValue);
+  return Number.isNaN(directValue.getTime()) ? null : directValue;
+};
+
 const formatZoomDateTime = (value) => {
   if (!value) return '-';
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseApiDateValue(value);
+  if (!date) {
     return value;
   }
 
@@ -333,20 +352,40 @@ const Meeting = () => {
     }
   };
 
-  const isIncomingSchedule = (dateValue) => {
-    const meetingDate = new Date(dateValue);
-    if (Number.isNaN(meetingDate.getTime())) {
-      return true;
+  const isIncomingSchedule = (item) => {
+    const startValue = getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']);
+    const endValue = getZoomValue(item, ['end_time', 'endTime', 'end_at', 'end']);
+    const startDate = parseApiDateValue(startValue);
+    const endDate = parseApiDateValue(endValue);
+
+    const isSameCalendarDay = (leftDate, rightDate) => (
+      leftDate
+      && rightDate
+      && leftDate.getFullYear() === rightDate.getFullYear()
+      && leftDate.getMonth() === rightDate.getMonth()
+      && leftDate.getDate() === rightDate.getDate()
+    );
+
+    if (startDate && endDate) {
+      const startsToday = isSameCalendarDay(startDate, currentTime);
+      const isStillRunning = startDate <= currentTime && currentTime <= endDate;
+      return startsToday || isStillRunning;
     }
 
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    return meetingDate >= startOfToday;
+    if (startDate) {
+      return isSameCalendarDay(startDate, currentTime) || currentTime >= startDate;
+    }
+
+    if (endDate) {
+      return currentTime <= endDate;
+    }
+
+    return true;
   };
 
-  const filterByScheduleGroup = (items, getDateValue) => {
+  const filterByScheduleGroup = (items) => {
     return items.filter((item) => {
-      const incoming = isIncomingSchedule(getDateValue(item));
+      const incoming = isIncomingSchedule(item);
       if (scheduleFilter === SCHEDULE_FILTER.PREVIOUS) {
         return !incoming;
       }
@@ -356,11 +395,11 @@ const Meeting = () => {
 
   const filteredRoomMeetings = useMemo(() => {
     return filterByScheduleGroup(roomMeetings, (item) => item.start_time || item.startTime || item.start_at || item.start);
-  }, [roomMeetings, scheduleFilter]);
+  }, [roomMeetings, scheduleFilter, currentTime]);
 
   const filteredZoomMeetings = useMemo(() => {
     return filterByScheduleGroup(zoomMeetings, (item) => getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']));
-  }, [zoomMeetings, scheduleFilter]);
+  }, [zoomMeetings, scheduleFilter, currentTime]);
 
   const getMeetingStatusMeta = (startValue, endValue) => {
     const nowTime = currentTime.getTime();

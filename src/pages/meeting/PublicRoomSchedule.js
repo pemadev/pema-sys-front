@@ -400,32 +400,44 @@ const formatTime = (value) => {
   });
 };
 
-const isSameDay = (leftValue, rightValue) => {
-  const leftDate = new Date(leftValue);
-  const rightDate = new Date(rightValue);
+const parseApiDateValue = (value) => {
+  if (!value) return null;
 
-  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) {
-    return false;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
   }
 
-  return (
-    leftDate.getFullYear() === rightDate.getFullYear()
-    && leftDate.getMonth() === rightDate.getMonth()
-    && leftDate.getDate() === rightDate.getDate()
-  );
+  const normalizedValue = String(value).trim();
+  if (!normalizedValue) return null;
+
+  const withSeparator = new Date(normalizedValue.replace(' ', 'T'));
+  if (!Number.isNaN(withSeparator.getTime())) {
+    return withSeparator;
+  }
+
+  const directValue = new Date(normalizedValue);
+  return Number.isNaN(directValue.getTime()) ? null : directValue;
 };
 
 const isMeetingActive = (item, currentTime) => {
   const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
   const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
-  const startDate = new Date(startValue);
-  const endDate = new Date(endValue);
+  const startDate = parseApiDateValue(startValue);
+  const endDate = parseApiDateValue(endValue);
 
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+  if (!startDate && !endDate) {
     return false;
   }
 
-  return startDate <= currentTime && currentTime <= endDate;
+  if (startDate && endDate) {
+    return startDate <= currentTime && currentTime <= endDate;
+  }
+
+  if (startDate) {
+    return currentTime >= startDate;
+  }
+
+  return currentTime <= endDate;
 };
 
 const sortMeetings = (items) => [...items].sort((left, right) => {
@@ -517,7 +529,34 @@ const PublicRoomSchedule = () => {
     const grouped = DEFAULT_ROOMS.map((room) => {
       const roomMeetings = sortMeetings(
         meetings.filter((item) => getRoomName(item).toLowerCase() === room.name.toLowerCase()),
-      ).filter((item) => isSameDay(getValue(item, ['start_time', 'startTime', 'start_at', 'start']), now));
+      ).filter((item) => {
+        const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
+        const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
+        const startDate = parseApiDateValue(startValue);
+        const endDate = parseApiDateValue(endValue);
+
+        const isSameCalendarDay = (leftDate, rightDate) => (
+          leftDate
+          && rightDate
+          && leftDate.getFullYear() === rightDate.getFullYear()
+          && leftDate.getMonth() === rightDate.getMonth()
+          && leftDate.getDate() === rightDate.getDate()
+        );
+
+        if (startDate && endDate) {
+          return isSameCalendarDay(startDate, now) || (startDate <= now && now <= endDate);
+        }
+
+        if (startDate) {
+          return isSameCalendarDay(startDate, now) || startDate <= now;
+        }
+
+        if (endDate) {
+          return now <= endDate;
+        }
+
+        return false;
+      });
 
       const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
 
@@ -534,7 +573,34 @@ const PublicRoomSchedule = () => {
       .filter((roomName) => !DEFAULT_ROOMS.some((room) => room.name.toLowerCase() === roomName.toLowerCase()))
       .map((roomName, index) => {
         const roomMeetings = sortMeetings(meetings.filter((item) => getRoomName(item).toLowerCase() === roomName.toLowerCase()))
-          .filter((item) => isSameDay(getValue(item, ['start_time', 'startTime', 'start_at', 'start']), now));
+          .filter((item) => {
+            const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
+            const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
+            const startDate = parseApiDateValue(startValue);
+            const endDate = parseApiDateValue(endValue);
+
+            const isSameCalendarDay = (leftDate, rightDate) => (
+              leftDate
+              && rightDate
+              && leftDate.getFullYear() === rightDate.getFullYear()
+              && leftDate.getMonth() === rightDate.getMonth()
+              && leftDate.getDate() === rightDate.getDate()
+            );
+
+            if (startDate && endDate) {
+              return isSameCalendarDay(startDate, now) || (startDate <= now && now <= endDate);
+            }
+
+            if (startDate) {
+              return isSameCalendarDay(startDate, now) || startDate <= now;
+            }
+
+            if (endDate) {
+              return now <= endDate;
+            }
+
+            return false;
+          });
         const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
         return {
           name: roomName,
