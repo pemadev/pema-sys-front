@@ -65,7 +65,7 @@ const Dashboard = () => {
     if (!row?.id) return;
 
     try {
-      const res = await api.delete(`dapi/kontrak/${row.id}`);
+      const res = await api.post(`dapi/kontrak/delete/${row.id}`);
       const isSuccess = res?.data?.success || res?.status === 200 || res?.status === 204;
       if (isSuccess) {
         alert('success', 'Kontrak berhasil dihapus');

@@ -19,22 +19,39 @@ const getPicDisplay = (picValue, employes = []) => {
 
   const values = Array.isArray(picValue) ? picValue : [picValue];
 
-  const names = values.map((item) => {
+  const names = values.flatMap((item) => {
     if (typeof item === 'string' || typeof item === 'number') {
+      const cleaned = String(item).trim();
+      if (!cleaned) return [];
+
       const matched = employes.find(
-        (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === String(item),
+        (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === cleaned,
       );
-      return matched ? getEmployeeName(matched) : item;
+
+      if (matched) {
+        return [getEmployeeName(matched)];
+      }
+
+      if (cleaned.includes(',')) {
+        return cleaned.split(',').map((part) => part.trim()).filter(Boolean).map((part) => {
+          const nestedMatch = employes.find(
+            (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === part,
+          );
+          return nestedMatch ? getEmployeeName(nestedMatch) : part;
+        });
+      }
+
+      return [cleaned];
     }
 
     if (typeof item === 'object') {
       const matched = employes.find(
         (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === String(item.employe_id || item.employee_id || item.id || item.value),
       );
-      return matched ? getEmployeeName(matched) : getEmployeeName(item);
+      return [matched ? getEmployeeName(matched) : getEmployeeName(item)];
     }
 
-    return '-';
+    return [];
   });
 
   return names.filter(Boolean).join(', ') || '-';
@@ -49,8 +66,121 @@ const formatDate = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
+const getContractCreatorName = (row, employes = []) => {
+  const directValue = row?.created_by_name || row?.creator_name || row?.user_name || row?.name || row?.full_name || row?.created_by || row?.pemohon || row?.created_by_name || row?.createdName;
+
+  if (typeof directValue === 'string' && directValue.trim()) {
+    return directValue;
+  }
+
+  if (typeof directValue === 'object' && directValue !== null) {
+    return getEmployeeName(directValue) || '-';
+  }
+
+  const creatorId = row?.created_by_id || row?.created_by_employe_id || row?.employee_id || row?.employe_id;
+  if (creatorId) {
+    const matched = employes.find((employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === String(creatorId));
+    return matched ? getEmployeeName(matched) : String(creatorId);
+  }
+
+  return '-';
+};
+
+const getContractFileDownload = (row) => {
+  const candidate = [
+    row?.file_url,
+    row?.fileUrl,
+    row?.download_url,
+    row?.downloadUrl,
+    row?.dokumen_url,
+    row?.dokumenUrl,
+    row?.document_url,
+    row?.documentUrl,
+    row?.url,
+    row?.link,
+    row?.file,
+    row?.file_path,
+    row?.filePath,
+  ].find((value) => value !== undefined && value !== null && value !== '');
+
+  if (!candidate) {
+    return null;
+  }
+
+  const fileName = row?.file_name || row?.document_name || row?.name || 'dokumen-kontrak';
+  return {
+    url: candidate,
+    fileName,
+  };
+};
+
 const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefresh }) => {
   const columns = [
+    {
+      name: 'Aksi',
+      cell: (row) => {
+        const downloadInfo = getContractFileDownload(row);
+
+        return (
+          <Stack direction="row" spacing={1}>
+            {downloadInfo ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="success"
+                onClick={() => {
+                  if (downloadInfo.url) {
+                    const newWindow = window.open(downloadInfo.url, '_blank', 'noopener,noreferrer');
+                    if (newWindow) {
+                      Object.defineProperty(newWindow, 'opener', { value: null, configurable: true });
+                    }
+                  }
+                }}
+              >
+                Unduh
+              </Button>
+            ) : null}
+            <Button
+              size="small"
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                if (onEdit) {
+                  onEdit(row);
+                }
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                // eslint-disable-next-line no-alert
+                if (window.confirm(`Hapus kontrak ${row.no_contrac || row.vjudul || 'ini'}?`)) {
+                  if (onDelete) {
+                    onDelete(row);
+                  }
+                }
+              }}
+            >
+              Hapus
+            </Button>
+          </Stack>
+        );
+      },
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: '250px',
+    },
+    {
+      name: 'Nama',
+      selector: (row) => getContractCreatorName(row, employes),
+      sortable: true,
+      grow: 1.5,
+    },
     {
       name: 'No Kontrak',
       selector: (row) => row.no_contrac || '-',
@@ -66,12 +196,6 @@ const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefres
     {
       name: 'Partner',
       selector: (row) => row.vpartner || row.partner || '-',
-      sortable: true,
-      grow: 1.5,
-    },
-    {
-      name: 'Jenis',
-      selector: (row) => row.jenis_kontrak || row.jenis_dokumen || row.jenis || '-',
       sortable: true,
       grow: 1.5,
     },
@@ -92,33 +216,6 @@ const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefres
       selector: (row) => getPicDisplay(row.pic || row.pics || row.employes || row.personil, employes),
       sortable: true,
       grow: 2,
-    },
-    {
-      name: 'Aksi',
-      cell: (row) => (
-        <Stack direction="row" spacing={1}>
-          <Button size="small" variant="outlined" color="primary" onClick={() => onEdit?.(row)}>
-            Edit
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={() => {
-              // eslint-disable-next-line no-alert
-              if (window.confirm(`Hapus kontrak ${row.no_contrac || row.vjudul || 'ini'}?`)) {
-                onDelete?.(row);
-              }
-            }}
-          >
-            Hapus
-          </Button>
-        </Stack>
-      ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-      width: '220px',
     },
   ];
 

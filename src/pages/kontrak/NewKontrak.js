@@ -1,11 +1,13 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useContext, useEffect, useState } from 'react';
 import { TextField, Box, Button, Stack} from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import PropTypes from 'prop-types';
 import Autocomplete from '@mui/material/Autocomplete';
+import dayjs from 'dayjs';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
+import { AuthContext } from '../../context/AuthContext';
 
 const jenisKontrakGroups = [
   {
@@ -68,6 +70,27 @@ const normalizeDate = (date) => {
   return parsed.toISOString().slice(0, 10);
 };
 
+const toDayjsValue = (value) => {
+  if (!value) return null;
+
+  if (typeof value === 'string') {
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed : null;
+  }
+
+  if (value && typeof value === 'object' && typeof value.isValid === 'function') {
+    return value.isValid() ? value : null;
+  }
+
+  if (value instanceof Date) {
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed : null;
+  }
+
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed : null;
+};
+
 const normalizeSelectedPics = (selectedValues, employes = []) => {
   if (!selectedValues) return [];
 
@@ -96,6 +119,7 @@ const normalizeSelectedPics = (selectedValues, employes = []) => {
 };
 
 const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCancelEdit = () => {} }) => {
+  const { auth } = useContext(AuthContext);
   const [nomorKontrak, setNomorKontrak] = useState('');
   const [judul, setJudul] = useState('');
   const [partner, setPartner] = useState('');
@@ -106,6 +130,14 @@ const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCa
   const [selectedPics, setSelectedPics] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const api = useAxios();
+  const currentEmployeeId = auth?.user?.employe_id || auth?.user?.employee_id || auth?.user?.id || auth?.user?.user_id || (() => {
+    try {
+      const savedAuth = JSON.parse(localStorage.getItem('auth') || 'null');
+      return savedAuth?.user?.employe_id || savedAuth?.user?.employee_id || savedAuth?.user?.id || savedAuth?.user?.user_id || '';
+    } catch (error) {
+      return '';
+    }
+  })();
 
   useEffect(() => {
     if (!editData) {
@@ -125,8 +157,8 @@ const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCa
     setJudul(editData.vjudul || editData.judul || '');
     setPartner(editData.vpartner || editData.partner || '');
     setJenisKontrak(editData.jenis_kontrak || editData.jenis_dokumen || editData.jenis || '');
-    setDari(editData.start || editData.dari || null);
-    setSampai(editData.end || editData.sampai || null);
+    setDari(toDayjsValue(editData.start || editData.dari || null));
+    setSampai(toDayjsValue(editData.end || editData.sampai || null));
     setSelectedPics(normalizeSelectedPics(editData.pic || editData.pics || editData.employes || editData.personil, employes));
     setSelectedFile(null);
     setErrors({});
@@ -152,29 +184,27 @@ const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCa
     const selectedIds = selectedPics
       .map((person) => getEmployeeId(person))
       .filter(Boolean);
+    const picValue = selectedIds.join(',');
 
     const formData = new FormData();
     const finalNomorKontrak = nomorKontrak || editData?.no_contrac || `CNT-${Date.now()}`;
     formData.append('no_contrac', finalNomorKontrak);
     formData.append('nomor_kontrak', finalNomorKontrak);
+    formData.append('judul', judul);
     formData.append('vjudul', judul);
+    formData.append('partner', partner);
     formData.append('vpartner', partner);
     formData.append('jenis_kontrak', jenisKontrak);
     formData.append('jenis_dokumen', jenisKontrak);
     formData.append('start', normalizeDate(dari));
     formData.append('end', normalizeDate(sampai));
-    selectedIds.forEach((id) => formData.append('pic[]', id));
-    formData.append('created_by', (() => {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        return user?.id || user?.employe_id || user?.employee_id || '';
-      } catch (error) {
-        return '';
-      }
-    })());
+    formData.append('pic', picValue);
+    formData.append('created_by', currentEmployeeId);
 
     if (selectedFile) {
-      formData.append('file', selectedFile);
+      formData.append('file', selectedFile, selectedFile.name);
+      formData.append('dokumen', selectedFile, selectedFile.name);
+      formData.append('document', selectedFile, selectedFile.name);
       formData.append('file_name', selectedFile.name);
     }
 
@@ -183,10 +213,9 @@ const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCa
     }
 
     try {
-      const url = editData?.id ? `dapi/kontrak/${editData.id}` : 'dapi/kontrak/';
-      const method = editData?.id ? 'put' : 'post';
+      const url = editData?.id ? `dapi/kontrak/update/${editData.id}` : 'dapi/kontrak/';
       const config = selectedFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
-      const res = await (method === 'put' ? api.put(url, formData, config) : api.post(url, formData, config));
+      const res = await api.post(url, formData, config);
 
       const isSuccess = res?.data?.success || res?.status === 200 || res?.status === 201;
       if (isSuccess) {
