@@ -54,6 +54,7 @@ const roomIcons = {
 
 const SCHEDULE_FILTER = {
   UPCOMING: 'upcoming',
+  LIVE_TODAY: 'live_today',
   PREVIOUS: 'previous',
 };
 
@@ -352,44 +353,51 @@ const Meeting = () => {
     }
   };
 
-  const isIncomingSchedule = (item) => {
+  const getScheduleBucket = (item) => {
     const startValue = getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']);
     const endValue = getZoomValue(item, ['end_time', 'endTime', 'end_at', 'end']);
     const startDate = parseApiDateValue(startValue);
     const endDate = parseApiDateValue(endValue);
+    const hasStart = !!startDate && !Number.isNaN(startDate.getTime());
+    const hasEnd = !!endDate && !Number.isNaN(endDate.getTime());
 
-    const isSameCalendarDay = (leftDate, rightDate) => (
-      leftDate
-      && rightDate
-      && leftDate.getFullYear() === rightDate.getFullYear()
-      && leftDate.getMonth() === rightDate.getMonth()
-      && leftDate.getDate() === rightDate.getDate()
-    );
-
-    if (startDate && endDate) {
-      const startsToday = isSameCalendarDay(startDate, currentTime);
-      const isStillRunning = startDate <= currentTime && currentTime <= endDate;
-      return startsToday || isStillRunning;
+    if (hasStart && hasEnd) {
+      if (currentTime < startDate) {
+        return SCHEDULE_FILTER.UPCOMING;
+      }
+      if (startDate <= currentTime && currentTime <= endDate) {
+        return SCHEDULE_FILTER.LIVE_TODAY;
+      }
+      return SCHEDULE_FILTER.PREVIOUS;
     }
 
-    if (startDate) {
-      return isSameCalendarDay(startDate, currentTime) || currentTime >= startDate;
+    if (hasStart) {
+      if (currentTime < startDate) {
+        return SCHEDULE_FILTER.UPCOMING;
+      }
+      return SCHEDULE_FILTER.LIVE_TODAY;
     }
 
-    if (endDate) {
-      return currentTime <= endDate;
+    if (hasEnd) {
+      if (currentTime <= endDate) {
+        return SCHEDULE_FILTER.LIVE_TODAY;
+      }
+      return SCHEDULE_FILTER.PREVIOUS;
     }
 
-    return true;
+    return SCHEDULE_FILTER.UPCOMING;
   };
 
   const filterByScheduleGroup = (items) => {
     return items.filter((item) => {
-      const incoming = isIncomingSchedule(item);
-      if (scheduleFilter === SCHEDULE_FILTER.PREVIOUS) {
-        return !incoming;
+      const bucket = getScheduleBucket(item);
+      if (scheduleFilter === SCHEDULE_FILTER.UPCOMING) {
+        return bucket === SCHEDULE_FILTER.UPCOMING;
       }
-      return incoming;
+      if (scheduleFilter === SCHEDULE_FILTER.LIVE_TODAY) {
+        return bucket === SCHEDULE_FILTER.LIVE_TODAY;
+      }
+      return bucket === SCHEDULE_FILTER.PREVIOUS;
     });
   };
 
@@ -403,17 +411,17 @@ const Meeting = () => {
 
   const getMeetingStatusMeta = (startValue, endValue) => {
     const nowTime = currentTime.getTime();
-    const startDate = new Date(startValue);
-    const endDate = new Date(endValue);
-    const hasStart = !Number.isNaN(startDate.getTime());
-    const hasEnd = !Number.isNaN(endDate.getTime());
+    const startDate = parseApiDateValue(startValue);
+    const endDate = parseApiDateValue(endValue);
+    const hasStart = !!startDate && !Number.isNaN(startDate.getTime());
+    const hasEnd = !!endDate && !Number.isNaN(endDate.getTime());
 
     if (hasStart && hasEnd) {
       if (nowTime < startDate.getTime()) {
-        return { label: 'Scheduled', color: 'primary', textClassName: 'text-white' };
+        return { label: 'Upcoming', color: 'primary', textClassName: 'text-white' };
       }
       if (startDate.getTime() <= nowTime && nowTime <= endDate.getTime()) {
-        return { label: 'Live', color: 'success', textClassName: 'text-white' };
+        return { label: 'Live Today', color: 'success', textClassName: 'text-white' };
       }
       if (nowTime > endDate.getTime()) {
         return { label: 'Finished', color: 'secondary', textClassName: 'text-white' };
@@ -421,10 +429,10 @@ const Meeting = () => {
     }
 
     if (hasStart && nowTime >= startDate.getTime()) {
-      return { label: 'Live', color: 'success', textClassName: 'text-white' };
+      return { label: 'Live Today', color: 'success', textClassName: 'text-white' };
     }
 
-    return { label: 'Scheduled', color: 'primary', textClassName: 'text-white' };
+    return { label: 'Upcoming', color: 'primary', textClassName: 'text-white' };
   };
 
   const getRoomMeetingStatusMeta = (item) => {
@@ -1201,6 +1209,7 @@ const Meeting = () => {
             style={{ minWidth: '280px', borderRadius: '999px', fontWeight: 600 }}
           >
             <option value={SCHEDULE_FILTER.UPCOMING}>Upcoming</option>
+            <option value={SCHEDULE_FILTER.LIVE_TODAY}>Live Today</option>
             <option value={SCHEDULE_FILTER.PREVIOUS}>Previous</option>
           </Input>
         </div>

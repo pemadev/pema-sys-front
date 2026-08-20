@@ -534,21 +534,16 @@ const PublicRoomSchedule = () => {
         const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
         const startDate = parseApiDateValue(startValue);
         const endDate = parseApiDateValue(endValue);
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-        const isSameCalendarDay = (leftDate, rightDate) => (
-          leftDate
-          && rightDate
-          && leftDate.getFullYear() === rightDate.getFullYear()
-          && leftDate.getMonth() === rightDate.getMonth()
-          && leftDate.getDate() === rightDate.getDate()
-        );
+        const isMeetingRunningToday = () => !!(startDate && endDate && startDate <= now && now <= endDate);
 
         if (startDate && endDate) {
-          return isSameCalendarDay(startDate, now) || (startDate <= now && now <= endDate);
+          return startDate >= todayStart || isMeetingRunningToday();
         }
 
         if (startDate) {
-          return isSameCalendarDay(startDate, now) || startDate <= now;
+          return startDate >= todayStart || now >= startDate;
         }
 
         if (endDate) {
@@ -578,21 +573,16 @@ const PublicRoomSchedule = () => {
             const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
             const startDate = parseApiDateValue(startValue);
             const endDate = parseApiDateValue(endValue);
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            const isSameCalendarDay = (leftDate, rightDate) => (
-              leftDate
-              && rightDate
-              && leftDate.getFullYear() === rightDate.getFullYear()
-              && leftDate.getMonth() === rightDate.getMonth()
-              && leftDate.getDate() === rightDate.getDate()
-            );
+            const isMeetingRunningToday = () => !!(startDate && endDate && startDate <= now && now <= endDate);
 
             if (startDate && endDate) {
-              return isSameCalendarDay(startDate, now) || (startDate <= now && now <= endDate);
+              return startDate >= todayStart || isMeetingRunningToday();
             }
 
             if (startDate) {
-              return isSameCalendarDay(startDate, now) || startDate <= now;
+              return startDate >= todayStart || now >= startDate;
             }
 
             if (endDate) {
