@@ -114,7 +114,7 @@ const getContractFileDownload = (row) => {
   };
 };
 
-const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefresh }) => {
+const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefresh, onRowClick }) => {
   const columns = [
     {
       name: 'Aksi',
@@ -227,6 +227,7 @@ const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefres
       highlightOnHover
       responsive
       striped
+      onRowClicked={onRowClick}
       subHeader
       subHeaderComponent={
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -249,6 +250,7 @@ ListKontrak.propTypes = {
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
   onRefresh: PropTypes.func,
+  onRowClick: PropTypes.func,
 };
 
 export default ListKontrak;

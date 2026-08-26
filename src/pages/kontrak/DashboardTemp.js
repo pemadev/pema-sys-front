@@ -8,7 +8,7 @@ import {
   ScheduleOutlined,
   WarningAmberOutlined,
 } from '@mui/icons-material';
-import { Card, CardBody, Col, Row } from 'reactstrap';
+import { Card, CardBody, Col, Modal, ModalBody, ModalHeader, Row } from 'reactstrap';
 import React, { useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
 import useAxios from '../../hooks/useAxios';
@@ -30,6 +30,10 @@ const Dashboard = () => {
   const [employes, setEmployes] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [editingContract, setEditingContract] = useState(null);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [contractHistory, setContractHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const api = useAxios();
   const lastFiveYears = useMemo(() => getLastFiveYears(), []);
 
@@ -209,6 +213,143 @@ const Dashboard = () => {
     setEditingContract(null);
   };
 
+  const formatDateTime = (dateValue) => {
+    if (!dateValue) return '-';
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return String(dateValue);
+    return parsed.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const resolveContractField = (row, keys) => {
+    const resolvedValue = keys.map((key) => row?.[key]).find((item) => item !== undefined && item !== null && item !== '');
+    return resolvedValue ?? '-';
+  };
+
+  const getPicListLabel = (row, employesList = []) => {
+    const picValue = row?.pic || row?.pics || row?.employes || row?.personil;
+    if (!picValue) return '-';
+
+    const items = Array.isArray(picValue) ? picValue : [picValue];
+    const names = items.flatMap((item) => {
+      if (typeof item === 'string' || typeof item === 'number') {
+        const text = String(item).trim();
+        if (!text) return [];
+        const matched = employesList.find(
+          (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === text,
+        );
+        return matched ? [matched.full_name || matched.name || `${matched.first_name || ''} ${matched.last_name || ''}`.trim()] : [text];
+      }
+
+      if (typeof item === 'object') {
+        return [item.full_name || item.name || `${item.first_name || ''} ${item.last_name || ''}`.trim() || String(item.employe_id || item.employee_id || item.id || item.value || '')];
+      }
+
+      return [];
+    });
+
+    return names.filter(Boolean).join(', ') || '-';
+  };
+
+  const getEmployeeName = (employee) => {
+    if (!employee) return '-';
+    if (typeof employee === 'string') return employee;
+    if (employee.label) return employee.label;
+    if (employee.full_name) return employee.full_name;
+    if (employee.name) return employee.name;
+    const firstName = employee.first_name || employee.firstName || '';
+    const lastName = employee.last_name || employee.lastName || '';
+    return [firstName, lastName].filter(Boolean).join(' ') || employee.username || employee.email || '-';
+  };
+
+  const resolveEmployeeName = (employeeValue) => {
+    if (!employeeValue) return '-';
+
+    if (typeof employeeValue === 'object') {
+      return getEmployeeName(employeeValue);
+    }
+
+    const employeeIdValue = String(employeeValue).trim();
+    if (!employeeIdValue) return '-';
+
+    const matchedEmployee = employes.find(
+      (employee) => String(employee.employe_id || employee.employee_id || employee.id || employee.value) === employeeIdValue,
+    );
+
+    return matchedEmployee ? getEmployeeName(matchedEmployee) : employeeIdValue;
+  };
+
+  const deriveContractHistory = (row) => {
+    if (!row) return [{ label: 'Riwayat', value: 'Belum ada riwayat kontrak.' }];
+
+    const rawHistory = contractHistory.length
+      ? contractHistory
+      : Array.isArray(row.history)
+        ? row.history
+        : Array.isArray(row.histories)
+          ? row.histories
+          : Array.isArray(row.logs)
+            ? row.logs
+            : [];
+
+    if (rawHistory.length) {
+      return rawHistory.map((item, index) => {
+        const actionBy = item.action_by || item.actionBy || item.user_name || item.created_by_name || item.employee_name || item.name || item.full_name || item.user || item.actor;
+        const detail = item.detail || item.description || item.note || item.message || item.action || item.value || item.content || '';
+        const title = item.label || item.title || item.action || item.type || `Perubahan ${index + 1}`;
+        const actorName = resolveEmployeeName(actionBy);
+
+        return {
+          label: actorName && actorName !== '-' ? `Action by: ${actorName}` : title,
+          value: detail || formatDateTime(item.created_at || item.updated_at || item.date),
+        };
+      });
+    }
+
+    return [
+      { label: 'Dibuat', value: formatDateTime(row.created_at || row.createdAt) },
+      { label: 'Terakhir diubah', value: formatDateTime(row.updated_at || row.updatedAt || row.updated_at) },
+      { label: 'Status', value: row.status || 'Aktif' },
+    ];
+  };
+
+  const fetchContractHistory = async (row) => {
+    if (!row?.id) {
+      setContractHistory([]);
+      return;
+    }
+
+    try {
+      setHistoryLoading(true);
+      const res = await api.get(`dapi/kontrak/${row.id}/history`);
+      const payload = res?.data?.data ?? res?.data?.history ?? res?.data ?? [];
+      const rows = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
+      setContractHistory(rows);
+    } catch (error) {
+      setContractHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openContractDetail = async (row) => {
+    setSelectedContract(row);
+    setContractHistory([]);
+    await fetchContractHistory(row);
+    setDetailModalOpen(true);
+  };
+
+  const closeContractDetail = () => {
+    setSelectedContract(null);
+    setContractHistory([]);
+    setDetailModalOpen(false);
+  };
+
   const statCards = [
     { label: 'Total Kontrak', value: stats.total, color: '#4f46e5', bg: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', icon: CalendarMonthOutlined },
     { label: 'Aktif', value: stats.active, color: '#16a34a', bg: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)', icon: CheckCircleOutlineOutlined },
@@ -366,10 +507,66 @@ const Dashboard = () => {
               }}
               onDelete={handleDelete}
               onRefresh={getContracts}
+              onRowClick={openContractDetail}
             />
           </CardBody>
         </Card>
       </TabPanel>
+      <Modal isOpen={detailModalOpen} toggle={closeContractDetail} centered size="lg">
+        <ModalHeader toggle={closeContractDetail}>Detail Kontrak</ModalHeader>
+        <ModalBody>
+          {selectedContract ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Nomor Kontrak</div>
+                  <strong>{resolveContractField(selectedContract, ['no_contrac', 'nomor_kontrak', 'nomor', 'no'])}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Jenis</div>
+                  <strong>{resolveContractField(selectedContract, ['jenis_kontrak', 'jenis_dokumen', 'jenis'])}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Judul</div>
+                  <strong>{resolveContractField(selectedContract, ['vjudul', 'judul'])}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Partner</div>
+                  <strong>{resolveContractField(selectedContract, ['vpartner', 'partner'])}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Mulai</div>
+                  <strong>{formatDateTime(resolveContractField(selectedContract, ['start', 'dari']))}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>Berakhir</div>
+                  <strong>{formatDateTime(resolveContractField(selectedContract, ['end', 'sampai']))}</strong>
+                </div>
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 12, gridColumn: '1 / -1' }}>
+                  <div style={{ color: '#64748b', fontSize: 12, marginBottom: 6 }}>PIC</div>
+                  <strong>{getPicListLabel(selectedContract, employes)}</strong>
+                </div>
+              </div>
+
+              <div>
+                <h6 style={{ marginBottom: 12, fontWeight: 700 }}>History Kontrak</h6>
+                {historyLoading ? (
+                  <div style={{ color: '#64748b' }}>Memuat riwayat kontrak...</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {deriveContractHistory(selectedContract).map((item) => (
+                      <div key={`${item.label}-${String(item.value)}`} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', background: '#fff' }}>
+                        <div style={{ color: '#64748b', fontSize: 12 }}>{item.label}</div>
+                        <div style={{ fontWeight: 600, marginTop: 4 }}>{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </ModalBody>
+      </Modal>
     </TabContext>
   );
 };
