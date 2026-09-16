@@ -66,6 +66,36 @@ const formatDate = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
+const formatDateTime = (value) => {
+  if (!value) return '-';
+
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  if (value.format) {
+    return value.format('YYYY-MM-DD HH:mm');
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const getContractCreatorName = (row, employes = []) => {
   const directValue = row?.created_by_name || row?.creator_name || row?.user_name || row?.name || row?.full_name || row?.created_by || row?.pemohon || row?.created_by_name || row?.createdName;
 
@@ -114,7 +144,7 @@ const getContractFileDownload = (row) => {
   };
 };
 
-const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefresh, onRowClick }) => {
+const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefresh, onRowClick, canEdit = true, canDelete = true }) => {
   const columns = [
     {
       name: 'Aksi',
@@ -140,40 +170,44 @@ const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefres
                 Unduh
               </Button>
             ) : null}
-            <Button
-              size="small"
-              variant="outlined"
-              color="primary"
-              onClick={() => {
-                if (onEdit) {
-                  onEdit(row);
-                }
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              onClick={() => {
-                // eslint-disable-next-line no-alert
-                if (window.confirm(`Hapus kontrak ${row.no_contrac || row.vjudul || 'ini'}?`)) {
-                  if (onDelete) {
-                    onDelete(row);
+            {canEdit && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                onClick={() => {
+                  if (onEdit) {
+                    onEdit(row);
                   }
-                }
-              }}
-            >
-              Hapus
-            </Button>
+                }}
+              >
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  // eslint-disable-next-line no-alert
+                  if (window.confirm(`Hapus kontrak ${row.no_contrac || row.vjudul || 'ini'}?`)) {
+                    if (onDelete) {
+                      onDelete(row);
+                    }
+                  }
+                }}
+              >
+                Hapus
+              </Button>
+            )}
           </Stack>
         );
       },
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
-      width: '250px',
+      width: canEdit || canDelete ? '250px' : '120px',
     },
     {
       name: 'Nama',
@@ -210,6 +244,12 @@ const ListKontrak = ({ contracts = [], employes = [], onEdit, onDelete, onRefres
       selector: (row) => formatDate(row.end || row.sampai),
       sortable: true,
       width: '130px',
+    },
+    {
+      name: 'Tanggal & Jam',
+      selector: (row) => formatDateTime(row.action_time || row.createdAt || row.updated_at || row.updatedAt),
+      sortable: true,
+      width: '200px',
     },
     {
       name: 'PIC',
@@ -251,6 +291,8 @@ ListKontrak.propTypes = {
   onDelete: PropTypes.func,
   onRefresh: PropTypes.func,
   onRowClick: PropTypes.func,
+  canEdit: PropTypes.bool,
+  canDelete: PropTypes.bool,
 };
 
 export default ListKontrak;

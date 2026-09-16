@@ -599,7 +599,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         // Kolom status baca (titik biru)
         {
             name: '',
-            width: '150px',
+            width: '250px',
             omit: !(valueNow === '2' && type === 'review'),
 
             selector: (row) => <>
@@ -639,7 +639,18 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                     }
                 />
 
-
+                <Button
+                    className="me-2"
+                    size="sm"
+                    outline
+                    color="warning"
+                    tag="input"
+                    type="button"
+                    value={loadingView === row.id ? 'Loading . . .' : `Lihat & ${row.current_type}`}
+                    onClick={() =>
+                        handleRowClick(row)
+                    }
+                />
 
             </>
         },

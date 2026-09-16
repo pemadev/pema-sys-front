@@ -44,6 +44,27 @@ const jenisKontrakOptions = jenisKontrakGroups.flatMap((group) =>
   })),
 );
 
+const normalizeJenisKontrakValue = (value) => {
+  if (!value) return '';
+
+  const rawValue = String(value).trim();
+  if (!rawValue) return '';
+
+  const normalizedInput = rawValue.toLowerCase().replace(/\s+/g, ' ');
+
+  const matchedOption = jenisKontrakOptions.find((option) => {
+    const optionValue = String(option.value || '').trim();
+    const optionLabel = String(option.label || '').trim();
+
+    return optionValue.toLowerCase().replace(/\s+/g, ' ') === normalizedInput
+      || optionLabel.toLowerCase().replace(/\s+/g, ' ') === normalizedInput
+      || optionValue.toLowerCase().replace(/\s+/g, ' ').endsWith(` - ${normalizedInput}`)
+      || optionValue.toLowerCase().replace(/\s+/g, ' ').includes(normalizedInput);
+  });
+
+  return matchedOption ? matchedOption.value : rawValue;
+};
+
 const getEmployeeName = (employee) => {
   if (!employee) return '';
   if (typeof employee === 'string') return employee;
@@ -99,22 +120,47 @@ const normalizeSelectedPics = (selectedValues, employes = []) => {
   return items.flatMap((item) => {
     if (!item && item !== 0) return [];
 
-    if (typeof item === 'string' || typeof item === 'number') {
-      const found = employes.find((emp) => String(getEmployeeId(emp)) === String(item));
-      if (found) return [found];
-      return [{ employe_id: item, label: item }];
-    }
+    const candidateValues =
+      typeof item === 'string' || typeof item === 'number'
+        ? String(item)
+            .split(/[;,|]/)
+            .map((part) => part.trim())
+            .filter(Boolean)
+        : [item];
 
-    if (typeof item === 'object') {
-      const id = getEmployeeId(item);
+    return candidateValues.flatMap((candidate) => {
+      if (!candidate && candidate !== 0) return [];
+
+      if (typeof candidate === 'string' || typeof candidate === 'number') {
+        const candidateText = String(candidate).trim();
+        if (!candidateText) return [];
+
+        const matchedEmployee = employes.find((emp) => {
+          const employeeId = String(getEmployeeId(emp) ?? '').trim();
+          const employeeName = String(getEmployeeName(emp) || '').trim().toLowerCase();
+          const candidateLower = candidateText.toLowerCase();
+
+          return employeeId === candidateText
+            || employeeName === candidateLower
+            || candidateLower === String(emp?.full_name || '').trim().toLowerCase()
+            || candidateLower === String(emp?.name || '').trim().toLowerCase();
+        });
+
+        if (matchedEmployee) return [matchedEmployee];
+
+        return [{ employe_id: candidateText, label: candidateText }];
+      }
+
+      const id = getEmployeeId(candidate);
       if (id) {
         const found = employes.find((emp) => String(getEmployeeId(emp)) === String(id));
         if (found) return [found];
-        return [{ ...item, employe_id: id, label: getEmployeeName(item) }];
+        return [{ ...candidate, employe_id: id, label: getEmployeeName(candidate) }];
       }
-    }
 
-    return [];
+      const fallbackName = getEmployeeName(candidate);
+      return fallbackName ? [{ ...candidate, label: fallbackName }] : [];
+    });
   });
 };
 
@@ -153,10 +199,13 @@ const NewKontrak = ({ employes = [], editData = null, onSuccess = () => {}, onCa
       return;
     }
 
+    const existingJenis = editData.jenis_kontrak || editData.jenis_dokumen || editData.jenis || '';
+    const normalizedJenis = normalizeJenisKontrakValue(existingJenis);
+
     setNomorKontrak(editData.no_contrac || editData.nomor_kontrak || editData.nomor || editData.no || '');
     setJudul(editData.vjudul || editData.judul || '');
     setPartner(editData.vpartner || editData.partner || '');
-    setJenisKontrak(editData.jenis_kontrak || editData.jenis_dokumen || editData.jenis || '');
+    setJenisKontrak(normalizedJenis);
     setDari(toDayjsValue(editData.start || editData.dari || null));
     setSampai(toDayjsValue(editData.end || editData.sampai || null));
     setSelectedPics(normalizeSelectedPics(editData.pic || editData.pics || editData.employes || editData.personil, employes));

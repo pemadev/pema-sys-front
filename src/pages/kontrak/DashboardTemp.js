@@ -9,12 +9,13 @@ import {
   WarningAmberOutlined,
 } from '@mui/icons-material';
 import { Card, CardBody, Col, Modal, ModalBody, ModalHeader, Row } from 'reactstrap';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
 import useAxios from '../../hooks/useAxios';
 import NewKontrak from './NewKontrak';
 import ListKontrak from './ListKontrak';
 import { alert } from '../../components/atoms/Toast';
+import { AuthContext } from '../../context/AuthContext';
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -34,8 +35,43 @@ const Dashboard = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [contractHistory, setContractHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const { auth } = useContext(AuthContext);
   const api = useAxios();
   const lastFiveYears = useMemo(() => getLastFiveYears(), []);
+  const userRoles = auth?.user?.roles || [];
+  const isPickKontrak = userRoles.some((role) => String(role).toLowerCase() === 'pickontrak');
+  const currentEmployeeId = auth?.user?.employe_id || auth?.user?.employee_id || auth?.user?.id || auth?.user?.user_id || '';
+
+  const normalizePicValues = (picValue) => {
+    if (!picValue) return [];
+    const items = Array.isArray(picValue) ? picValue : [picValue];
+
+    return items.flatMap((item) => {
+      if (!item && item !== 0) return [];
+
+      if (typeof item === 'string' || typeof item === 'number') {
+        return String(item)
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean);
+      }
+
+      if (typeof item === 'object') {
+        const employeeIdValue = item.employe_id || item.employee_id || item.id || item.value;
+        return employeeIdValue ? [String(employeeIdValue)] : [];
+      }
+
+      return [];
+    });
+  };
+
+  const isCurrentUserContractPic = (row) => {
+    if (!currentEmployeeId) return false;
+    const picValue = row?.pic || row?.pics || row?.employes || row?.personil;
+    const picValues = normalizePicValues(picValue);
+
+    return picValues.some((item) => String(item) === String(currentEmployeeId));
+  };
 
   const getEmployes = async () => {
     try {
@@ -83,8 +119,9 @@ const Dashboard = () => {
   };
 
   const filteredContracts = useMemo(() => {
-    return contracts;
-  }, [contracts]);
+    if (isPickKontrak) return contracts;
+    return contracts.filter((contract) => isCurrentUserContractPic(contract));
+  }, [contracts, isPickKontrak, currentEmployeeId]);
 
   const stats = useMemo(() => {
     const total = filteredContracts.length;
@@ -205,6 +242,10 @@ const Dashboard = () => {
   };
 
   const handleChange = (event, newValue) => {
+    if (!isPickKontrak && newValue === '2') {
+      setValue('1');
+      return;
+    }
     setValue(newValue);
   };
 
@@ -300,13 +341,15 @@ const Dashboard = () => {
     if (rawHistory.length) {
       return rawHistory.map((item, index) => {
         const actionBy = item.action_by || item.actionBy || item.user_name || item.created_by_name || item.employee_name || item.name || item.full_name || item.user || item.actor;
-        const detail = item.detail || item.description || item.note || item.message || item.action || item.value || item.content || '';
+        const actionName = item.action || item.type || item.label || item.title || item.detail || item.description || `Perubahan ${index + 1}`;
+        const detail = item.detail || item.description || item.note || item.message || item.value || item.content || actionName || '';
         const title = item.label || item.title || item.action || item.type || `Perubahan ${index + 1}`;
         const actorName = resolveEmployeeName(actionBy);
+        const historyDate = formatDateTime(item.action_time || item.actionTime || item.created_at || item.updated_at || item.date);
 
         return {
           label: actorName && actorName !== '-' ? `Action by: ${actorName}` : title,
-          value: detail || formatDateTime(item.created_at || item.updated_at || item.date),
+          value: `${actionName || detail || 'Perubahan kontrak'}${historyDate !== '-' ? ` • ${historyDate}` : ''}`,
         };
       });
     }
@@ -374,17 +417,19 @@ const Dashboard = () => {
             }
             value="1"
           />
+          {isPickKontrak && (
+            <Tab
+              label={
+                <Badge badgeContent={0} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
+                  <strong>ADD KONTRAK</strong> &nbsp;&nbsp;
+                </Badge>
+              }
+              value="2"
+            />
+          )}
           <Tab
             label={
-              <Badge badgeContent={0} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
-                <strong>ADD KONTRAK</strong> &nbsp;&nbsp;
-              </Badge>
-            }
-            value="2"
-          />
-          <Tab
-            label={
-              <Badge badgeContent={contracts.length} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
+              <Badge badgeContent={filteredContracts.length} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
                 <strong>LIST KONTRAK</strong> &nbsp;&nbsp;
               </Badge>
             }
@@ -482,30 +527,35 @@ const Dashboard = () => {
 
       </TabPanel>
 
-      <TabPanel value="2" className="ps-0 pe-0">
-        <Card>
-          <CardBody>
-            <NewKontrak
-              employes={employes}
-              editData={editingContract}
-              onSuccess={handleSuccess}
-              onCancelEdit={() => setEditingContract(null)}
-            />
-          </CardBody>
-        </Card>
-      </TabPanel>
+      {isPickKontrak && (
+        <TabPanel value="2" className="ps-0 pe-0">
+          <Card>
+            <CardBody>
+              <NewKontrak
+                employes={employes}
+                editData={editingContract}
+                onSuccess={handleSuccess}
+                onCancelEdit={() => setEditingContract(null)}
+              />
+            </CardBody>
+          </Card>
+        </TabPanel>
+      )}
 
       <TabPanel value="3" className="ps-0 pe-0">
         <Card>
           <CardBody>
             <ListKontrak
-              contracts={contracts}
+              contracts={filteredContracts}
               employes={employes}
+              canEdit={isPickKontrak}
+              canDelete={isPickKontrak}
               onEdit={(row) => {
+                if (!isPickKontrak) return;
                 setEditingContract(row);
                 setValue('2');
               }}
-              onDelete={handleDelete}
+              onDelete={isPickKontrak ? handleDelete : undefined}
               onRefresh={getContracts}
               onRowClick={openContractDetail}
             />
