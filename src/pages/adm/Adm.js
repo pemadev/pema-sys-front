@@ -12,6 +12,7 @@ import TulisSurat from './TulisSurat';
 import ListSurat from './ListSurat';
 import AddSuratMasuk from './AddSuratMasuk';
 import DashboardAdm from './DashboardAdm';
+import Docusign from './Docusign/Docusign';
 
 
 
@@ -200,6 +201,22 @@ const Adm = () => {
               value="1"
             />)}
 
+            <Tab
+              label={
+                <Badge
+                  badgeContent={0}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  color="primary"
+                >
+                  <strong>DOCUSIGN</strong> &nbsp;&nbsp;
+                </Badge>
+              }
+              value="6"
+            />
+
             {auth?.user.roles.includes('Manager') || auth?.user.roles.includes('Director') || auth?.user.roles.includes('Supervisor') || auth?.user.roles.includes('Staff') ? (<Tab
               label={
                 <Badge
@@ -305,6 +322,14 @@ const Adm = () => {
           )}
         </TabPanel>
         )}
+        <TabPanel value="6" className="ps-0 pe-0">
+          <Card>
+            <CardBody>
+              <Docusign />
+            </CardBody>
+          </Card>
+        </TabPanel>
+
         <TabPanel value="2" className="ps-0 pe-0">
           <Card>
             <CardBody>

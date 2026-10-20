@@ -36,6 +36,8 @@ const SAsset = Loadable(lazy(() => import('../pages/asset/Scan')));
 /***** Verification****/
 
 const Verification = Loadable(lazy(() => import('../pages/Verif/Verification')));
+const SignDocument = Loadable(lazy(() => import('../pages/docusign/SignDocument')));
+const VerifyDocument = Loadable(lazy(() => import('../pages/docusign/VerifyDocument')));
 /***** Verification****/
 
 /***** SPPD****/
@@ -461,6 +463,16 @@ const ThemeRoutes = [
     path: '/verification/:idDoc',
     name: 'Verification',
     element: <Verification />,
+  },
+  {
+    path: '/docusign/sign/:token',
+    name: 'Docusign Sign',
+    element: <SignDocument />,
+  },
+  {
+    path: '/docusign/verify/:uuid',
+    name: 'Docusign Verify',
+    element: <VerifyDocument />,
   },
   // Unauthorized
 ];
