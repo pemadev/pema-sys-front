@@ -9,6 +9,7 @@ import { confirmAlert } from "react-confirm-alert";
 import { alert } from "../../components/atoms/Toast";
 import GenerateSurat from "./Fungsi/Generate";
 import FMerge from "./Fungsi/FMerge";
+import signSuratPdf from "./Fungsi/signSuratPdf";
 import '../sppd/style.scss';
 import logo from '../../assets/images/qrcode/qr-code-logo.png';
 import useAxios from "../../hooks/useAxios";
@@ -77,10 +78,12 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
             try {
                 const pdf = await GenerateSurat(deta, qrCodeRef);
 
-                FMerge(pdf, deta?.fileLampiran).then((res) => {
-                    window.open(res);
-                    console.log(res);
-                });
+                FMerge(pdf, deta?.fileLampiran)
+                    .then((merged) => signSuratPdf(api, id, merged, deta?.tteCode))
+                    .then((res) => {
+                        window.open(res);
+                        console.log(res);
+                    });
             } catch (e) {
                 console.log(e);
             }
@@ -136,7 +139,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
             const deta = res.data.data;
             console.log(deta);
             const pdf = await GenerateSurat(deta, qrCodeRef);
-            const merged = await FMerge(pdf, deta?.fileLampiran);
+            const merged = await signSuratPdf(api, id, await FMerge(pdf, deta?.fileLampiran), deta?.tteCode);
             setDataIsi(dt);
             setPdfmerge(merged);
             setIsiModal('paraf');

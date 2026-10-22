@@ -10,6 +10,7 @@ import './ModalDocs.scss';
 import { QRCode } from 'react-qrcode-logo';
 import { alert } from '../../components/atoms/Toast';
 import logo from '../../assets/images/qrcode/qr-code-logo.png';
+import openSignedPdf from './openSignedPdf';
 import useAxios from '../../hooks/useAxios';
 import image from '../../assets/image';
 import rupiah from '../../utils/rupiah';
@@ -42,6 +43,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   const api = useAxios();
   const qrCodeRef = useRef();
   const qrCodeRef2 = useRef();
+  const kindRef = useRef('');
 
   useEffect(() => {
     if (sppdDetail) {
@@ -168,7 +170,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         },
       },
     };
-    pdfMake.createPdf(docDefinition).open();
+    openSignedPdf(api, pdfMake, docDefinition, sppdDetail?.id, ts, kindRef.current);
   };
 
   const print2 = (html, orientationPage, head, foot, lebar, l, t, r, b, ts, ts2) => {
@@ -278,10 +280,11 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
       },
     };
 
-    pdfMake.createPdf(docDefinition).open();
+    openSignedPdf(api, pdfMake, docDefinition, sppdDetail?.id, ts2, kindRef.current);
   };
 
   const printST = () => {
+    kindRef.current = 'ST';
     setLoading(true);
     setTypeSign('sign');
     let tujuans = ``;
@@ -363,6 +366,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printSPPD = () => {
+    kindRef.current = 'SPPD';
     setLoading(true);
     setTypeSign('sign');
 
@@ -564,6 +568,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printRealisasi = () => {
+    kindRef.current = 'realisasi';
     setLoading(true);
     setTypeSign('verif_realisasi');
     if (detailSppd.realisasi) {
@@ -736,6 +741,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printekstend = (id) => {
+    kindRef.current = `extend-${id}`;
     console.log(id);
     console.log(detailSppd);
     setLoading(true);
@@ -791,6 +797,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printChecklist = () => {
+    kindRef.current = 'checklist';
     console.log(detailSppd);
     setLoading(true);
     setTypeSign('verif_realisasi');
@@ -877,6 +884,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printBiaya = () => {
+    kindRef.current = 'biaya';
     setLoading(true);
     setTypeSign('verifikasi_biaya');
     let tets = ``;
@@ -1089,6 +1097,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   };
 
   const printHotelTigap = (id) => {
+    kindRef.current = `hotel-${id}`;
     setLoading(true);
     const tjn = detailSppd?.tujuan_sppd?.filter((f) => f.id === id)[0];
     console.log(id);

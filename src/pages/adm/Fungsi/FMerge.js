@@ -16,7 +16,7 @@ const FMerge = async (base1, base2) => {
     copy2.forEach((page) => {
       pdfDoc.addPage(page);
     });
-    const mergedPdf = await pdfDoc.save();
+    const mergedPdf = await pdfDoc.save({ useObjectStreams: false });
     return mergedPdf;
   };
 

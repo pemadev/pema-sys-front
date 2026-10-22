@@ -234,7 +234,7 @@ const EditSppd = ({
     setGol(wannaEdit?.golongan_rate);
     setNarasi(wannaEdit?.narasi_st);
 
-    api.get(`dapi/sppd/pengajuan/${wannaEdit?.id}`).then((res) => {
+    api.get(`dapi/sppd/pengajuan/${wannaEdit?.id}?file=1`).then((res) => {
       const tujuanssss = [];
       res.data.data.tujuan_sppd.forEach((item) => {
         const tujuan = {

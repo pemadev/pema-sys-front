@@ -165,7 +165,43 @@ const Verification = () => {
                     {dayjs(data?.updated_at).locale('id').format('dddd, DD MMMM YYYY') || ''}
                   </span>
                 </div>
+                {data?.tte_code && (
+                  <div className="spda-status">
+                    <span>Kode TTE</span>
+                    <span>{data.tte_code}</span>
+                  </div>
+                )}
               </div>
+              {data?.original_hash && (
+                <div className="spda-status-container" style={{ textAlign: 'left', marginTop: 12 }}>
+                  <small className="d-block text-muted fw-semibold mb-1">HASH SHA-256 DOKUMEN ASLI</small>
+                  <code style={{ color: '#263b35', overflowWrap: 'anywhere', fontSize: 11 }}>{data.original_hash}</code>
+                </div>
+              )}
+              {data?.pdf_hash && (
+                <div className="spda-status-container" style={{ textAlign: 'left', marginTop: 12 }}>
+                  <small className="d-block text-muted fw-semibold mb-1">HASH SHA-256 FILE PDF BERTANDA TANGAN</small>
+                  <code style={{ color: '#263b35', overflowWrap: 'anywhere', fontSize: 11 }}>{data.pdf_hash}</code>
+                </div>
+              )}
+              {data?.pdf_hashes?.length > 0 &&
+                data.pdf_hashes.map((p) => (
+                  <div key={p.kind} className="spda-status-container" style={{ textAlign: 'left', marginTop: 12 }}>
+                    <small className="d-block text-muted fw-semibold mb-1">
+                      HASH SHA-256 FILE PDF BERTANDA TANGAN{p.kind ? ` (${p.kind.toUpperCase()})` : ''}
+                    </small>
+                    <code style={{ color: '#263b35', overflowWrap: 'anywhere', fontSize: 11 }}>{p.hash}</code>
+                  </div>
+                ))}
+              {data?.chain_hash && (
+                <div className="spda-status-container" style={{ textAlign: 'left', marginTop: 12 }}>
+                  <small className="d-block text-muted fw-semibold mb-1">HASH SHA-256 PARAF &amp; TTD (TERAKHIR)</small>
+                  <code style={{ color: '#263b35', overflowWrap: 'anywhere', fontSize: 11 }}>{data.chain_hash}</code>
+                  <small className={`d-block mt-1 ${data.chain_valid ? 'text-success' : 'text-danger'}`}>
+                    {data.chain_valid ? 'Hash sesuai dengan isi dokumen' : 'Hash tidak sesuai, isi dokumen berubah setelah ditandatangani'}
+                  </small>
+                </div>
+              )}
               {
                 data?.jenis_doc === 2 && (
                   <Badge color="info" style={{ zIndex: 3, cursor: 'pointer' }} onClick={() => viewSurat()}> {loading ? 'Loading...' : 'Lihat surat'} </Badge>

@@ -25,6 +25,31 @@ const Docusign = () => {
     load();
   }, [load]);
 
+  // Email goes out after the response, so keep refreshing while any is still being sent
+  const sending = docs.some(
+    (d) =>
+      d.status === 'pending' &&
+      d.signers.some((s) => s.status === 'pending' && !s.notified_at && !d.signers.some((x) => x.sign_order < s.sign_order && x.status !== 'signed')),
+  );
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    if (!sending) {
+      setGaveUp(false);
+      return undefined;
+    }
+    let ticks = 0;
+    const timer = setInterval(() => {
+      ticks += 1;
+      if (ticks >= 30) {
+        clearInterval(timer);
+        setGaveUp(true);
+        return;
+      }
+      load();
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [sending, load]);
+
   const act = async (fn, okMsg) => {
     try {
       const res = await fn();
@@ -65,6 +90,9 @@ const Docusign = () => {
           + Dokumen Baru
         </Button>
       </div>
+      {!docs.length ? (
+        <p className="text-center text-muted my-4">Belum ada dokumen</p>
+      ) : (
       <Table responsive hover>
         <thead>
           <tr>
@@ -84,6 +112,22 @@ const Docusign = () => {
                   <div key={s.id}>
                     {s.status === 'signed' ? '✅' : '⏳'} {d.sign_mode === 'sequential' && <b>{s.sign_order}. </b>}
                     {s.name} <small className="text-muted">({s.position} - {s.email})</small>
+                    {s.status === 'pending' && d.status === 'pending' && (
+                      <>
+                        {' '}
+                        {s.notified_at ? (
+                          <Badge color="success" pill title={dayjs(s.notified_at).format('DD-MM-YYYY HH:mm:ss')}>
+                            Email terkirim {dayjs(s.notified_at).format('DD-MM HH:mm')}
+                          </Badge>
+                        ) : d.signers.some((x) => x.sign_order < s.sign_order && x.status !== 'signed') ? (
+                          <Badge color="secondary" pill>Menunggu giliran</Badge>
+                        ) : gaveUp ? (
+                          <Badge color="danger" pill>Email belum terkirim</Badge>
+                        ) : (
+                          <Badge color="warning" pill>Mengirim email…</Badge>
+                        )}
+                      </>
+                    )}
                     {s.status === 'pending' && d.status === 'pending' && (
                       <Button
                         size="sm"
@@ -117,15 +161,9 @@ const Docusign = () => {
               </td>
             </tr>
           ))}
-          {!docs.length && (
-            <tr>
-              <td colSpan={5} className="text-center text-muted">
-                Belum ada dokumen
-              </td>
-            </tr>
-          )}
         </tbody>
       </Table>
+      )}
     </>
   );
 };
