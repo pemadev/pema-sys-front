@@ -327,6 +327,8 @@ const Sppd = () => {
       },
       {
         queryKey: ['list-review', 10],
+        // Only used for the PERLU DIPROSES badge, which only these roles see
+        enabled: !!(auth?.user.roles.includes('UmumSppd') || auth?.user.roles.includes('KeuanganSppd')),
         queryFn: () =>
           api
             .get(
@@ -345,7 +347,9 @@ const Sppd = () => {
     () => {
       re[8].refetch();
       re[9].refetch();
-      re[10].refetch();
+      if (auth?.user.roles.includes('UmumSppd') || auth?.user.roles.includes('KeuanganSppd')) {
+        re[10].refetch();
+      }
     },
     [re[8], re[9]],
     re[10],

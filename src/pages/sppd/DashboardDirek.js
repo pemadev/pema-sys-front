@@ -99,7 +99,7 @@ const DashboardDirek = () => {
               <BandwidthUsage
                 title="Perjalanan Dinas"
                 sub="aktif"
-                count={aktif}
+                count={aktif ?? '-'}
                 tipe="scatter"
                 color="bg-info"
               />
@@ -108,7 +108,7 @@ const DashboardDirek = () => {
               <BandwidthUsage
                 title="Pengajuan"
                 sub="Perjalanan Dinas"
-                count={pengajuan}
+                count={pengajuan ?? '-'}
                 tipe="bar"
                 color="bg-dark"
               />
@@ -117,7 +117,7 @@ const DashboardDirek = () => {
               <BandwidthUsage
                 title="Perjalanan Dinas"
                 sub="selesai"
-                count={done}
+                count={done ?? '-'}
                 tipe="radar"
                 color="bg-danger"
               />
@@ -125,9 +125,13 @@ const DashboardDirek = () => {
             <Col md={3} className="mt-3">
               <BandwidthUsage
                 title="Aktual Biaya"
-                sub={(+aktual).toLocaleString('en-US', {
-                  maximumFractionDigits: 0,
-                })}
+                sub={
+                  aktual === undefined || aktual === null
+                    ? '-'
+                    : (+aktual).toLocaleString('en-US', {
+                        maximumFractionDigits: 0,
+                      })
+                }
                 count="IDR"
                 tipe="line"
                 color="bg-success"
@@ -137,12 +141,15 @@ const DashboardDirek = () => {
 
           <Row>
             <Col md={7} className="mt-3">
-              <h4 className="mb-3">Aktual Penggunaan Biaya SPPD sesuai RKAP</h4>
+              <h4 className="mb-3">
+                Aktual Penggunaan Biaya SPPD sesuai RKAP {dataDash?.data?.tahun_rkap}
+              </h4>
               <hr />
-              {lebel ? (
+              {dataDash.isLoading && 'Loading Chart . . . . '}
+              {!dataDash.isLoading && lebel?.length ? (
                 <Chart options={optionsbar} series={seriesbar} type="bar" height="500" />
               ) : (
-                'Loading Chart . . . . '
+                !dataDash.isLoading && 'Belum ada data RKAP'
               )}
             </Col>
             <Col md={5} className="mt-3">
