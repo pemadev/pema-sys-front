@@ -1,0 +1,454 @@
+// Ribbon editor styled after the Word desktop app (blue title bar, light ribbon, grey canvas)
+$we-blue: #2b579a;
+$we-blue-dark: #1e4078;
+$we-ribbon: #f3f2f1;
+$we-line: #d6d6d6;
+$we-text: #252423;
+$we-muted: #605e5c;
+$we-hover: #e1dfdd;
+$we-pressed: #c8c6c4;
+$we-canvas: #e9ebee;
+
+.we-root {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #c8c6c4;
+  background: $we-ribbon;
+  color: $we-text;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  font-size: 12px;
+
+  &.we-full {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    height: 100vh;
+    border: 0;
+  }
+
+  button {
+    font-family: inherit;
+  }
+}
+
+.we-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  padding: 0 8px;
+  background: $we-blue;
+  color: #fff;
+
+  .we-btn {
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.18);
+    }
+  }
+}
+
+.we-qat {
+  display: flex;
+}
+
+.we-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.we-title-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.we-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 6px;
+  background: $we-blue;
+}
+
+.we-tab {
+  padding: 6px 14px 5px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &.we-active {
+    background: $we-ribbon;
+    color: $we-blue;
+    font-weight: 600;
+  }
+
+  &.we-file {
+    background: $we-blue-dark;
+    font-weight: 600;
+  }
+
+  &.we-context {
+    border-top: 3px solid #f5b400;
+    padding-top: 3px;
+  }
+}
+
+.we-ribbon {
+  display: flex;
+  align-items: stretch;
+  min-height: 94px;
+  padding: 4px 4px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid $we-line;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.we-group {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-right: 1px solid $we-line;
+}
+
+.we-group-body {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.we-group-label {
+  padding: 2px 0 3px;
+  color: $we-muted;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.we-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.we-row {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.we-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: $we-text;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: $we-hover;
+  }
+
+  &.we-on {
+    background: $we-pressed;
+    border-color: #a19f9d;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &.we-big {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 2px;
+    min-width: 52px;
+    max-width: 78px;
+    min-height: 66px;
+    padding: 4px 4px 2px;
+    white-space: normal;
+    line-height: 1.15;
+    text-align: center;
+
+    .we-ico svg {
+      width: 30px;
+      height: 30px;
+    }
+  }
+}
+
+// colour indicator under the font/highlight colour icons
+.we-ico-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.we-bar {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  left: 2px;
+  height: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.we-ico {
+  display: inline-flex;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+}
+
+.we-ico-text {
+  min-width: 20px;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.we-select {
+  width: 56px;
+  height: 24px;
+  margin-right: 2px;
+  padding: 0 2px;
+  border: 1px solid #c8c6c4;
+  border-radius: 2px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.we-styles {
+  display: flex;
+  gap: 3px;
+  padding-top: 2px;
+}
+
+.we-style {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 74px;
+  height: 58px;
+  padding: 4px 2px 3px;
+  border: 1px solid #e1dfdd;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+
+  small {
+    color: $we-muted;
+    font-size: 11px;
+  }
+
+  &:hover {
+    border-color: #a19f9d;
+  }
+
+  &.we-on {
+    border: 2px solid $we-blue;
+  }
+}
+
+.we-drop {
+  position: relative;
+}
+
+.we-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1400;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid #c8c6c4;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+.we-file-menu {
+  min-width: 220px;
+  padding: 4px 0;
+}
+
+.we-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: $we-hover;
+  }
+}
+
+.we-check {
+  position: relative;
+  padding-left: 28px;
+}
+
+.we-checked::before {
+  content: '\2713';
+  position: absolute;
+  left: 10px;
+  color: $we-blue;
+  font-weight: 700;
+}
+
+.we-menu-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: #e1dfdd;
+}
+
+.we-swatches {
+  display: grid;
+  grid-template-columns: repeat(7, 18px);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.we-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #c8c6c4;
+  cursor: pointer;
+
+  &:hover {
+    outline: 2px solid #f5b400;
+  }
+}
+
+.we-grid-title {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.we-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 16px);
+  gap: 2px;
+}
+
+.we-cell {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid #c8c6c4;
+  background: #fff;
+  cursor: pointer;
+
+  &.we-on {
+    border-color: $we-blue;
+    background: #c7e0f4;
+  }
+}
+
+// Ruler lines up with the A4 page centred in the editor (17px = iframe scrollbar)
+.we-ruler {
+  display: flex;
+  justify-content: center;
+  padding: 3px 17px 2px 0;
+  background: $we-canvas;
+  border-bottom: 1px solid #d6d6d6;
+  overflow: hidden;
+}
+
+.we-ruler-page {
+  position: relative;
+  flex-shrink: 0;
+  height: 16px;
+  background:
+    repeating-linear-gradient(to right, #8a8886 0 1px, transparent 1px calc(var(--cm) / 4)) var(--margin) 11px / calc(100% - 2 * var(--margin)) 3px no-repeat,
+    linear-gradient(to right, #d2d0ce var(--margin), #fff var(--margin), #fff calc(100% - var(--margin)), #d2d0ce calc(100% - var(--margin)));
+  border: 1px solid #c8c6c4;
+
+  span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    color: $we-muted;
+    font-size: 9px;
+    line-height: 12px;
+  }
+}
+
+.we-doc {
+  flex: 1;
+  min-height: 0;
+
+  .tox-tinymce {
+    height: 100% !important;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+.we-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 26px;
+  padding: 0 10px;
+  border-top: 1px solid $we-line;
+  background: $we-ribbon;
+  color: #444;
+  font-size: 11.5px;
+}
+
+.we-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+
+  button {
+    width: 20px;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  input[type='range'] {
+    width: 110px;
+    accent-color: $we-blue;
+  }
+}
+
+.we-zoom-val {
+  min-width: 36px;
+  text-align: right;
+}
+
+@media (max-width: 860px) {
+  .we-ruler,
+  .we-title-hint {
+    display: none;
+  }
+}

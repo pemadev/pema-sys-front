@@ -1,5 +1,6 @@
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
+import { tidySuratHtml } from './wordHtml';
 import image from '../../../assets/image';
 // import draft from '../../../assets/images/surat/160133.png';
 import Terbilang from './Terbilang';
@@ -105,7 +106,7 @@ const GenerateSurat = (dataSurat, htmlRef) => {
             ${dataSurat?.bhs === 'id' ? `<br>di - <br>
             <span>          Tempat</span>` : ''}
         </div>
-       <span style="line-height: 1.3; text-align:justify">  ${dataSurat?.isiSurat}</span>
+       <span style="line-height: 1.3; text-align:justify">  ${tidySuratHtml(dataSurat?.isiSurat)}</span>
   
       `;
 
@@ -116,6 +117,8 @@ const GenerateSurat = (dataSurat, htmlRef) => {
         const qrcode = canvas.toDataURL();
 
         const pdfContent = htmlToPdfmake(html, {
+          // Only the Archivo font is registered; text pasted from Word carries its own font-family
+          ignoreStyles: ['font-family'],
           defaultStyles: {
             p: { margin: [0, 3, 0, -12] },
 

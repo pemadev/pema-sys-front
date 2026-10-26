@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import Box from '@mui/material/Box';
 import PropTypes from 'prop-types';
 import TextField from '@mui/material/TextField';
-import { Editor } from '@tinymce/tinymce-react';
 import { MenuItem } from '@mui/material';
 import { Button, InputGroup, Badge, ButtonGroup } from 'reactstrap';
 import { QRCode } from 'react-qrcode-logo';
@@ -10,6 +9,7 @@ import { QRCode } from 'react-qrcode-logo';
 import useAxios from '../../hooks/useAxios';
 import FMerge from './Fungsi/FMerge';
 import GenerateSurat from './Fungsi/Generate';
+import SuratEditor from './Fungsi/SuratEditor';
 import Loader from '../../layouts/loader/Loader';
 import PdfToBase64 from './Fungsi/PdfToBase64';
 import { alert } from '../../components/atoms/Toast';
@@ -89,36 +89,6 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
     isiSurat,
     bhs,
   ]);
-
-  const addBrderless = (editor) => {
-    editor.insertContent(
-      `<table style="border-collapse: collapse; width: 100%; border: 0px;">
-          <tbody>
-          <tr>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 32.1429%;">Nama Acara</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 2.00348%;">:</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 65.8537%;">Presentasi Project Kopi</td>
-          </tr>
-          <tr>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 32.1429%;">Hari / Tanggal</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 2.00348%;">:</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 65.8537%;">Kamis, 16 Januari 1998</td>
-          </tr>
-          <tr>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 32.1429%;">Waktu</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 2.00348%;">:</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 65.8537%;">Jam 10:25 WIB</td>
-          </tr>
-          <tr>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 32.1429%;">Tempat Acara Kegiatan</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 2.00348%;">:</td>
-          <td style="vertical-align: top; border: 0px; line-height: 1.2; width: 65.8537%;">Kantor PT Pembangunan Aceh (PEMA)</td>
-          </tr>
-          </tbody>
-        </table>
-`
-    )
-  }
 
   const addTembusan = () => {
     if (tembusan === '') return;
@@ -450,47 +420,11 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
       {berang === 'form2' ? (
         <Box className="pe-4 ps-4 mt-5">
           {isiSurat !== '' && (
-            <Editor
+            <SuratEditor
               apiKey="wsaajswvlat7i5hpef2b0yqpalytaz042xu9j0djrz6sbpwr"
-              init={{
-                height: 500,
-                plugins: [
-                  // Core editing features
-                  'table',
-                  'anchor',
-                  'autolink',
-                  'charmap',
-                  'codesample',
-                  'emoticons',
-                  'image',
-                  'link',
-                  'advlist',
-                  'lists',
-                  'media',
-                  'searchreplace',
-
-                  'visualblocks',
-                  'wordcount',
-                  'code',
-                ],
-                branding: false,
-                toolbar:
-                  'undo redo | bold italic underline strikethrough | tableCustom | table mergetags |superscript subscript | alignleft aligncenter alignright alignjustify | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat | code',
-                setup: (editor) => {
-                  editor.ui.registry.addButton('tableCustom', {
-                    icon: 'fa fa-plus',
-                    tooltip: 'Borderles Table',
-                    onAction: () => {
-                      addBrderless(editor)
-                    },
-                  });
-
-                },
-              }}
               value={isiSurat}
-              onEditorChange={(content) =>
+              onChange={(content) =>
                 content === '' ? setIsiSurat(' ') : setIsiSurat(content.replace(/(<br\s*\/?>\s*)+<table/gi, '<table'))
-
               }
             />
           )}
