@@ -16,14 +16,14 @@ const ModalDetail = ({ modalD, toggleDetail, sppdDetail }) => {
   const api = useAxios();
 
   useEffect(() => {
-    if (sppdDetail) {
+    if (modalD && sppdDetail) {
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
         setDetailSppd(res.data.data);
       });
     } else {
       setDetailSppd(null);
     }
-  }, [sppdDetail]);
+  }, [modalD, sppdDetail]);
 
   return (
     <Modal isOpen={modalD} toggle={toggleDetail} size="xl">

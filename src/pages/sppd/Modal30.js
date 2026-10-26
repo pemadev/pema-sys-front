@@ -83,7 +83,7 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
   const handleSelectChange = (e) => setTujuan(e.target.value);
 
   useEffect(() => {
-    if (sppdDetail?.id) {
+    if (modal3 && sppdDetail?.id) {
       api.get(`dapi/sppd/tujuan/${sppdDetail.id}`).then((res) => {
         setDetailSppd(res.data.data || []);
         console.log('detail tujuan sppd modal 30%', res.data.data || []);
@@ -91,7 +91,7 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
     } else {
       setDetailSppd([]);
     }
-  }, [sppdDetail]);
+  }, [modal3, sppdDetail]);
   //  console.log('sppdDetail modal 30%', sppdDetail);
 
   return (

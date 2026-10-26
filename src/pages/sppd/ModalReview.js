@@ -22,7 +22,7 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
   //   const api = useAxios();
 
   useEffect(() => {
-    if (sppdDetail) {
+    if (modalR && sppdDetail) {
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
         setDetailSppd(res.data.data);
         console.log(res.data.data);
@@ -31,7 +31,7 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
     } else {
       setDetailSppd(null);
     }
-  }, [sppdDetail]);
+  }, [modalR, sppdDetail]);
 
   const submit = async () => {
     if (stat !== 'approve' && catatan === '') {

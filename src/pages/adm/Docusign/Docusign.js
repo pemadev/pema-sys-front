@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Table } from 'reactstrap';
 import dayjs from 'dayjs';
 import useAxios from '../../../hooks/useAxios';
 import DocusignForm from './DocusignForm';
+import PopupConfirmation from '../../../components/popup/PopupConfirmation';
 
 const STATUS = {
   pending: { color: 'warning', label: 'Menunggu' },
@@ -15,6 +16,8 @@ const Docusign = () => {
   const [docs, setDocs] = useState([]);
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [cancelId, setCancelId] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = useCallback(() => {
     api.get('dapi/docusign').then((res) => setDocs(res.data.data)).catch(() => setDocs([]));
@@ -60,6 +63,13 @@ const Docusign = () => {
     }
   };
 
+  const confirmCancel = async () => {
+    setCancelling(true);
+    await act(() => api.post(`dapi/docusign/detail/${cancelId}/cancel`));
+    setCancelling(false);
+    setCancelId(null);
+  };
+
   const download = async (doc, type) => {
     const res = await api.get(`dapi/docusign/detail/${doc.id}/file`, { params: { type }, responseType: 'blob' });
     window.open(URL.createObjectURL(res.data), '_blank');
@@ -85,6 +95,15 @@ const Docusign = () => {
           {msg.text}
         </Alert>
       )}
+      <PopupConfirmation
+        isOpen={cancelId !== null}
+        loading={cancelling}
+        handleConfirm={confirmCancel}
+        toggle={() => setCancelId(null)}
+        title="Batalkan Dokumen"
+        message="Batalkan dokumen ini?"
+        btnType="btn-danger"
+      />
       <div className="mb-2">
         <Button color="primary" onClick={() => setCreating(true)}>
           + Dokumen Baru
@@ -153,7 +172,7 @@ const Docusign = () => {
                     size="sm"
                     color="danger"
                     outline
-                    onClick={() => window.confirm('Batalkan dokumen ini?') && act(() => api.post(`dapi/docusign/detail/${d.id}/cancel`))}
+                    onClick={() => setCancelId(d.id)}
                   >
                     Batalkan
                   </Button>

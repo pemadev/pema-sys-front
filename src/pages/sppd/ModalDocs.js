@@ -46,7 +46,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   const kindRef = useRef('');
 
   useEffect(() => {
-    if (sppdDetail) {
+    if (modalDoc && sppdDetail) {
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
         setDetailSppd(res.data.data);
         console.log(res.data.data);
@@ -55,7 +55,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
       setDetailSppd(null);
     }
     console.log(detailSppd);
-  }, [sppdDetail]);
+  }, [modalDoc, sppdDetail]);
 
   const print = (html, orientationPage, head, foot, lebar, l, t, r, b, ts) => {
     setLoading(false);
@@ -1182,7 +1182,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         </div>
         <Row className="mt-5 d-flex justify-content-center">
           {/* <Col md={3}>
-            <Card className="  mx-sm-1 p-3 col-card border border-info" onClick={detailSppd ? printPengajuan : console.log('test')}>
+            <Card className="  mx-sm-1 p-3 col-card border border-info" onClick={detailSppd ? printPengajuan : null}>
               <Card className=" bg-info my-card border shadow text-light p-3">
                 <MaterialIcon icon="description" />
               </Card>

@@ -15,7 +15,7 @@ const ModalLogs = ({ modalLog, toggleLog, sppdDetail }) => {
   const api = useAxios();
 
   useEffect(() => {
-    if (sppdDetail) {
+    if (modalLog && sppdDetail) {
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
         setDetailSppd(res.data.data.log_pengajuan);
       });
@@ -23,7 +23,7 @@ const ModalLogs = ({ modalLog, toggleLog, sppdDetail }) => {
       setDetailSppd(null);
     }
    
-  }, [sppdDetail]);
+  }, [modalLog, sppdDetail]);
   return (
     <>
       <Modal isOpen={modalLog} toggle={toggleLog} size="lg">

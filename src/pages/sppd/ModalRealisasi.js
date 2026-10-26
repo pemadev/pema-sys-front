@@ -54,7 +54,7 @@ const ModalRealisasi = ({ modalRe, toggleRe, sppdDetail }) => {
   }, [doc]);
 
   useEffect(() => {
-    if (sppdDetail) {
+    if (modalRe && sppdDetail) {
       setIdSppd(sppdDetail.id);
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
         setDetailSppd(res.data.data);
@@ -71,7 +71,7 @@ const ModalRealisasi = ({ modalRe, toggleRe, sppdDetail }) => {
     } else {
       setDetailSppd(null);
     }
-  }, [sppdDetail]);
+  }, [modalRe, sppdDetail]);
 
 
 
