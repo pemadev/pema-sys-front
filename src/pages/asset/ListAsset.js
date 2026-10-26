@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import './Asset.scss';
 import DataTable from 'react-data-table-component';
-import { Button, Input, ButtonGroup } from 'reactstrap';
+import { Button, Input, ButtonGroup, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import MaterialIcon from '@material/react-material-icon';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import XLSX from 'xlsx';
@@ -13,15 +13,12 @@ import PrintNumber from './PrintNumber';
 import useAxios from '../../hooks/useAxios';
 
 
-const ListAsset = ({ refetch }) => {
+const ListAsset = ({ listAsset, loading, refetch }) => {
   const [selectedAsset, setSelectedAsset] = useState([]);
+  const [clearSelection, setClearSelection] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState([]);
-  const [data, setData] = useState([]); // simpan data dari API
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
-  const [totalRows, setTotalRows] = useState(0);
   const api = useAxios();
 
   const HCIS_URL = process.env.REACT_APP_HCIS_BE;
@@ -29,42 +26,22 @@ const ListAsset = ({ refetch }) => {
   const navigate = useNavigate();
   const [acet, setAcet] = useState([]);
 
-  // Fetch semua data asset tanpa pagination
-  const fetchAssets = async () => {
-    setLoading(true);
-    // Cek cache
-    const cache = sessionStorage.getItem('assetData');
-    if (cache) {
-      setData(JSON.parse(cache));
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await api.get(`dapi/inven`);
-      setData(res.data.data);
-      sessionStorage.setItem('assetData', JSON.stringify(res.data.data)); // simpan cache
-      setLoading(false);
-    } catch (err) {
-      setLoading(false);
-      alert('error', err.message);
-    }
-  };
-
+  // Cari berdasarkan nama, nomor asset (induk/turunan) atau lokasi
   useEffect(() => {
-    fetchAssets();
-  }, []);
-
-  // Filter di frontend berdasarkan search dan pagination
-  useEffect(() => {
-    let filtered = data;
-    if (search) {
-      filtered = data.filter((item) =>
-        item.name?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    setTotalRows(filtered.length);
-    setFilter(filtered);
-  }, [search, data]);
+    const q = search.trim().toLowerCase();
+    const data = listAsset || [];
+    setFilter(
+      q
+        ? data.filter(
+            (item) =>
+              item.name?.toLowerCase().includes(q) ||
+              item.asset_number?.toLowerCase().includes(q) ||
+              item.location?.toLowerCase().includes(q) ||
+              item.child?.some((c) => c.asset_number?.toLowerCase().includes(q)),
+          )
+        : data,
+    );
+  }, [search, listAsset]);
 
   const handleChange = ({ selectedRows }) => {
     setSelectedAsset(selectedRows);
@@ -81,33 +58,37 @@ const ListAsset = ({ refetch }) => {
     setAcet(asetprint);
   };
 
+  const askDelete = () => {
+    if (!selectedAsset.length) {
+      alert('error', 'Pilih asset yang akan dihapus');
+      return;
+    }
+    setConfirmDelete(true);
+  };
+
   const deleteAsset = async () => {
+    setConfirmDelete(false);
     await api
-      .post(`dapi/inven/delete`, { data: selectedAsset })
+      .post(`dapi/inven/delete`, { data: selectedAsset.map((a) => ({ id: a.id })) })
       .then((res) => {
         if (res?.data?.success) {
           alert('success', `${res?.data?.message}`);
-          sessionStorage.removeItem('assetData'); // hapus cache sebelum refetch
           refetch();
           setSelectedAsset([]);
-          // console.log(res.data)
+          setAcet([]);
+          setClearSelection(!clearSelection);
         } else {
           alert('error', `${res?.data?.message}`);
         }
       })
       .catch((err) => {
-        setSelectedAsset([]);
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
   };
 
   const go = (r) => {
     navigate(`${r.id}`);
   };
-
-  setTimeout(() => {
-    refetch();
-  }, 100000);
 
   const exportToXLS = () => {
     // Ekspor semua data asset, bukan hanya yang di halaman/filter
@@ -193,19 +174,15 @@ const ListAsset = ({ refetch }) => {
           data={filter}
           selectableRows
           onSelectedRowsChange={handleChange}
+          clearSelectedRows={clearSelection}
           pagination
-          paginationServer
-          paginationTotalRows={totalRows}
-          paginationPerPage={perPage}
-          paginationDefaultPage={page}
-          onChangePage={setPage}
-          onChangeRowsPerPage={setPerPage}
+          paginationPerPage={20}
           subHeader
           subHeaderComponent={
 
             <div className="d-flex justify-content-end w-100">
               <ButtonGroup className="me-3">
-                <Button color="danger" outline className="pb-0" onClick={deleteAsset}>
+                <Button color="danger" outline className="pb-0" onClick={askDelete}>
                   <MaterialIcon icon="delete_forever" />
                 </Button>
                 <Button color="warning" outline>
@@ -220,7 +197,7 @@ const ListAsset = ({ refetch }) => {
               <Input
                 type="text"
                 value={search}
-                placeholder="search . . . . "
+                placeholder="cari nama, nomor, lokasi . . ."
                 className="w-25"
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -229,6 +206,28 @@ const ListAsset = ({ refetch }) => {
           }
         />
       )}
+      <Modal isOpen={confirmDelete} toggle={() => setConfirmDelete(false)}>
+        <ModalHeader toggle={() => setConfirmDelete(false)}>Hapus Asset</ModalHeader>
+        <ModalBody>
+          Hapus {selectedAsset.length} asset beserta semua nomor turunannya? Tindakan ini tidak bisa dibatalkan.
+          <ul className="mt-2 mb-0">
+            {selectedAsset.slice(0, 10).map((a) => (
+              <li key={a.id}>
+                {a.asset_number} — {a.name}
+              </li>
+            ))}
+            {selectedAsset.length > 10 && <li>dan {selectedAsset.length - 10} lainnya</li>}
+          </ul>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={deleteAsset}>
+            Hapus
+          </Button>
+          <Button color="secondary" outline onClick={() => setConfirmDelete(false)}>
+            Batal
+          </Button>
+        </ModalFooter>
+      </Modal>
       <style>
 {`
 .spin {
@@ -245,6 +244,7 @@ const ListAsset = ({ refetch }) => {
 
 ListAsset.propTypes = {
   listAsset: PropTypes.array,
+  loading: PropTypes.bool,
   refetch: PropTypes.func,
 };
 export default ListAsset;

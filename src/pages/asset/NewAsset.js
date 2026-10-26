@@ -24,6 +24,7 @@ const NewAsset = ({ refetch }) => {
   const [inVendor, setInVendor] = useState('');
   const [inAcquisition, setInAcquisition] = React.useState('');
   const [assignedEmployees, setAssignedEmployees] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   const toggle = () => {
     setModal(!modal);
@@ -67,6 +68,11 @@ const NewAsset = ({ refetch }) => {
   }, [re[0].data, re[1].data]);
 
   const saveData = async () => {
+    if (saving) return;
+    if (inAmount !== '' && (+inAmount < 1 || !Number.isInteger(+inAmount))) {
+      alert('error', 'Amount minimal 1');
+      return;
+    }
     if (
       inName !== '' &&
       inType !== '' &&
@@ -88,7 +94,7 @@ const NewAsset = ({ refetch }) => {
       valueSubmit.amount = inAmount;
       valueSubmit.location = inLocation;
       valueSubmit.responsible = assigne.toLocaleString();
-      refetch();
+      setSaving(true);
       await api
         .post(`dapi/inven/add`, valueSubmit)
         .then((res) => {
@@ -96,7 +102,7 @@ const NewAsset = ({ refetch }) => {
           if (res?.data?.success) {
             toggle();
             refetch();
-            alert('success', `Submitted Succesfully !`);
+            alert('success', res?.data?.message || `Submitted Succesfully !`);
             setInName('');
             setInType('');
             setInPrice('');
@@ -106,14 +112,16 @@ const NewAsset = ({ refetch }) => {
             setInAmount('');
             setInLocation('');
             setAssignedEmployees([]);
+          } else {
+            alert('error', res?.data?.message || 'Gagal menyimpan');
           }
         })
         .catch((err) => {
-          toggle();
-          alert('error', err);
-        });
+          // keep the form open so nothing typed is lost
+          alert('error', err?.response?.data?.message || err.message);
+        })
+        .finally(() => setSaving(false));
     } else {
-      toggle();
       alert('error', `Fields Can't Be Empty !!`);
     }
   };
@@ -268,8 +276,8 @@ const NewAsset = ({ refetch }) => {
 
           <FormGroup>
             <div className="d-grid gap-2 mt-4">
-              <Button type="submit" onClick={() => saveData()}>
-                Save Data
+              <Button type="submit" onClick={() => saveData()} disabled={saving}>
+                {saving ? 'Saving . . .' : 'Save Data'}
               </Button>
             </div>
           </FormGroup>

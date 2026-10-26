@@ -18,11 +18,17 @@ import Request from './Request';
 const Asset = () => {
   const { auth } = useAuth();
   const { hash } = useLocation();
-  const [value, setValue] = useState(`${localStorage.getItem('page')? localStorage.getItem('page'):auth?.user.roles.includes('PicAsset') ? '1' : '2' }`);
+  const isPic = auth?.user.roles.includes('PicAsset');
+  const savedTab = localStorage.getItem('page');
+  // Tab ALL ASSET (1) hanya untuk PicAsset
+  const [value, setValue] = useState(
+    savedTab && (savedTab !== '1' || isPic) ? savedTab : `${isPic ? '1' : '2'}`,
+  );
   const [onMe, setOnMe] = useState();
 
   const api = useAxios();
   const [listAsset, setListAsset] = useState();
+  const [loadingList, setLoadingList] = useState(false);
   const [reqser, setReqser] = useState();
 
  
@@ -44,12 +50,13 @@ const Asset = () => {
 
   const getData = () => {
     if (value === '1') {
+      setLoadingList(true);
       api
         .get(`dapi/inven`)
         .then((res) => {
           setListAsset(res.data.data);
-          console.log(res.data.data);
         })
+        .finally(() => setLoadingList(false));
     }else if(value === '2'){
       api.get(`dapi/inv/onme`).then((res) => {
         setOnMe(res.data.data);
@@ -134,7 +141,7 @@ const Asset = () => {
               <CardBody>
                 <>
                   <NewAsset refetch={getData} />
-                  <ListAsset listAsset={listAsset} refetch={getData} loading1={false} className="mt-2"></ListAsset>
+                  <ListAsset listAsset={listAsset} loading={loadingList && !listAsset} refetch={getData} className="mt-2"></ListAsset>
                 </>
               </CardBody>
             </Card>

@@ -48,7 +48,7 @@ const DetailAsset = () => {
   const [inVendor, setInVendor] = useState('');
   const [inAcquisition, setInAcquisition] = useState('');
   const [inLocation, setInLocation] = useState('');
-  const [ setSesImg] = useState(new Date());
+  const [, setSesImg] = useState(new Date());
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const api = useAxios();
@@ -56,7 +56,7 @@ const DetailAsset = () => {
   const result = useQueries({
     queries: [
       {
-        queryKey: ['assetDetail', 0],
+        queryKey: ['assetDetail', assetId],
         queryFn: () =>
           api.get(`dapi/inven/${assetId}`).then((res) => {
             console.log(res.data.data);
@@ -171,11 +171,13 @@ const DetailAsset = () => {
           toggle1();
           refetch();
           alert('success', `added succesfully !`);
+        } else {
+          alert('error', res?.data?.message || 'failed !!');
         }
       })
       .catch((err) => {
         toggle1();
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
   };
 
@@ -196,7 +198,7 @@ const DetailAsset = () => {
       })
       .catch((err) => {
         toggle();
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
   };
 
@@ -219,7 +221,7 @@ const DetailAsset = () => {
       .catch((err) => {
         toggle();
         setSelectedAsset([]);
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
   };
 
@@ -243,14 +245,13 @@ const DetailAsset = () => {
         if (res?.data?.success) {
           alert('success', `${res?.data?.message}`);
           refetch();
-          sessionStorage.removeItem('assetData')
         } else {
           alert('error', `${res?.data?.message}`);
         }
       })
       .catch((err) => {
         toggle2();
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
 
     console.log(dataUpdate);
@@ -270,11 +271,11 @@ const DetailAsset = () => {
           refetch();
           setSesImg(new Date());
         } else {
-          alert('error', `failed !!`);
+          alert('error', rr?.data?.message || `failed !!`);
         }
       })
       .catch((err) => {
-        alert('error', err);
+        alert('error', err?.response?.data?.message || err.message);
       });
   };
 

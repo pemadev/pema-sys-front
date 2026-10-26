@@ -109,7 +109,7 @@ const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
         .catch((err) => {
           toggle();
 
-          alert('error', err);
+          alert('error', err?.response?.data?.message || err.message);
         });
     }
 
@@ -121,8 +121,9 @@ const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
   }, [onMe]);
 
   useEffect(() => {
-    const result = onMe?.filter((p) =>
-      p.name.toLocaleLowerCase().match(search.toLocaleLowerCase()),
+    const q = search.toLocaleLowerCase();
+    const result = onMe?.filter(
+      (p) => p.name?.toLocaleLowerCase().includes(q) || p.asset_number?.toLocaleLowerCase().includes(q),
     );
     setFilter(result);
   }, [search]);
