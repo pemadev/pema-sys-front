@@ -274,13 +274,84 @@ const foldPhantomLines = (root) => {
   });
 };
 
+const TEXT_WIDTH_CM = TEXT_WIDTH_PT / UNIT_PT.cm;
+
+// Paragraphs written with Tab (<span class="we-tab" data-pos="cm from the left margin">, see SuratEditor) print as
+// one borderless table whose columns start at those tab stops, so ":" and the text after a Tab line up in the PDF
+// exactly as they do in the editor. Only top-level paragraphs; a run of consecutive ones shares one table.
+const convertTabStops = (root) => {
+  const doc = root.ownerDocument;
+  const rowOf = (p) => {
+    if (p.nodeName !== 'P') return null;
+    const tabs = Array.from(p.querySelectorAll('span.we-tab'));
+    if (!tabs.length) return null;
+    const stops = tabs.map((t) => parseFloat(t.getAttribute('data-pos')));
+    if (stops.some((s, i) => Number.isNaN(s) || s <= (i ? stops[i - 1] : 0))) return null;
+    const segs = [];
+    let prev = null;
+    [...tabs, null].forEach((tab, i) => {
+      const range = doc.createRange();
+      if (prev) range.setStartAfter(prev);
+      else range.setStart(p, 0);
+      if (tab) range.setEndBefore(tab);
+      else range.setEnd(p, p.childNodes.length);
+      segs.push({ pos: i ? stops[i - 1] : 0, content: range.cloneContents() });
+      prev = tab;
+    });
+    return { p, segs };
+  };
+
+  const rows = Array.from(root.children).map(rowOf);
+  for (let i = 0; i < rows.length; i += 1) {
+    if (rows[i]) {
+      let j = i;
+      while (rows[j + 1]) j += 1;
+      const group = rows.slice(i, j + 1);
+      const cols = Array.from(new Set(group.flatMap((r) => r.segs.map((s) => +s.pos.toFixed(3))))).sort((a, b) => a - b);
+      const widthPct = (k) => {
+        const cm = k < cols.length - 1 ? cols[k + 1] - cols[k] : Math.max(1, TEXT_WIDTH_CM - cols[k]);
+        return +((cm / TEXT_WIDTH_CM) * 100).toFixed(2);
+      };
+      const table = doc.createElement('table');
+      table.setAttribute('style', 'border-collapse: collapse; width: 100%; border: 0px;');
+      const colgroup = doc.createElement('colgroup');
+      cols.forEach((_, k) => {
+        const col = doc.createElement('col');
+        col.setAttribute('style', `width: ${widthPct(k)}%;`);
+        colgroup.appendChild(col);
+      });
+      table.appendChild(colgroup);
+      const tbody = doc.createElement('tbody');
+      group.forEach(({ segs }) => {
+        const tr = doc.createElement('tr');
+        segs.forEach((seg, k) => {
+          const start = cols.indexOf(+seg.pos.toFixed(3));
+          const end = k + 1 < segs.length ? cols.indexOf(+segs[k + 1].pos.toFixed(3)) : cols.length;
+          const td = doc.createElement('td');
+          td.setAttribute('style', CELL);
+          if (end - start > 1) td.setAttribute('colspan', String(end - start));
+          td.appendChild(seg.content);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      group[0].p.parentNode.insertBefore(table, group[0].p);
+      group.forEach(({ p }) => p.remove());
+      i = j;
+    }
+  }
+};
+
 export const tidySuratHtml = (rawHtml) => {
   if (!rawHtml || typeof DOMParser === 'undefined') return rawHtml;
   const html = rawHtml.replace(/margin-(?:top|bottom|left|right)\s*:\s*-[\d.]+[a-z%]*\s*;?/gi, '');
-  const needsTables = /<t[dh][\s>]/i.test(html);
+  const needsTabs = /class=["']we-tab/i.test(html);
+  const needsTables = needsTabs || /<t[dh][\s>]/i.test(html);
   const needsSpacing = /margin/i.test(html);
   if (!needsTables && !needsSpacing) return html;
   const doc = new DOMParser().parseFromString(html, 'text/html');
+  if (needsTabs) convertTabStops(doc.body);
   if (needsTables) tidyTables(doc.body);
   if (needsSpacing) {
     normalizeMargins(doc.body);

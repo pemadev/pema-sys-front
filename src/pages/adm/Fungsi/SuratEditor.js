@@ -4,6 +4,10 @@ import { Editor } from '@tinymce/tinymce-react';
 import { cleanWordPaste, PDF_LINE_RATIO, scaleLineHeights } from './wordHtml';
 import './SuratEditor.scss';
 
+const PAGE_CM = 29.7; // A4 height
+const PHONE_PX = 640; // editor panes this narrow use the fluid (non-A4) layout
+const TAB_STOP_CM = 1.27; // Word's default tab stop (0.5")
+
 // Kertas A4 dengan lebar teks yang sama dengan PDF surat (A4, margin kiri/kanan 50pt, Archivo 10pt)
 const PAGE_STYLE = `
   html { background: #e9ebee; }
@@ -13,7 +17,9 @@ const PAGE_STYLE = `
     min-height: 29.7cm;
     margin: 18px auto 24px;
     padding: 1.5cm 1.76cm 2.5cm;
-    background: #fff;
+    background-color: #fff;
+    /* thin line at every A4 page end: the sheet grows one page at a time (see fitPages) */
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(${PAGE_CM}cm - 2px), #b9bec6 calc(${PAGE_CM}cm - 2px), #b9bec6 ${PAGE_CM}cm);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     font-family: Archivo, Arial, sans-serif;
     font-size: 10pt;
@@ -21,16 +27,202 @@ const PAGE_STYLE = `
     line-height: ${+(1.3 * PDF_LINE_RATIO).toFixed(3)};
     color: #000;
   }
+  /* a Tab: an empty gap up to the next tab stop; its width and data-pos are set by alignTabs (a real tab
+     character would be collapsed to a space when the content is saved) */
+  .we-tab { display: inline-block; white-space: pre; }
   p { margin: 0; }
   /* paragraphs without their own spacing print 3pt above + 2.14pt below */
   p:not([style*="margin"]) { padding: 3pt 0 2.14pt; }
   table { border-collapse: collapse; }
   table:not([style*="border: 0"]) td, table:not([style*="border: 0"]) th { border: 1px solid #000; }
   td, th { padding: 2px 4px; vertical-align: top; }
-  @media (max-width: 860px) {
-    body { width: auto; min-height: 0; margin: 0; padding: 16px; box-shadow: none; }
+  /* The media query is evaluated against the width of the editor pane (the iframe), which is much narrower than
+     the window because of the sidebar. A higher breakpoint made the paper shrink to its content instead of
+     staying an A4 sheet; only phone-sized panes switch to the fluid layout (narrow panes scroll sideways). */
+  @media (max-width: ${PHONE_PX}px) {
+    body { width: auto; min-height: 0 !important; margin: 0; padding: 16px; box-shadow: none; background-image: none; }
   }
 `;
+
+// Numbering / bullet styles offered in the ribbon (list-style-type values html-to-pdfmake also understands)
+const NUMBER_STYLES = [
+  ['decimal', '1. 2. 3.'],
+  ['lower-alpha', 'a. b. c.'],
+  ['upper-alpha', 'A. B. C.'],
+  ['lower-roman', 'i. ii. iii.'],
+  ['upper-roman', 'I. II. III.'],
+];
+const BULLET_STYLES = [
+  ['disc', '●  Bulat'],
+  ['circle', '○  Lingkaran'],
+  ['square', '■  Kotak'],
+];
+// style of the next level when a numbered item is demoted with Tab, like Word's outline (1. a. i. / I. A. 1.)
+const NEXT_LEVEL_STYLE = {
+  decimal: 'lower-alpha',
+  'lower-alpha': 'lower-roman',
+  'lower-roman': 'decimal',
+  'upper-roman': 'upper-alpha',
+  'upper-alpha': 'decimal',
+};
+
+const listStyleOf = (el) => (el.style && el.style.listStyleType) || '';
+
+// Keeps the paper a whole number of A4 sheets: the next page appears by itself as the text reaches the page end.
+// Phone layout (fluid paper) is left alone.
+const fitPages = (editor) => {
+  const body = editor.getBody();
+  const win = editor.getWin();
+  if (!body || !win) return 1;
+  if (win.innerWidth <= PHONE_PX) {
+    body.style.minHeight = '';
+    return 1;
+  }
+  const rect = body.getBoundingClientRect();
+  // body.style.zoom scales getBoundingClientRect but not offset*/computed sizes
+  const scale = body.offsetWidth ? rect.width / body.offsetWidth : 1;
+  const cs = win.getComputedStyle(body);
+  const last = body.lastElementChild;
+  let bottom = 0;
+  if (last) {
+    bottom =
+      (last.getBoundingClientRect().bottom - rect.top) / scale +
+      (parseFloat(win.getComputedStyle(last).marginBottom) || 0);
+  }
+  const pageH = (PAGE_CM / 2.54) * 96;
+  const pages = Math.max(1, Math.ceil((bottom + (parseFloat(cs.paddingBottom) || 0) - 1) / pageH));
+  const want = `${+(pages * PAGE_CM).toFixed(1)}cm`;
+  if (body.style.minHeight !== want) body.style.minHeight = want;
+  return pages;
+};
+
+// Word-like tab stops: every Tab (span.we-tab) is widened so the text after it starts on the next stop
+// (every TAB_STOP_CM from the left margin, or from the cell edge inside a table). The stop position is stored
+// in data-pos (cm) so the PDF can rebuild the same columns (convertTabStops in wordHtml.js).
+const alignTabs = (editor) => {
+  const body = editor.getBody();
+  const win = editor.getWin();
+  if (!body || !win) return;
+  const tabs = body.querySelectorAll('span.we-tab');
+  if (!tabs.length) return;
+  const cmPx = 96 / 2.54;
+  const bodyRect = body.getBoundingClientRect();
+  const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1;
+  tabs.forEach((span) => {
+    const host = span.closest('td,th') || body;
+    const cs = win.getComputedStyle(host);
+    const origin =
+      host.getBoundingClientRect().left +
+      ((parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0)) * scale;
+    // later tabs on the line depend on the width of this one, so measure and set them left to right
+    span.style.width = '0px';
+    const left = (span.getBoundingClientRect().left - origin) / scale / cmPx;
+    const pos = (Math.floor(left / TAB_STOP_CM + 1e-3) + 1) * TAB_STOP_CM;
+    span.style.width = `${(pos - left).toFixed(3)}cm`;
+    span.setAttribute('data-pos', pos.toFixed(2));
+  });
+};
+
+const refreshLayout = (editor) => {
+  alignTabs(editor);
+  return fitPages(editor);
+};
+
+// the Tab right before the cursor, if any (Shift+Tab removes it, like Word)
+const tabBeforeCursor = (editor) => {
+  const rng = editor.selection.getRng();
+  if (!rng.collapsed) return null;
+  const { startContainer: c, startOffset: o } = rng;
+  const invisible = /[\uFEFF\u200b]/g; // TinyMCE parks the cursor in a zero-width text node next to a Tab
+  let prev;
+  if (c.nodeType === 3) {
+    if (c.nodeValue.slice(0, o).replace(invisible, '') !== '') return null;
+    prev = c.previousSibling;
+  } else {
+    prev = c.childNodes[o - 1];
+  }
+  while (prev && prev.nodeType === 3 && prev.nodeValue.replace(invisible, '') === '') prev = prev.previousSibling;
+  return prev && prev.nodeType === 1 && prev.classList.contains('we-tab') ? prev : null;
+};
+
+// The list that contains the cursor, plus the lists nested in it; a list item demoted with Tab/Indent starts
+// with its parent's style, so give it the next level style (a numbered list becomes 1. -> a. -> i.)
+const restyleNestedLevels = (editor) => {
+  const node = editor.selection.getNode();
+  const list = editor.dom.getParent(node, 'ol,ul');
+  if (!list || list.nodeName !== 'OL') return;
+  const parentList = list.parentNode && editor.dom.getParent(list.parentNode, 'ol,ul');
+  if (!parentList || parentList.nodeName !== 'OL') return;
+  const own = listStyleOf(list);
+  const parentStyle = listStyleOf(parentList) || 'decimal';
+  if (own && own !== parentStyle) return; // the user already chose another style for this level
+  const next = NEXT_LEVEL_STYLE[parentStyle];
+  if (next) editor.dom.setStyle(list, 'list-style-type', next);
+};
+
+// Word-like outline numbering for the list at the cursor: 1. -> a. -> i. -> 1. ... one style per depth
+const applyMultilevel = (editor) => {
+  editor.undoManager.transact(() => {
+    let list = editor.dom.getParent(editor.selection.getNode(), 'ol');
+    if (!list) {
+      editor.execCommand('InsertOrderedList', false, { 'list-style-type': 'decimal' });
+      list = editor.dom.getParent(editor.selection.getNode(), 'ol');
+    }
+    if (!list) return;
+    let root = list;
+    while (root.parentNode && editor.dom.getParent(root.parentNode, 'ol')) {
+      root = editor.dom.getParent(root.parentNode, 'ol');
+    }
+    const cycle = ['decimal', 'lower-alpha', 'lower-roman'];
+    [root, ...Array.from(root.querySelectorAll('ol'))].forEach((ol) => {
+      let depth = 0;
+      for (let p = ol.parentNode && editor.dom.getParent(ol.parentNode, 'ol'); p; p = p.parentNode && editor.dom.getParent(p.parentNode, 'ol')) {
+        depth += 1;
+        if (p === root) break;
+      }
+      editor.dom.setStyle(ol, 'list-style-type', cycle[depth % cycle.length]);
+    });
+  });
+};
+
+// Tab / Shift+Tab: nest or un-nest list items, indent or outdent paragraphs, and insert a tab stop mid-line.
+// Inside tables Tab keeps moving between cells.
+const handleTab = (editor, e) => {
+  if (e.keyCode !== 9 || e.ctrlKey || e.altKey || e.metaKey) return;
+  const node = editor.selection.getNode();
+  if (editor.dom.getParent(node, 'td,th')) return;
+  e.preventDefault();
+  // the lists plugin also reacts to Tab; without this a list item would be demoted twice
+  e.stopImmediatePropagation();
+  if (e.shiftKey) {
+    const tab = tabBeforeCursor(editor);
+    if (tab) {
+      editor.undoManager.transact(() => editor.dom.remove(tab));
+      alignTabs(editor);
+    } else {
+      editor.execCommand('Outdent');
+    }
+    return;
+  }
+  const rng = editor.selection.getRng();
+  const inList = !!editor.dom.getParent(node, 'li');
+  let atBlockStart = false;
+  if (rng.collapsed) {
+    const block = editor.dom.getParent(rng.startContainer, editor.dom.isBlock);
+    if (block) {
+      const before = editor.dom.createRng();
+      before.setStart(block, 0);
+      before.setEnd(rng.startContainer, rng.startOffset);
+      atBlockStart = before.toString().replace(/[\u200b\u00a0\s]/g, '') === '';
+    }
+  }
+  if (inList || !rng.collapsed || atBlockStart) {
+    editor.execCommand('Indent');
+  } else {
+    editor.insertContent('<span class="we-tab" contenteditable="false" data-pos="0">&nbsp;</span>');
+    alignTabs(editor);
+  }
+};
 
 const BORDERLESS_TABLE = `<table style="border-collapse: collapse; width: 100%; border: 0px;">
   <tbody>
@@ -223,6 +415,8 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
   const [zoom, setZoom] = useState(100);
   const [full, setFull] = useState(false);
   const [grid, setGrid] = useState([0, 0]);
+  const [pages, setPages] = useState(1);
+  const pagesRaf = useRef(0);
   // last colours used, shown under the colour buttons like Word
   const [lastColor, setLastColor] = useState({ ForeColor: '#C00000', HiliteColor: '#FFFF00' });
 
@@ -303,8 +497,32 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
 
   useEffect(() => {
     const body = ed()?.getBody();
-    if (body) body.style.zoom = zoom / 100;
+    if (body) {
+      body.style.zoom = zoom / 100;
+      setPages(refreshLayout(ed()));
+    }
   }, [zoom]);
+
+  const listStyle = (cmd, style) => {
+    const e = ed();
+    if (!e) return;
+    e.focus();
+    const tag = cmd === 'InsertOrderedList' ? 'ol' : 'ul';
+    const current = e.dom.getParent(e.selection.getNode(), tag);
+    // choosing the style the list already has would switch the list off
+    if (!current || (listStyleOf(current) || (tag === 'ol' ? 'decimal' : 'disc')) !== style) {
+      e.execCommand(cmd, false, { 'list-style-type': style });
+    }
+    setMenu(null);
+  };
+
+  const multilevel = () => {
+    const e = ed();
+    if (!e) return;
+    e.focus();
+    applyMultilevel(e);
+    setMenu(null);
+  };
 
   const insertBorderless = () => {
     const e = ed();
@@ -530,8 +748,51 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
               active={st.ol}
               onClick={() => run('InsertOrderedList')}
             />
-            <Btn icon="outdent" title="Kurangi Indentasi" onClick={() => run('Outdent')} />
-            <Btn icon="indent" title="Tambah Indentasi" onClick={() => run('Indent')} />
+            <Drop
+              id="liststyle"
+              button={(toggle) => (
+                <Btn icon="chevron-down" fallback="▾" title="Gaya Poin dan Penomoran" onClick={toggle} />
+              )}
+            >
+              <div className="we-menu-title">Penomoran</div>
+              {NUMBER_STYLES.map(([style, label]) => (
+                <button
+                  key={style}
+                  type="button"
+                  className="we-menu-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => listStyle('InsertOrderedList', style)}
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="we-menu-sep" />
+              <div className="we-menu-title">Poin</div>
+              {BULLET_STYLES.map(([style, label]) => (
+                <button
+                  key={style}
+                  type="button"
+                  className="we-menu-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => listStyle('InsertUnorderedList', style)}
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="we-menu-sep" />
+              <div className="we-menu-title">Bertingkat</div>
+              <button
+                type="button"
+                className="we-menu-item"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={multilevel}
+              >
+                1. → a. → i. (tiap tingkat)
+              </button>
+              <div className="we-menu-hint">Tab = turunkan tingkat, Shift+Tab = naikkan</div>
+            </Drop>
+            <Btn icon="outdent" title="Kurangi Indentasi (Shift+Tab)" onClick={() => run('Outdent')} />
+            <Btn icon="indent" title="Tambah Indentasi (Tab)" onClick={() => run('Indent')} />
           </div>
           <div className="we-row">
             <Btn
@@ -934,6 +1195,14 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
               setIcons(editor.ui.registry.getAll().icons);
               refresh();
               countWords();
+              setPages(refreshLayout(editor));
+              // the Archivo web font changes line heights once loaded; the pane width decides the phone layout
+              const relayout = () => {
+                if (edRef.current) setPages(refreshLayout(edRef.current));
+              };
+              const fontsReady = editor.getDoc().fonts && editor.getDoc().fonts.ready;
+              if (fontsReady) fontsReady.then(relayout);
+              editor.getWin().addEventListener('resize', relayout);
             }}
             init={{
               height: '100%',
@@ -996,6 +1265,19 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
                 });
                 editor.on('NodeChange SelectionChange Undo Redo SetContent', refresh);
                 editor.on('input SetContent Undo Redo', countWords);
+                // next A4 page appears as the text grows (one frame after the edit, once layout is settled)
+                const schedulePages = () => {
+                  if (pagesRaf.current) return;
+                  pagesRaf.current = window.requestAnimationFrame(() => {
+                    pagesRaf.current = 0;
+                    if (edRef.current) setPages(refreshLayout(edRef.current));
+                  });
+                };
+                editor.on('input keyup SetContent Undo Redo NodeChange ExecCommand', schedulePages);
+                editor.on('keydown', (e) => handleTab(editor, e), true);
+                editor.on('ExecCommand', (e) => {
+                  if (/^(mce)?indent$/i.test(e.command)) restyleNestedLevels(editor);
+                });
                 // Word paragraph alignment shortcuts
                 editor.addShortcut('meta+l', 'Rata kiri', () => editor.execCommand('JustifyLeft'));
                 editor.addShortcut('meta+e', 'Rata tengah', () =>
@@ -1017,7 +1299,8 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
         </div>
 
         <div className="we-status">
-          <span>{words} kata</span>
+          <span>{pages} halaman</span>
+          <span className="we-status-sep">{words} kata</span>
           <span className="we-status-sep">Bahasa Indonesia</span>
           <div className="we-zoom">
             <button

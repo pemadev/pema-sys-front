@@ -306,6 +306,19 @@ $we-canvas: #e9ebee;
   }
 }
 
+.we-menu-title {
+  padding: 4px 12px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $we-muted;
+}
+
+.we-menu-hint {
+  padding: 4px 12px 2px;
+  font-size: 11px;
+  color: $we-muted;
+}
+
 .we-check {
   position: relative;
   padding-left: 28px;
