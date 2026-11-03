@@ -27,6 +27,7 @@ import HorizontalLogo from '../logo/HorizontalLogo';
 import { AuthContext } from '../../context/AuthContext';
 import './Header.scss';
 import { Toast } from '../../components/atoms/Toast';
+import { onAvatarError } from '../../utils/defaultAvatar';
 
 const HR_URL = process.env.REACT_APP_HR_URL;
 const SYS_URL = process.env.REACT_APP_SYS_URL;
@@ -241,6 +242,7 @@ const HorizontalHeader = () => {
                   alt="profile"
                   className="rounded-circle"
                   width="30"
+                  onError={onAvatarError}
                 />
               </DropdownToggle>
               <DropdownMenu className="account-view">

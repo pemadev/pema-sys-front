@@ -3,6 +3,7 @@ import { DropdownItem } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { Settings } from 'react-feather';
 import useAuth from '../../hooks/useAuth';
+import { onAvatarError } from '../../utils/defaultAvatar';
 
 const HCIS_URL = process.env.REACT_APP_HCIS_BE;
 
@@ -17,6 +18,7 @@ const ProfileDD = () => {
           alt="user"
           className="rounded-circle"
           width="60"
+          onError={onAvatarError}
         />
         <span>
           <h5 className="mb-0">{auth.user.first_name}</h5>

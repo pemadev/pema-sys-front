@@ -13,6 +13,7 @@ import {
   Spinner,
 } from 'reactstrap';
 import { Formik, Field, Form, ErrorMessage } from 'formik';
+import { Eye, EyeOff } from 'react-feather';
 import * as Yup from 'yup';
 import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
 import { ReactComponent as LeftBg } from '../../assets/images/bg/login-bgleft.svg';
@@ -27,6 +28,7 @@ const Login = () => {
   const api = useAxios();
   const { loading, error, dispatch } = useContext(AuthContext);
   const [errStatus, setErrStatus] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -106,17 +108,31 @@ const Login = () => {
                       </FormGroup>
                       <FormGroup>
                         <Label htmlFor="password">Password</Label>
-                        <Field
-                          name="password"
-                          type="password"
-                          className={`form-control${
-                            errors.password && touched.password ? ' is-invalid' : ''
-                          }`}
-                        />
+                        <div className="position-relative">
+                          <Field
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            className={`form-control${
+                              errors.password && touched.password ? ' is-invalid' : ''
+                            }`}
+                            style={{ paddingRight: '2.5rem' }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-link position-absolute top-0 end-0 h-100 px-3 text-muted"
+                            style={{ zIndex: 5 }}
+                            onClick={() => setShowPassword((s) => !s)}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            title={showPassword ? 'Hide password' : 'Show password'}
+                            tabIndex={-1}
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                         <ErrorMessage
                           name="password"
                           component="div"
-                          className="invalid-feedback"
+                          className="invalid-feedback d-block"
                         />
                       </FormGroup>
                       <FormGroup className="form-check d-flex" inline>
