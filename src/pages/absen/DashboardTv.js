@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import useAxios from '../../hooks/useAxios';
-import { DEFAULT_AVATAR, onAvatarError } from '../../utils/defaultAvatar';
+import { DEFAULT_AVATAR } from '../../utils/defaultAvatar';
 
 const HCIS_URL = process.env.REACT_APP_HCIS_BE;
 
@@ -42,18 +42,43 @@ const parseDate = (v) => {
 };
 const hhmm = (d) => (d ? d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') : '--:--');
 
-// semua rapat hari ini (selesai, sedang berlangsung, akan datang), urut jam mulai
+// Rapat yang ditampilkan sama dengan halaman /jadwal-rapat (PublicRoomSchedule): per ruangan, rapat yang mulai hari ini atau sesudahnya
+// (atau yang sedang berjalan), urut jam mulai, paling banyak 3 rapat per ruangan; rapat tanpa nama ruangan tidak ditampilkan.
+// Hasilnya digabung dan diurutkan menurut jam mulai.
+const MEETINGS_PER_ROOM = 3;
 const meetingsToday = (list, ref) => {
   const dayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
-  const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
-  return (list || [])
+  const keep = (m) => {
+    if (m.startAt && m.endAt) return m.startAt >= dayStart || (m.startAt <= ref && ref <= m.endAt);
+    if (m.startAt) return m.startAt >= dayStart || ref >= m.startAt;
+    if (m.endAt) return ref <= m.endAt;
+    return false;
+  };
+  const perRoom = new Map();
+  (list || [])
     .map((m) => ({ ...m, startAt: parseDate(m.start_time), endAt: parseDate(m.end_time) }))
-    .filter((m) => m.startAt && m.startAt < dayEnd && (m.endAt || m.startAt) >= dayStart)
-    .sort((a, b) => a.startAt - b.startAt);
+    .filter((m) => String(m.room || '').trim() && keep(m))
+    .sort((a, b) => (a.startAt ? a.startAt.getTime() : Infinity) - (b.startAt ? b.startAt.getTime() : Infinity))
+    .forEach((m) => {
+      const k = String(m.room).trim().toLowerCase();
+      if (!perRoom.has(k)) perRoom.set(k, []);
+      if (perRoom.get(k).length < MEETINGS_PER_ROOM) perRoom.get(k).push(m);
+    });
+  return Array.from(perRoom.values()).reduce((acc, rows) => acc.concat(rows), []).sort((a, b) => (a.startAt || 0) - (b.startAt || 0));
+};
+// kolom zoom_required bertipe teks dari API ("0"/"1"), jadi "0" tidak boleh dianggap Zoom
+const isZoom = (v) => v === true || v === 1 || /^(1|ya|true)$/i.test(String(v));
+// keterangan hari untuk rapat yang bukan hari ini
+const meetingDayLabel = (d, ref) => {
+  const dayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - dayStart) / (24 * 3600 * 1000));
+  if (diff <= 0) return null;
+  if (diff === 1) return 'Besok';
+  return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
 };
 const meetingStatus = (m, ref) => {
   if (m.endAt && m.endAt < ref) return 'selesai';
-  if (m.startAt <= ref) return 'berlangsung';
+  if (!m.startAt || m.startAt <= ref) return 'berlangsung';
   return 'akan';
 };
 
@@ -192,6 +217,8 @@ const CSS = `
 .abs-root { font-size: 1vw; font-size: min(1vw, 1.78vh); font-size: clamp(10px, min(1vw, 1.78vh), 42px); }
 .abs-fade { animation: absFade .7s ease backwards; }
 .abs-live { animation: absPulse 2s ease-in-out infinite; }
+.abs-nav { font: inherit; cursor: pointer; }
+.abs-nav:focus { outline: .15em solid #fff; outline-offset: .1em; }
 `;
 
 const styles = {
@@ -213,8 +240,22 @@ const styles = {
   date: { fontSize: '1.25em', color: C.muted, marginTop: '.3em' },
   clockBox: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5em' },
   updated: { fontSize: '.95em', color: C.faint, textAlign: 'center', whiteSpace: 'nowrap' },
-  bar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em', marginBottom: '.7em' },
+  bar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.6em 1em', marginBottom: '.7em' },
   phaseTitle: (color) => ({ fontSize: '1.9em', fontWeight: 700, margin: 0, letterSpacing: '-.01em', lineHeight: 1.1, paddingLeft: '.6em', borderLeft: `.2em solid ${color}` }),
+  nav: { display: 'flex', alignItems: 'center', gap: '.4em', marginLeft: 'auto' },
+  navBtn: (active, color) => ({
+    font: 'inherit',
+    fontSize: '.95em',
+    fontWeight: 600,
+    color: active ? '#0a1020' : C.muted,
+    background: active ? color : 'rgba(255,255,255,.06)',
+    border: `1px solid ${active ? color : 'rgba(255,255,255,.14)'}`,
+    borderRadius: '999px',
+    minWidth: '2.2em',
+    padding: '.3em .5em',
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+  }),
   legend: { display: 'flex', gap: '1.3em', fontSize: '1em', color: C.muted },
   dot: (color) => ({ display: 'inline-block', width: '.8em', height: '.8em', borderRadius: '50%', background: color, marginRight: '.5em' }),
   progress: { height: '.22em', background: 'rgba(255,255,255,.07)', borderRadius: '999px', overflow: 'hidden', marginBottom: '.9em' },
@@ -277,19 +318,43 @@ const styles = {
   error: { color: C.none, fontWeight: 600 },
 };
 
-const PhotoBase = ({ id, color }) => {
+// Foto default untuk karyawan yang belum punya foto: lingkaran berwarna dengan inisial nama (warna tetap untuk nama yang sama)
+const AVATAR_COLORS = [['#0ea5e9', '#1e3a8a'], ['#10b981', '#064e3b'], ['#8b5cf6', '#3b0764'], ['#f59e0b', '#78350f'], ['#ec4899', '#831843'], ['#14b8a6', '#134e4a'], ['#6366f1', '#1e1b4b'], ['#ef4444', '#7f1d1d']];
+const avatarCache = new Map();
+const initialsAvatar = (name) => {
+  const key = String(name || '?');
+  if (avatarCache.has(key)) return avatarCache.get(key);
+  const words = key.split(',')[0].split(/\s+/).filter(Boolean);
+  const initials = ((words[0] || '?').charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase();
+  const [c1, c2] = AVATAR_COLORS[Array.from(key).reduce((s, ch) => (s * 31 + ch.charCodeAt(0)) % 997, 7) % AVATAR_COLORS.length];
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+    + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>`
+    + '<rect width="100" height="100" fill="url(#g)"/>'
+    + `<text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="${initials.length > 1 ? 40 : 46}" font-weight="700" fill="#fff" fill-opacity=".92">${initials.replace(/[<>&]/g, '')}</text></svg>`;
+  const url = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  avatarCache.set(key, url);
+  return url;
+};
+
+const PhotoBase = ({ id, color, size, name }) => {
   const thumb = useSyncExternalStore(subscribeThumbs, () => thumbMem.get(id), () => undefined);
-  // miniatur siap -> pakai; belum siap atau tidak punya foto -> siluet; miniatur tidak bisa dibuat -> foto asli
-  let src = DEFAULT_AVATAR;
+  // miniatur siap -> pakai; belum siap atau tidak punya foto -> avatar inisial; miniatur tidak bisa dibuat -> foto asli (gagal -> avatar inisial)
+  const fallback = initialsAvatar(name);
+  let src = fallback;
   if (thumb === THUMB_FAIL) src = photoUrl(id);
   else if (thumb) src = thumb;
+  const onError = (e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = fallback;
+  };
   return (
-    <div style={styles.photoWrap(color)}>
-      <img style={styles.photo} src={src} alt="" onError={onAvatarError} decoding="async" />
+    <div style={{ ...styles.photoWrap(color), width: size, height: size }}>
+      <img style={styles.photo} src={src} alt="" onError={onError} decoding="async" />
     </div>
   );
 };
-PhotoBase.propTypes = { id: PropTypes.string.isRequired, color: PropTypes.string.isRequired };
+PhotoBase.propTypes = { id: PropTypes.string.isRequired, color: PropTypes.string.isRequired, size: PropTypes.string, name: PropTypes.string };
+PhotoBase.defaultProps = { size: '5.4em', name: '' };
 const Photo = React.memo(PhotoBase);
 
 const personShape = PropTypes.shape({
@@ -318,7 +383,7 @@ const HadirCardBase = ({ p, rank }) => {
   return (
     <div style={styles.card(color)}>
       <span style={styles.rank}>#{rank}</span>
-      <Photo id={p.employe_id} color={color} />
+      <Photo id={p.employe_id} color={color} name={p.nama} />
       <div style={styles.info}>
         <div style={styles.name} title={p.nama}>{p.nama}</div>
         <div style={styles.sub}>{p.jabatan || '-'}</div>
@@ -345,7 +410,7 @@ const TidakHadirCardBase = ({ p }) => {
   const s = STATUS[p.status] || STATUS.none;
   return (
     <div style={styles.card(s.color)}>
-      <Photo id={p.employe_id} color={s.color} />
+      <Photo id={p.employe_id} color={s.color} name={p.nama} />
       <div style={styles.info}>
         <div style={styles.name} title={p.nama}>{p.nama}</div>
         <div style={styles.sub}>{p.jabatan || '-'}</div>
@@ -361,7 +426,7 @@ const TidakHadirCard = React.memo(TidakHadirCardBase);
 
 const BelumOutCardBase = ({ p }) => (
   <div style={styles.card(KEMARIN.color)}>
-    <Photo id={p.employe_id} color={KEMARIN.color} />
+    <Photo id={p.employe_id} color={KEMARIN.color} name={p.nama} />
     <div style={styles.info}>
       <div style={styles.name} title={p.nama}>{p.nama}</div>
       <div style={styles.sub}>{p.jabatan || '-'}</div>
@@ -398,13 +463,14 @@ const MeetingCardBase = ({ m, now }) => {
       <div style={{ textAlign: 'center', flexShrink: 0, minWidth: '6.2em', paddingLeft: '.4em' }}>
         <div style={{ fontSize: '2.1em', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: dim ? C.muted : '#fff' }}>{hhmm(m.startAt)}</div>
         <div style={{ fontSize: '.95em', color: C.muted, marginTop: '.3em', fontVariantNumeric: 'tabular-nums' }}>s/d {hhmm(m.endAt)}</div>
+        {m.startAt && meetingDayLabel(m.startAt, now) ? <div style={{ fontSize: '.9em', fontWeight: 700, color: C.rapat, marginTop: '.3em' }}>{meetingDayLabel(m.startAt, now)}</div> : null}
       </div>
       <div style={styles.info}>
         <div style={{ ...styles.name, whiteSpace: 'normal', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', fontSize: '1.3em', lineHeight: 1.2 }} title={m.topic}>{m.topic || 'Rapat'}</div>
         <div style={styles.sub}>
           {m.created_by_name || '-'}
           {m.participants ? ` · ${m.participants} peserta` : ''}
-          {m.zoom_required ? ' · Zoom' : ''}
+          {isZoom(m.zoom_required) ? ' · Zoom' : ''}
         </div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -624,6 +690,168 @@ const ChartPanel = ({ note, children }) => (
 );
 ChartPanel.propTypes = { note: PropTypes.string.isRequired, children: PropTypes.node.isRequired };
 
+// Struktur organisasi: pohon disusun dari atasan langsung (direct_atasan), berakar di Direktur Utama (id_base 3).
+const ORG_COLORS = ['#fbbf24', '#60a5fa', '#c084fc', '#34d399', '#94a3b8'];
+const ORG_W = '30em';
+
+const buildOrg = (rows) => {
+  const map = new Map();
+  (rows || []).forEach((r) => map.set(r.employe_id, { ...r, children: [] }));
+  map.forEach((n) => {
+    const parent = map.get(n.direct_atasan);
+    if (parent && parent !== n) parent.children.push(n);
+  });
+  const root = Array.from(map.values()).find((n) => Number(n.id_base) === 3);
+  if (!root) return null;
+  const grow = (n, parent) => {
+    const kids = n.children.map((c) => grow(c, n));
+    return {
+      ...n,
+      parentBase: parent ? parent.id_base : undefined,
+      parentId: parent ? parent.employe_id : undefined,
+      parentLabel: parent ? (parent.vakan ? `${parent.jabatan} (vacant)` : `${parent.nama} · ${parent.jabatan}`) : undefined,
+      children: kids, total: kids.reduce((s, c) => s + c.total + (c.vakan ? 0 : 1), 0),
+    };
+  };
+  return grow(root, undefined);
+};
+
+// Halaman struktur: 'struktur' = Dirut dan direksi; lalu satu halaman per divisi (dikelompokkan menurut nama divisi) dengan rantai atasannya di atas.
+// Seorang atasan bisa memegang lebih dari satu divisi (mis. manajer dengan PS divisi lain): tiap divisi mendapat halamannya sendiri,
+// berisi atasan itu di puncak dan hanya bawahan yang berasal dari divisi tersebut.
+const orgDivisions = (n) => {
+  const set = new Set([n.divisi]);
+  n.children.forEach((c) => orgDivisions(c).forEach((d) => set.add(d)));
+  return Array.from(set);
+};
+const orgCut = (n, d, keep) => {
+  const kids = n.children.map((c) => orgCut(c, d, false)).filter(Boolean);
+  if (!keep && n.divisi !== d && kids.length === 0) return null;
+  return { ...n, children: kids, total: kids.reduce((s, c) => s + c.total + (c.vakan ? 0 : 1), 0) };
+};
+const orgPages = (root) => {
+  if (!root) return [];
+  const pages = [];
+  const add = (chain, units) => {
+    const groups = new Map();
+    units.forEach((u) => {
+      const divs = orgDivisions(u);
+      [u.divisi, ...divs.filter((d) => d !== u.divisi)].forEach((d) => {
+        const key = d || u.employe_id;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(divs.length > 1 ? orgCut(u, d, true) : u);
+      });
+    });
+    groups.forEach((list, k) => pages.push({ chain, units: list, divisi: k, count: list.reduce((s, u) => s + u.total + (u.vakan ? 0 : 1), 0) }));
+  };
+  const direksi = root.children.filter((c) => Number(c.id_base) === 4);
+  direksi.forEach((d) => add([root, d], d.children));
+  add([root], root.children.filter((c) => Number(c.id_base) !== 4));
+  return pages;
+};
+// baris per tingkat jabatan (hierarki: manajer -> supervisor -> staf -> tenaga pendukung): semua orang yang setingkat sejajar dalam satu baris,
+// walaupun atasan langsungnya melompati satu tingkat (mis. staf langsung di bawah manajer). Urutan dalam baris mengikuti urutan pohon.
+const orgLevels = (units) => {
+  const flat = [];
+  const walk = (n) => {
+    // supervisor dengan satu staf (tanpa bawahan lagi): staf itu ditampilkan langsung di bawah supervisornya, bukan di baris staf
+    const only = n.children.length === 1 ? n.children[0] : null;
+    if (Number(n.id_base) === 8 && only && only.children.length === 0 && Number(only.id_base) >= 9) {
+      flat.push({ ...n, inline: only });
+      return;
+    }
+    flat.push(n);
+    n.children.forEach(walk);
+  };
+  units.forEach(walk);
+  const ranks = Array.from(new Set(flat.map((n) => Number(n.id_base)))).sort((x, y) => x - y);
+  return ranks.map((r) => flat.filter((n) => Number(n.id_base) === r));
+};
+// warna menurut tingkat jabatan: manajer, supervisor, staf dan di bawahnya
+const rankDepth = (n) => {
+  const r = Number(n.id_base);
+  if (r <= 7) return 2;
+  return r === 8 ? 3 : 4;
+};
+const orgGroup = (k) => (String(k).indexOf('divisi:') === 0 ? 'struktur' : k);
+
+const posOf = (i, len) => (len === 1 ? 'only' : i === 0 ? 'first' : i === len - 1 ? 'last' : 'mid'); // eslint-disable-line no-nested-ternary
+
+const OrgNode = ({ n, depth, up, pos }) => {
+  const color = ORG_COLORS[Math.min(depth, ORG_COLORS.length - 1)];
+  const vac = !!n.vakan;
+  // dari manajer ke bawah (id_base 7+): grade kosong di HR ditandai "Belum diupdate"
+  const noGrade = !vac && !n.grade && Number(n.id_base) >= 7;
+  const cardStyle = { ...styles.card(color), height: '7.2em', padding: '.6em 1em .6em .8em', gap: '.8em' };
+  if (vac) {
+    cardStyle.border = `1px dashed ${rgba(color, 0.6)}`;
+    cardStyle.background = 'rgba(255,255,255,.025)';
+    cardStyle.opacity = 0.85;
+  }
+  const line = <div style={{ width: 2, height: '1.1em', background: rgba(color, 0.55), flexShrink: 0 }} />;
+  // garis hanya bila beda tingkat: atasan dan bawahan yang sama-sama satu tingkat jabatan tidak disambung, supaya tidak tampak seperti atasan-bawahan
+  const lined = up && n.parentBase !== undefined && Number(n.parentBase) !== Number(n.id_base);
+  const hasDown = n.children.some((c) => Number(c.id_base) !== Number(n.id_base));
+  return (
+    <div style={{ width: ORG_W, maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {up ? (
+        // garis penghubung: stub ke atas, ditambah garis datar yang menyambung ke kartu sebelah (kecuali di ujung baris)
+        <div style={{ position: 'relative', width: '100%', height: '1.1em', flexShrink: 0 }}>
+          {lined && pos !== 'only' ? <div style={{ position: 'absolute', top: 0, height: 2, background: rgba(color, 0.55), left: pos === 'first' ? '50%' : 0, right: pos === 'last' ? '50%' : 0 }} /> : null}
+          {lined ? <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, marginLeft: -1, background: rgba(color, 0.55) }} /> : null}
+        </div>
+      ) : null}
+      <div style={{ ...cardStyle, width: 'calc(100% - 1em)' }}>
+        {vac ? (
+          <div style={{ ...styles.photoWrap(rgba(color, 0.45)), width: '4.6em', height: '4.6em' }}>
+            <img style={{ ...styles.photo, opacity: 0.5 }} src={DEFAULT_AVATAR} alt="" />
+          </div>
+        ) : <Photo id={n.employe_id} color={color} size="4.6em" name={n.nama} />}
+        <div style={styles.info}>
+          <div style={{ ...styles.name, fontSize: '1.25em', ...(vac ? { fontStyle: 'italic', color: C.faint, letterSpacing: '.08em', textTransform: 'uppercase' } : {}) }} title={n.nama}>{n.nama}</div>
+          <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: '.88em', color: C.muted }}>{n.jabatan || '-'}</div>
+          {n.grade || noGrade || n.total > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.6em', marginTop: '.2em' }}>
+              {n.grade ? <span style={{ ...styles.badge(color), fontSize: '.78em', marginTop: 0 }}>{n.grade}</span> : null}
+              {noGrade ? <span style={{ ...styles.badge(C.faint), fontSize: '.78em', marginTop: 0, fontStyle: 'italic' }}>Belum diupdate</span> : null}
+              {n.total > 0 ? <span style={{ ...styles.sub2, fontSize: '.78em', overflow: 'visible' }}>{n.total} anggota</span> : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {n.inline ? (
+        <>
+          {line}
+          <OrgNode n={n.inline} depth={rankDepth(n.inline)} />
+        </>
+      ) : null}
+      {!n.inline ? (hasDown ? line : <div style={{ height: n.children.length > 0 ? '1.1em' : 0 }} />) : null}
+    </div>
+  );
+};
+OrgNode.propTypes = {
+  n: PropTypes.shape({
+    employe_id: PropTypes.string,
+    nama: PropTypes.string,
+    jabatan: PropTypes.string,
+    divisi: PropTypes.string,
+    grade: PropTypes.string,
+    vakan: PropTypes.bool,
+    id_base: PropTypes.number,
+    parentBase: PropTypes.number,
+    total: PropTypes.number,
+    children: PropTypes.arrayOf(PropTypes.object),
+    inline: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+  }).isRequired,
+  depth: PropTypes.number.isRequired,
+  up: PropTypes.bool,
+  pos: PropTypes.string,
+};
+OrgNode.defaultProps = { up: false, pos: 'only' };
+
+const PHASE_COLOR = { hadir: C.hadir, tidak: C.none, kemarin: C.kemarin, rapat: C.rapat, struktur: ORG_COLORS[0], grafikHari: C.ket, grafikBulan: C.ket };
+const PHASE_LABEL = { hadir: 'Hadir', tidak: 'Tidak Hadir', kemarin: 'Belum Clock Out', rapat: 'Rapat', struktur: 'Struktur', grafikHari: 'Grafik Harian', grafikBulan: 'Grafik Bulanan' };
+
 const DashboardTv = () => {
   const api = useAxios();
   const apiRef = useRef(api);
@@ -632,6 +860,7 @@ const DashboardTv = () => {
   const [data, setData] = useState(null);
   const [stats, setStats] = useState(null);
   const [meetings, setMeetings] = useState([]);
+  const [orgRows, setOrgRows] = useState(null);
   const [error, setError] = useState(false);
   const [phase, setPhase] = useState('hadir'); // 'hadir' -> 'tidak' -> 'kemarin' (dilewati bila kosong) -> muat ulang
   const [now, setNow] = useState(new Date());
@@ -644,6 +873,47 @@ const DashboardTv = () => {
   statsRef.current = stats;
   const meetingsRef = useRef([]);
   meetingsRef.current = meetings;
+  const org = useMemo(() => buildOrg(orgRows), [orgRows]);
+  const orgRef = useRef(null);
+  orgRef.current = org;
+  const pages = useMemo(() => orgPages(org), [org]);
+  const pagesRef = useRef([]);
+  pagesRef.current = pages;
+
+  // urutan bagian yang sedang tersedia (dipakai putaran otomatis dan tombol navigasi)
+  const phaseList = () => {
+    const s = statsRef.current;
+    const d = dataRef.current;
+    const list = ['hadir', 'tidak'];
+    if (d && d.belum_clock_out.length > 0) list.push('kemarin');
+    if (s && s.harian.length > 0) list.push('grafikHari');
+    if (s) list.push('grafikBulan');
+    if (meetingsToday(meetingsRef.current, new Date()).length > 0) list.push('rapat');
+    if (orgRef.current) {
+      list.push('struktur');
+      pagesRef.current.forEach((x, i) => list.push(`divisi:${i}`));
+    }
+    return list;
+  };
+  const phaseRef = useRef('hadir');
+  phaseRef.current = phase;
+  const step = (dir) => {
+    const list = phaseList();
+    const i = list.indexOf(phaseRef.current);
+    setPhase(list[(i + dir + list.length) % list.length]);
+  };
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  // tombol panah kiri/kanan (termasuk remote TV) pindah bagian
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowRight') stepRef.current(1);
+      else if (e.key === 'ArrowLeft') stepRef.current(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const load = useCallback(() => {
     apiRef.current
@@ -671,13 +941,26 @@ const DashboardTv = () => {
       .catch(() => {});
   }, []);
 
+  const loadOrg = useCallback(() => {
+    apiRef.current
+      .get('dapi/hr/struktur-organisasi')
+      .then((res) => {
+        // jabatan kosong tingkat staf ke bawah, "Manajer Eksekutif", dan "Koordinator ..." tidak ditampilkan
+        const rows = (Array.isArray(res.data.data) ? res.data.data : []).filter((x) => !(x.vakan && (Number(x.id_base) >= 9 || /^manajer eksekutif|koordinator/i.test(x.jabatan))));
+        setOrgRows(rows);
+        ensureThumbs(rows.filter((x) => !x.vakan).map((x) => x.employe_id));
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     load();
     loadStats();
     loadMeetings();
+    loadOrg();
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
-  }, [load, loadStats, loadMeetings]);
+  }, [load, loadStats, loadMeetings, loadOrg]);
 
   // hari libur: tidak ada siklus; cukup cek ulang tiap 5 menit supaya berganti sendiri saat hari kerja tiba
   const isLibur = !!(data && data.libur);
@@ -699,12 +982,7 @@ const DashboardTv = () => {
 
     const next = () => {
       if (cancelled) return;
-      const s = statsRef.current;
-      const list = ['hadir', 'tidak'];
-      if (dataRef.current.belum_clock_out.length > 0) list.push('kemarin');
-      if (meetingsToday(meetingsRef.current, new Date()).length > 0) list.push('rapat');
-      if (s && s.harian.length > 0) list.push('grafikHari');
-      if (s) list.push('grafikBulan');
+      const list = phaseList();
       const i = list.indexOf(phase);
       if (i >= 0 && i < list.length - 1) {
         setPhase(list[i + 1]);
@@ -712,6 +990,7 @@ const DashboardTv = () => {
         load();
         loadStats();
         loadMeetings();
+        loadOrg();
         setPhase('hadir');
       }
     };
@@ -750,7 +1029,7 @@ const DashboardTv = () => {
       cancelled = true;
       timers.forEach(clearTimeout);
     };
-  }, [phase, data ? data.tanggal : null, isLibur, load, loadStats, loadMeetings]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, data ? data.tanggal : null, isLibur, load, loadStats, loadMeetings, loadOrg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const r = data ? data.ringkasan : null;
   const tanggal = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -759,7 +1038,7 @@ const DashboardTv = () => {
     <div style={styles.header}>
       <div>
         <div style={styles.brand}>PT Pema · Sistem Informasi</div>
-        <h1 style={styles.title}>Dashboard TV</h1>
+        <h1 style={styles.title}>Kehadiran &amp; Agenda Hari Ini</h1>
         <div style={styles.date}>{tanggal}</div>
       </div>
       <div style={styles.clockBox}>
@@ -803,10 +1082,52 @@ const DashboardTv = () => {
     }
     if (phase === 'rapat') {
       const list = meetingsToday(meetings, now);
-      if (list.length === 0) return <div style={styles.message}>Tidak ada rapat hari ini</div>;
+      if (list.length === 0) return <div style={styles.message}>Tidak ada rapat</div>;
       return (
         <div style={{ ...styles.grid, gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 38em), 1fr))' }} ref={contentRef} className="abs-fade" key="rapat">
           {list.map((m) => <MeetingCard key={m.id} m={m} now={now} />)}
+        </div>
+      );
+    }
+    if (phase === 'struktur' && org) {
+      return (
+        <div style={{ ...styles.grid, display: 'block' }} ref={contentRef} className="abs-fade" key="struktur">
+          <div style={{ display: 'flex', justifyContent: 'center' }}><OrgNode n={org} depth={0} /></div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '.4em 0' }}>
+            {org.children.filter((c) => Number(c.id_base) === 4).map((c, i, arr) => <OrgNode key={c.employe_id} n={c} depth={1} up pos={posOf(i, arr.length)} />)}
+          </div>
+        </div>
+      );
+    }
+    if (phase.indexOf('divisi:') === 0 && pages[Number(phase.slice(7))]) {
+      const pg = pages[Number(phase.slice(7))];
+      const lvls = orgLevels(pg.units);
+      return (
+        <div style={{ ...styles.grid, display: 'block' }} ref={contentRef} className="abs-fade" key={phase}>
+          {pg.chain.map((n, i) => (
+            <div key={n.employe_id} style={{ display: 'flex', justifyContent: 'center' }}><OrgNode n={n} depth={i === 0 ? 0 : 1} up={i > 0} /></div>
+          ))}
+          {lvls.map((lv) => {
+            // kelompokkan menurut atasan langsung; bila satu baris berisi bawahan beberapa atasan, tiap kelompok diberi keterangan atasannya
+            const groups = [];
+            lv.forEach((n) => {
+              const last = groups[groups.length - 1];
+              if (last && last.pid === n.parentId) last.items.push(n);
+              else groups.push({ pid: n.parentId, label: n.parentLabel, items: [n] });
+            });
+            return (
+              <div key={lv[0].employe_id}>
+                {groups.map((g) => (
+                  <div key={g.pid || 'x'}>
+                    {groups.length > 1 && g.label ? <div style={{ textAlign: 'center', fontSize: '.85em', color: C.faint, padding: '.5em 0 .1em' }}>Tim kerja {g.label}</div> : null}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '.4em 0' }}>
+                      {g.items.map((n, i) => <OrgNode key={n.employe_id} n={n} depth={rankDepth(n)} up pos={posOf(i, g.items.length)} />)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -848,11 +1169,12 @@ const DashboardTv = () => {
     hadir: `Daftar Karyawan Hadir${r ? ` (${r.hadir})` : ''}`,
     tidak: `Daftar Karyawan Tidak Hadir${r ? ` (${r.tidak_hadir})` : ''}`,
     kemarin: `Daftar Karyawan Belum Clock Out Kemarin${r ? ` (${r.belum_clock_out_kemarin})` : ''}`,
-    rapat: `Daftar Rapat Hari Ini (${rapatCount})`,
+    rapat: `Jadwal Rapat · Hari Ini & Mendatang (${rapatCount})`,
+    struktur: `Struktur Organisasi · Direksi${org ? ` (${org.total + 1} karyawan)` : ''}`,
     grafikHari: `Grafik Kehadiran Karyawan Harian${stats ? ` · ${stats.bulan}` : ''}`,
     grafikBulan: `Grafik Kehadiran Karyawan Bulanan${stats ? ` · ${stats.tahun}` : ''}`,
-  }[phase];
-  const phaseColor = { hadir: C.hadir, tidak: C.none, kemarin: C.kemarin, rapat: C.rapat, grafikHari: C.ket, grafikBulan: C.ket }[phase];
+  }[phase] || (pages[Number(phase.slice(7))] ? `${pages[Number(phase.slice(7))].divisi} (${pages[Number(phase.slice(7))].count})` : '');
+  const phaseColor = PHASE_COLOR[orgGroup(phase)];
 
   return (
     <div className="abs-root" style={styles.page}>
@@ -870,6 +1192,16 @@ const DashboardTv = () => {
         ) : null}
         {phase === 'kemarin' && data ? <div style={styles.legend}>{longDate(data.tanggal_kemarin)}</div> : null}
         {phase === 'rapat' ? <div style={styles.legend}>{tanggal}</div> : null}
+        {phase.indexOf('divisi:') === 0 ? <div style={styles.legend}>Divisi {Number(phase.slice(7)) + 1} dari {pages.length}</div> : null}
+        <div style={styles.nav}>
+          <button type="button" className="abs-nav" style={styles.navBtn(false, phaseColor)} onClick={() => setPhase(phaseList()[0])} aria-label="Pertama">&#171;</button>
+          <button type="button" className="abs-nav" style={styles.navBtn(false, phaseColor)} onClick={() => step(-1)} aria-label="Sebelumnya">&#8249;</button>
+          <span style={styles.navBtn(true, phaseColor)} title={PHASE_LABEL[orgGroup(phase)]}>
+            {phaseList().map(orgGroup).filter((k, i, arr) => arr.indexOf(k) === i).indexOf(orgGroup(phase)) + 1}
+          </span>
+          <button type="button" className="abs-nav" style={styles.navBtn(false, phaseColor)} onClick={() => step(1)} aria-label="Berikutnya">&#8250;</button>
+          <button type="button" className="abs-nav" style={styles.navBtn(false, phaseColor)} onClick={() => { const l = phaseList(); setPhase(l[l.length - 1]); }} aria-label="Terakhir">&#187;</button>
+        </div>
       </div>
 
       <div style={styles.progress}>
