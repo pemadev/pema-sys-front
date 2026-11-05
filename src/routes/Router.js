@@ -52,6 +52,7 @@ const KontrakPage = Loadable(lazy(() => import('../pages/kontrak')));
 const MobilPage = Loadable(lazy(() => import('../pages/mobil')));
 /***** abse****/
 // const AbsenPage = Loadable(lazy(() => import('../pages/absen')));
+const DashboardTv = Loadable(lazy(() => import('../pages/absen/DashboardTv')));
 
 /***** Pengajuan ****/
 const Pengajuan = Loadable(lazy(() => import('../pages/pengajuan/Pengajuan')));
@@ -160,6 +161,11 @@ const ThemeRoutes = [
     path: '/',
     element: <RequireAuth allowedRoles={[ROLES.Employee]} />,
     children: [
+      {
+        path: 'dashboard-tv',
+        name: 'Dashboard TV',
+        element: <DashboardTv />,
+      },
       // {
       //   path: 'absen',
       //   name: 'Absensi',
