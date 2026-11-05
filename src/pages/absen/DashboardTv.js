@@ -9,7 +9,7 @@ const HCIS_URL = process.env.REACT_APP_HCIS_BE;
 const SCROLL_SPEED = 30;
 const HOLD_MS = 4000;
 const DWELL_MS = 12000;
-const CHART_MS = 16000;
+const CHART_MS = 30000;
 
 const C = {
   text: '#f1f5f9',
@@ -63,6 +63,38 @@ const longDate = (ymd) => {
 };
 
 const photoUrl = (id) => `${HCIS_URL}employee/file?f=photo-profil&id=${id}`;
+
+// Foto dimuat dan di-decode bertahap di latar belakang (3 jalur, jeda kecil) begitu data datang, bukan sekaligus saat kartu muncul.
+// Objek Image ditahan di memori agar hasil decode tidak dibuang; siklus berikutnya memakai foto yang sudah siap.
+const photoCache = new Map();
+const preload = { queue: [], active: 0 };
+const pumpPreload = () => {
+  while (preload.active < 3 && preload.queue.length > 0) {
+    const id = preload.queue.shift();
+    if (!photoCache.has(id)) {
+      preload.active += 1;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = photoUrl(id);
+      photoCache.set(id, img);
+      const done = () => {
+        preload.active -= 1;
+        setTimeout(pumpPreload, 80);
+      };
+      if (img.decode) img.decode().then(done, done);
+      else {
+        img.onload = done;
+        img.onerror = done;
+      }
+    }
+  }
+};
+const preloadPhotos = (ids) => {
+  ids.forEach((id) => {
+    if (!photoCache.has(id) && !preload.queue.includes(id)) preload.queue.push(id);
+  });
+  pumpPreload();
+};
 const rgba = (hex, a) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   return `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -70,7 +102,7 @@ const rgba = (hex, a) => {
 
 // seluruh ukuran memakai em; 1em ~ 1% lebar layar (atau 1.78% tinggi), sehingga rapi di TV 1080p/4K maupun monitor biasa
 const CSS = `
-@keyframes absFade { from { opacity: 0; transform: translateY(1.2em); } to { opacity: 1; transform: none; } }
+@keyframes absFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes absPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .abs-root, .abs-root * { box-sizing: border-box; }
 .abs-fade { animation: absFade .7s ease backwards; }
@@ -107,9 +139,9 @@ const styles = {
     flex: 1,
     overflow: 'hidden',
     position: 'relative',
-    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 1.4em, #000 calc(100% - 1.8em), transparent 100%)',
-    maskImage: 'linear-gradient(to bottom, transparent 0, #000 1.4em, #000 calc(100% - 1.8em), transparent 100%)',
   },
+  fadeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '1.4em', background: 'linear-gradient(to bottom, rgba(9,15,29,.96), rgba(9,15,29,0))', pointerEvents: 'none', zIndex: 2 },
+  fadeBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '2em', background: 'linear-gradient(to top, rgba(9,15,29,.96), rgba(9,15,29,0))', pointerEvents: 'none', zIndex: 2 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(25em, 1fr))', gap: '1em', padding: '.4em 0 2em', willChange: 'transform' },
   card: (color) => ({
     height: '7.6em',
@@ -121,7 +153,8 @@ const styles = {
     position: 'relative',
     background: `linear-gradient(135deg, ${rgba(color, 0.16)} 0%, rgba(255,255,255,.04) 70%)`,
     border: `1px solid ${rgba(color, 0.35)}`,
-    boxShadow: `0 .4em 1.4em rgba(0,0,0,.28), inset .32em 0 0 ${color}`,
+    boxShadow: `inset .32em 0 0 ${color}`,
+    contain: 'layout style paint',
   }),
   photoWrap: (color) => ({
     width: '5.4em',
@@ -129,7 +162,7 @@ const styles = {
     flexShrink: 0,
     borderRadius: '50%',
     padding: '.18em',
-    background: `conic-gradient(${color}, ${rgba(color, 0.25)}, ${color})`,
+    background: color,
     marginLeft: '.3em',
   }),
   photo: { width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', background: '#1e293b', display: 'block' },
@@ -160,12 +193,13 @@ const styles = {
   error: { color: C.none, fontWeight: 600 },
 };
 
-const Photo = ({ id, color }) => (
+const PhotoBase = ({ id, color }) => (
   <div style={styles.photoWrap(color)}>
-    <img style={styles.photo} src={photoUrl(id)} alt="" onError={onAvatarError} loading="eager" />
+    <img style={styles.photo} src={photoUrl(id)} alt="" onError={onAvatarError} loading="eager" decoding="async" />
   </div>
 );
-Photo.propTypes = { id: PropTypes.string.isRequired, color: PropTypes.string.isRequired };
+PhotoBase.propTypes = { id: PropTypes.string.isRequired, color: PropTypes.string.isRequired };
+const Photo = React.memo(PhotoBase);
 
 const personShape = PropTypes.shape({
   employe_id: PropTypes.string,
@@ -187,7 +221,7 @@ const PENGAJUAN = {
   rejected: { color: C.none, label: 'Pengajuan ditolak' },
 };
 
-const HadirCard = ({ p, rank }) => {
+const HadirCardBase = ({ p, rank }) => {
   const color = p.terlambat ? C.late : C.hadir;
   const pg = p.pengajuan ? PENGAJUAN[p.pengajuan.status] : null;
   return (
@@ -213,9 +247,10 @@ const HadirCard = ({ p, rank }) => {
     </div>
   );
 };
-HadirCard.propTypes = { p: personShape.isRequired, rank: PropTypes.number.isRequired };
+HadirCardBase.propTypes = { p: personShape.isRequired, rank: PropTypes.number.isRequired };
+const HadirCard = React.memo(HadirCardBase);
 
-const TidakHadirCard = ({ p }) => {
+const TidakHadirCardBase = ({ p }) => {
   const s = STATUS[p.status] || STATUS.none;
   return (
     <div style={styles.card(s.color)}>
@@ -230,9 +265,10 @@ const TidakHadirCard = ({ p }) => {
     </div>
   );
 };
-TidakHadirCard.propTypes = { p: personShape.isRequired };
+TidakHadirCardBase.propTypes = { p: personShape.isRequired };
+const TidakHadirCard = React.memo(TidakHadirCardBase);
 
-const BelumOutCard = ({ p }) => (
+const BelumOutCardBase = ({ p }) => (
   <div style={styles.card(KEMARIN.color)}>
     <Photo id={p.employe_id} color={KEMARIN.color} />
     <div style={styles.info}>
@@ -252,7 +288,8 @@ const BelumOutCard = ({ p }) => (
     </div>
   </div>
 );
-BelumOutCard.propTypes = { p: personShape.isRequired };
+BelumOutCardBase.propTypes = { p: personShape.isRequired };
+const BelumOutCard = React.memo(BelumOutCardBase);
 
 const MEETING_STATUS = {
   berlangsung: { color: '#34d399', label: 'Sedang berlangsung' },
@@ -260,7 +297,7 @@ const MEETING_STATUS = {
   selesai: { color: '#64748b', label: 'Selesai' },
 };
 
-const MeetingCard = ({ m, now }) => {
+const MeetingCardBase = ({ m, now }) => {
   const st = meetingStatus(m, now);
   const s = MEETING_STATUS[st];
   const rc = roomColor(m.room);
@@ -291,9 +328,15 @@ const MeetingCard = ({ m, now }) => {
     </div>
   );
 };
-MeetingCard.propTypes = { m: PropTypes.object.isRequired, now: PropTypes.instanceOf(Date).isRequired }; // eslint-disable-line react/forbid-prop-types
+MeetingCardBase.propTypes = { m: PropTypes.object.isRequired, now: PropTypes.instanceOf(Date).isRequired }; // eslint-disable-line react/forbid-prop-types
+const MeetingCard = React.memo(MeetingCardBase);
 
-const AnalogClock = ({ now }) => {
+const AnalogClock = () => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const h = now.getHours() % 12;
   const m = now.getMinutes();
   const s = now.getSeconds();
@@ -303,7 +346,7 @@ const AnalogClock = ({ now }) => {
   const ticks = Array.from({ length: 60 }, (_, i) => i);
   const nums = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   return (
-    <svg viewBox="-100 -100 200 200" style={{ width: '7.6em', height: '7.6em', display: 'block', filter: 'drop-shadow(0 .3em 1em rgba(0,0,0,.45))' }} role="img" aria-label="Jam analog">
+    <svg viewBox="-100 -100 200 200" style={{ width: '7.6em', height: '7.6em', display: 'block' }} role="img" aria-label="Jam analog">
       <defs>
         <radialGradient id="absFace" cx="50%" cy="40%" r="70%">
           <stop offset="0%" stopColor="#1b2740" />
@@ -339,7 +382,6 @@ const AnalogClock = ({ now }) => {
     </svg>
   );
 };
-AnalogClock.propTypes = { now: PropTypes.instanceOf(Date).isRequired };
 
 const SERIES = [
   { key: 'tepat_waktu', label: 'Tepat waktu', color: C.hadir },
@@ -420,7 +462,62 @@ BarChart.propTypes = {
   fmtAxis: PropTypes.func.isRequired,
 };
 
-const axisInt = (v) => String(Math.round(v));
+const WEEKDAY = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+// batang horizontal bertumpuk per hari kerja: panjang batang = jumlah karyawan, segmen = empat kategori
+const HBarChart = ({ rows, emptyText }) => {
+  const filled = rows.filter((r) => r.tepat_waktu !== null);
+  if (filled.length === 0) return <div style={styles.message}>{emptyText}</div>;
+  const total = (r) => SERIES.reduce((s, x) => s + (r[x.key] || 0), 0);
+  const max = Math.max(10, Math.ceil(Math.max(...filled.map(total)) / 10) * 10);
+  const ML = 130;
+  const MR = 80;
+  const MT = 8;
+  const MB = 44;
+  const plotW = VW - ML - MR;
+  const rowH = (VH - MT - MB) / rows.length;
+  const bh = Math.min(rowH * 0.74, 36);
+  const x = (v) => ML + (plotW * v) / max;
+  return (
+    <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: '100%', height: '100%' }} preserveAspectRatio="xMidYMid meet">
+      {[0, 1, 2, 3, 4, 5].map((i) => {
+        const gx = ML + (plotW * i) / 5;
+        return (
+          <g key={i}>
+            <line x1={gx} x2={gx} y1={MT} y2={VH - MB} stroke="rgba(255,255,255,.08)" strokeWidth="1" />
+            <text x={gx} y={VH - MB + 26} textAnchor="middle" fontSize="16" fill={C.faint}>{Math.round((max * i) / 5)}</text>
+          </g>
+        );
+      })}
+      {rows.map((r, gi) => {
+        const y0 = MT + gi * rowH + (rowH - bh) / 2;
+        const has = r.tepat_waktu !== null;
+        const wd = WEEKDAY[new Date(`${r.tanggal}T00:00:00`).getDay()];
+        let acc = 0;
+        return (
+          <g key={r.tanggal}>
+            <text x={ML - 14} y={y0 + bh / 2 + 6} textAnchor="end" fontSize="17" fontWeight="600" fill={has ? C.muted : C.faint}>{`${wd} ${r.hari}`}</text>
+            {has ? SERIES.map((s) => {
+              const v = r[s.key];
+              const x0 = x(acc);
+              const w = x(acc + v) - x0;
+              acc += v;
+              return (
+                <g key={s.key}>
+                  {v > 0 ? <rect x={x0} y={y0} width={Math.max(w - 1, 1)} height={bh} fill={s.color} opacity=".92" /> : null}
+                  {w > 28 ? <text x={x0 + w / 2} y={y0 + bh / 2 + 6} textAnchor="middle" fontSize="16" fontWeight="700" fill="#0a1020">{v}</text> : null}
+                </g>
+              );
+            }) : null}
+            {has ? <text x={x(acc) + 10} y={y0 + bh / 2 + 6} fontSize="16" fontWeight="600" fill={C.muted}>{acc}</text> : null}
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+HBarChart.propTypes = { rows: PropTypes.arrayOf(PropTypes.object).isRequired, emptyText: PropTypes.string.isRequired };
+
 const axisK = (v) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0)}k` : String(Math.round(v)));
 
 const ChartPanel = ({ note, children }) => (
@@ -461,8 +558,10 @@ const DashboardTv = () => {
     apiRef.current
       .get('dapi/hr/dashboard-absensi')
       .then((res) => {
-        setData(res.data.data);
+        const d = res.data.data;
+        setData(d);
         setError(false);
+        preloadPhotos([...d.hadir, ...d.tidak_hadir, ...d.belum_clock_out].map((x) => x.employe_id));
       })
       .catch(() => setError(true));
   }, []);
@@ -485,7 +584,7 @@ const DashboardTv = () => {
     load();
     loadStats();
     loadMeetings();
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, [load, loadStats, loadMeetings]);
 
@@ -586,7 +685,7 @@ const DashboardTv = () => {
         <div style={styles.date}>{tanggal}</div>
       </div>
       <div style={styles.clockBox}>
-        <AnalogClock now={now} />
+        <AnalogClock />
         {data ? (
           <div style={styles.updated}>
             <span className="abs-live" style={styles.dot(error ? C.none : C.hadir)} />
@@ -637,7 +736,7 @@ const DashboardTv = () => {
       return (
         <div className="abs-fade" key="grafikHari" style={{ height: '100%' }}>
           <ChartPanel note={`Jumlah karyawan per hari kerja · ${stats.jumlah_karyawan} karyawan · data sampai ${stats.sampai}`}>
-            <BarChart rows={stats.harian} labelOf={(row) => String(row.hari)} labelSize={17} valueSize={12} emptyText="Belum ada data bulan ini" fmtAxis={axisInt} />
+            <HBarChart rows={stats.harian} emptyText="Belum ada data bulan ini" />
           </ChartPanel>
         </div>
       );
@@ -701,6 +800,8 @@ const DashboardTv = () => {
 
       <div style={styles.scroller} ref={scrollerRef}>
         {renderBody()}
+        <div style={styles.fadeTop} />
+        <div style={styles.fadeBottom} />
       </div>
     </div>
   );
