@@ -105,6 +105,8 @@ const CSS = `
 @keyframes absFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes absPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .abs-root, .abs-root * { box-sizing: border-box; }
+/* ukuran dasar: rantai cadangan untuk WebView lama (TV Android) yang belum mengenal min()/clamp() */
+.abs-root { font-size: 1vw; font-size: min(1vw, 1.78vh); font-size: clamp(10px, min(1vw, 1.78vh), 42px); }
 .abs-fade { animation: absFade .7s ease backwards; }
 .abs-live { animation: absPulse 2s ease-in-out infinite; }
 `;
@@ -117,7 +119,6 @@ const styles = {
     flexDirection: 'column',
     padding: '1.6em 2.2em 1.2em',
     overflow: 'hidden',
-    fontSize: 'clamp(10px, min(1vw, 1.78vh), 42px)',
     color: C.text,
     background:
       'radial-gradient(60em 30em at 8% -10%, rgba(59,130,246,.22), transparent 60%), radial-gradient(50em 28em at 100% 110%, rgba(16,185,129,.14), transparent 60%), linear-gradient(160deg, #070b16 0%, #0c1426 55%, #0a1a2b 100%)',
@@ -134,7 +135,7 @@ const styles = {
   legend: { display: 'flex', gap: '1.3em', fontSize: '1em', color: C.muted },
   dot: (color) => ({ display: 'inline-block', width: '.8em', height: '.8em', borderRadius: '50%', background: color, marginRight: '.5em' }),
   progress: { height: '.22em', background: 'rgba(255,255,255,.07)', borderRadius: '999px', overflow: 'hidden', marginBottom: '.9em' },
-  progressFill: (color) => ({ height: '100%', width: 0, background: color, borderRadius: '999px' }),
+  progressFill: (color) => ({ height: '100%', width: '100%', background: color, borderRadius: '999px', transformOrigin: 'left center', transform: 'scaleX(0)', willChange: 'transform' }),
   scroller: {
     flex: 1,
     overflow: 'hidden',
@@ -142,7 +143,7 @@ const styles = {
   },
   fadeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '1.4em', background: 'linear-gradient(to bottom, rgba(9,15,29,.96), rgba(9,15,29,0))', pointerEvents: 'none', zIndex: 2 },
   fadeBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '2em', background: 'linear-gradient(to top, rgba(9,15,29,.96), rgba(9,15,29,0))', pointerEvents: 'none', zIndex: 2 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(25em, 1fr))', gap: '1em', padding: '.4em 0 2em', willChange: 'transform' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(25em, 1fr))', gap: '1em', padding: '.4em 0 2em', willChange: 'transform', backfaceVisibility: 'hidden', transform: 'translate3d(0,0,0)' },
   card: (color) => ({
     height: '7.6em',
     display: 'flex',
@@ -602,9 +603,9 @@ const DashboardTv = () => {
     const box = scrollerRef.current;
     const content = contentRef.current;
     const fill = fillRef.current;
-    let raf;
-    let timer;
+    const timers = [];
     let cancelled = false;
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
     const next = () => {
       if (cancelled) return;
@@ -626,51 +627,38 @@ const DashboardTv = () => {
     };
     const dwell = phase.startsWith('grafik') ? CHART_MS : DWELL_MS;
 
-    const setFill = (pct, ms) => {
+    // bilah kemajuan: skala horizontal lewat transisi CSS (tidak memicu tata letak ulang)
+    const setFill = (scale, ms) => {
       if (!fill) return;
-      fill.style.transition = ms ? `width ${ms}ms linear` : 'none';
-      fill.style.width = `${pct}%`;
+      fill.style.transition = ms ? `transform ${ms}ms linear` : 'none';
+      fill.style.transform = `scaleX(${scale})`;
     };
 
-    if (content) content.style.transform = 'translate3d(0,0,0)';
+    if (content) {
+      content.style.transition = 'none';
+      content.style.transform = 'translate3d(0,0,0)';
+    }
     setFill(0, 0);
     const max = box && content ? content.scrollHeight - box.clientHeight : 0;
     if (!box || !content || max <= 4) {
       // muat satu layar: tayang beberapa detik, bilah kemajuan berjalan
-      timer = setTimeout(() => setFill(100, dwell), 50);
-      const t2 = setTimeout(next, dwell + 50);
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-        clearTimeout(t2);
-      };
-    }
-
-    let pos = 0;
-    let last = null;
-    const step = (ts) => {
-      if (cancelled) return;
-      if (last === null) last = ts;
-      pos += ((ts - last) / 1000) * SCROLL_SPEED;
-      last = ts;
-      if (pos >= max) {
+      later(() => setFill(1, dwell), 50);
+      later(next, dwell + 50);
+    } else {
+      // gulir sekali jalan: satu transisi linear dari atas ke bawah, dijalankan compositor/GPU sehingga tetap halus
+      // walaupun JavaScript sedang sibuk (mis. memuat foto). Jeda di atas dan di bawah, lalu pindah bagian.
+      const dur = Math.round((max / SCROLL_SPEED) * 1000);
+      later(() => {
+        content.style.transition = `transform ${dur}ms linear`;
         content.style.transform = `translate3d(0,${-max}px,0)`;
-        setFill(100, 0);
-        timer = setTimeout(next, HOLD_MS);
-        return;
-      }
-      content.style.transform = `translate3d(0,${-pos}px,0)`;
-      setFill((pos / max) * 100, 0);
-      raf = requestAnimationFrame(step);
-    };
-    timer = setTimeout(() => {
-      raf = requestAnimationFrame(step);
-    }, HOLD_MS);
+        setFill(1, dur);
+      }, HOLD_MS);
+      later(next, HOLD_MS + dur + HOLD_MS);
+    }
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
-      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
     };
   }, [phase, data ? data.tanggal : null, isLibur, load, loadStats, loadMeetings]); // eslint-disable-line react-hooks/exhaustive-deps
 
