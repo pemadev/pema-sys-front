@@ -100,7 +100,9 @@ const thumbMem = new Map(); // id -> dataURL | '' (tidak punya foto) | THUMB_FAI
 const thumbChecked = new Set();
 const thumbQueue = [];
 const thumbListeners = new Set();
-let thumbBusy = false;
+let thumbActive = 0;
+const THUMB_PARALLEL = 3;
+const THUMB_TIMEOUT = 20000;
 
 const emitThumbs = () => thumbListeners.forEach((fn) => fn());
 const subscribeThumbs = (fn) => {
@@ -140,7 +142,16 @@ const saveThumb = (id, data) => {
   }
 };
 
-const makeThumb = (id) => new Promise((resolve) => {
+const makeThumb = (id) => new Promise((resolveRaw) => {
+  // batas waktu: foto yang macet tidak boleh menahan antrean; anggap miniatur gagal dibuat dan pakai foto asli
+  let done = false;
+  const timer = setTimeout(() => { done = true; resolveRaw(THUMB_FAIL); }, THUMB_TIMEOUT);
+  const resolve = (v) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    resolveRaw(v);
+  };
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
@@ -168,12 +179,10 @@ const makeThumb = (id) => new Promise((resolve) => {
   img.src = photoUrl(id);
 });
 
-// satu foto sekali jalan dengan jeda, supaya decode foto besar tidak mengganggu gulir
-const pumpThumbs = () => {
-  if (thumbBusy) return;
-  const id = thumbQueue.shift();
-  if (id === undefined) return;
-  thumbBusy = true;
+// beberapa foto sekaligus dengan jeda, supaya foto muncul cepat tetapi decode foto besar tidak mengganggu gulir
+let pumpThumbs = () => {};
+const loadOneThumb = (id) => {
+  thumbActive += 1;
   makeThumb(id).then((res) => {
     const prev = thumbMem.get(id);
     const prevOk = prev && prev !== THUMB_FAIL;
@@ -182,9 +191,14 @@ const pumpThumbs = () => {
       if (res !== THUMB_FAIL) saveThumb(id, res);
     }
     emitThumbs();
-    thumbBusy = false;
-    setTimeout(pumpThumbs, 150);
+    setTimeout(() => {
+      thumbActive -= 1;
+      pumpThumbs();
+    }, 100);
   });
+};
+pumpThumbs = () => {
+  while (thumbActive < THUMB_PARALLEL && thumbQueue.length > 0) loadOneThumb(thumbQueue.shift());
 };
 
 const ensureThumbs = (ids) => {
@@ -697,6 +711,17 @@ const ORG_W = '30em';
 const buildOrg = (rows) => {
   const map = new Map();
   (rows || []).forEach((r) => map.set(r.employe_id, { ...r, children: [] }));
+  // staf "Staf X" ditempatkan di bawah "Supervisor X" pada divisi yang sama (mis. Staf SCM di bawah Supervisor SCM, bukan supervisor divisi lain)
+  const field = (j) => String(j || '').replace(/^(staf|supervisor)\s+/i, '').trim().toLowerCase();
+  const sups = Array.from(map.values()).filter((n) => Number(n.id_base) === 8);
+  map.forEach((n) => {
+    if (Number(n.id_base) !== 9 || n.vakan) return;
+    const own = map.get(n.direct_atasan);
+    const match = sups.filter((s) => s.divisi === n.divisi && field(s.jabatan) === field(n.jabatan));
+    if (match.length === 1 && own !== match[0] && !(own && field(own.jabatan) === field(n.jabatan))) {
+      Object.assign(n, { direct_atasan: match[0].employe_id });
+    }
+  });
   map.forEach((n) => {
     const parent = map.get(n.direct_atasan);
     if (parent && parent !== n) parent.children.push(n);
@@ -754,10 +779,10 @@ const orgPages = (root) => {
 const orgLevels = (units) => {
   const flat = [];
   const walk = (n) => {
-    // supervisor dengan satu staf (tanpa bawahan lagi): staf itu ditampilkan langsung di bawah supervisornya, bukan di baris staf
-    const only = n.children.length === 1 ? n.children[0] : null;
-    if (Number(n.id_base) === 8 && only && only.children.length === 0 && Number(only.id_base) >= 9) {
-      flat.push({ ...n, inline: only });
+    // supervisor dengan satu atau dua staf (tanpa bawahan lagi): staf ditampilkan langsung di bawah supervisornya, bukan di baris staf yang terpisah
+    const kids = n.children;
+    if (Number(n.id_base) === 8 && kids.length >= 1 && kids.length <= 2 && kids.every((c) => c.children.length === 0 && Number(c.id_base) >= 9)) {
+      flat.push({ ...n, inline: kids });
       return;
     }
     flat.push(n);
@@ -819,11 +844,28 @@ const OrgNode = ({ n, depth, up, pos }) => {
           ) : null}
         </div>
       </div>
-      {n.inline ? (
+      {n.inline && n.inline.length === 1 ? (
         <>
           {line}
-          <OrgNode n={n.inline} depth={rankDepth(n.inline)} />
+          <OrgNode n={n.inline[0]} depth={rankDepth(n.inline[0])} />
         </>
+      ) : null}
+      {n.inline && n.inline.length > 1 ? (
+        // beberapa staf: ditumpuk di bawah supervisor dengan rel di sisi kiri, tiap staf bercabang dari rel itu
+        <div style={{ width: '100%', paddingTop: '.5em', position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '1.2em', top: 0, height: '.5em', width: 2, background: rgba(ORG_COLORS[3], 0.55) }} />
+          {n.inline.map((c, i) => {
+            const last = i === n.inline.length - 1;
+            const rail = rgba(ORG_COLORS[Math.min(rankDepth(c), ORG_COLORS.length - 1)], 0.55);
+            return (
+              <div key={c.employe_id} style={{ position: 'relative', paddingLeft: '2.2em', paddingBottom: last ? 0 : '.5em' }}>
+                <div style={{ position: 'absolute', left: '1.2em', top: 0, bottom: last ? '50%' : 0, width: 2, background: rail }} />
+                <div style={{ position: 'absolute', left: '1.2em', top: '50%', width: '1em', height: 2, background: rail }} />
+                <OrgNode n={c} depth={rankDepth(c)} />
+              </div>
+            );
+          })}
+        </div>
       ) : null}
       {!n.inline ? (hasDown ? line : <div style={{ height: n.children.length > 0 ? '1.1em' : 0 }} />) : null}
     </div>
