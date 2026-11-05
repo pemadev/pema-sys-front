@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import useAxios from '../../hooks/useAxios';
-import { onAvatarError } from '../../utils/defaultAvatar';
+import { DEFAULT_AVATAR, onAvatarError } from '../../utils/defaultAvatar';
 
 const HCIS_URL = process.env.REACT_APP_HCIS_BE;
 
@@ -42,7 +42,7 @@ const parseDate = (v) => {
 };
 const hhmm = (d) => (d ? d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') : '--:--');
 
-// rapat yang berlangsung hari ini (mulai hari ini, atau sedang berjalan), urut jam mulai
+// semua rapat hari ini (selesai, sedang berlangsung, akan datang), urut jam mulai
 const meetingsToday = (list, ref) => {
   const dayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
   const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
@@ -64,37 +64,120 @@ const longDate = (ymd) => {
 
 const photoUrl = (id) => `${HCIS_URL}employee/file?f=photo-profil&id=${id}`;
 
-// Foto dimuat dan di-decode bertahap di latar belakang (3 jalur, jeda kecil) begitu data datang, bukan sekaligus saat kartu muncul.
-// Objek Image ditahan di memori agar hasil decode tidak dibuang; siklus berikutnya memakai foto yang sudah siap.
-const photoCache = new Map();
-const preload = { queue: [], active: 0 };
-const pumpPreload = () => {
-  while (preload.active < 3 && preload.queue.length > 0) {
-    const id = preload.queue.shift();
-    if (!photoCache.has(id)) {
-      preload.active += 1;
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = photoUrl(id);
-      photoCache.set(id, img);
-      const done = () => {
-        preload.active -= 1;
-        setTimeout(pumpPreload, 80);
-      };
-      if (img.decode) img.decode().then(done, done);
-      else {
-        img.onload = done;
-        img.onerror = done;
-      }
-    }
+// Miniatur foto: foto asli dari HR berukuran besar (sekitar 600 KB), padahal yang tampil hanya lingkaran kecil, dan itulah yang membuat TV berat.
+// Foto diunduh sekali, dikecilkan menjadi 160 px (sekitar 6-10 KB), lalu disimpan di localStorage per karyawan. Kunjungan berikutnya langsung
+// memakai miniatur dari localStorage tanpa mengunduh foto asli; miniatur diperbarui di latar belakang bila sudah lebih dari 24 jam.
+const THUMB_KEY = 'abs-foto:';
+const THUMB_TTL = 24 * 3600 * 1000;
+const THUMB_SIZE = 160;
+const THUMB_FAIL = 'fail'; // miniatur tidak bisa dibuat (mis. CORS): pakai foto asli
+const thumbMem = new Map(); // id -> dataURL | '' (tidak punya foto) | THUMB_FAIL
+const thumbChecked = new Set();
+const thumbQueue = [];
+const thumbListeners = new Set();
+let thumbBusy = false;
+
+const emitThumbs = () => thumbListeners.forEach((fn) => fn());
+const subscribeThumbs = (fn) => {
+  thumbListeners.add(fn);
+  return () => thumbListeners.delete(fn);
+};
+const lsGet = (k) => {
+  try {
+    return window.localStorage.getItem(k);
+  } catch (e) {
+    return null;
   }
 };
-const preloadPhotos = (ids) => {
-  ids.forEach((id) => {
-    if (!photoCache.has(id) && !preload.queue.includes(id)) preload.queue.push(id);
-  });
-  pumpPreload();
+const lsSet = (k, v) => {
+  try {
+    window.localStorage.setItem(k, v);
+    return true;
+  } catch (e) {
+    return false;
+  }
 };
+const saveThumb = (id, data) => {
+  const val = `${Date.now()}|${data}`;
+  if (lsSet(THUMB_KEY + id, val)) return;
+  // penyimpanan penuh: buang beberapa miniatur terlama lalu coba sekali lagi
+  try {
+    const keys = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i);
+      if (k && k.indexOf(THUMB_KEY) === 0) keys.push(k);
+    }
+    keys.sort((x, y) => parseInt(lsGet(x), 10) - parseInt(lsGet(y), 10));
+    keys.slice(0, 10).forEach((k) => window.localStorage.removeItem(k));
+    lsSet(THUMB_KEY + id, val);
+  } catch (e) {
+    // abaikan: miniatur tetap ada di memori untuk sesi ini
+  }
+};
+
+const makeThumb = (id) => new Promise((resolve) => {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const side = Math.min(w, h);
+      const canvas = document.createElement('canvas');
+      canvas.width = THUMB_SIZE;
+      canvas.height = THUMB_SIZE;
+      // potong persegi di tengah, condong ke atas supaya wajah tidak terpotong
+      canvas.getContext('2d').drawImage(img, (w - side) / 2, (h - side) * 0.2, side, side, 0, 0, THUMB_SIZE, THUMB_SIZE);
+      resolve(canvas.toDataURL('image/jpeg', 0.78));
+    } catch (e) {
+      resolve(THUMB_FAIL);
+    }
+  };
+  img.onerror = () => {
+    // gagal dengan mode CORS: bedakan "tidak ada foto" dari "foto ada tetapi tidak boleh dibaca kanvas"
+    const probe = new Image();
+    probe.onload = () => resolve(THUMB_FAIL);
+    probe.onerror = () => resolve('');
+    probe.src = photoUrl(id);
+  };
+  img.src = photoUrl(id);
+});
+
+// satu foto sekali jalan dengan jeda, supaya decode foto besar tidak mengganggu gulir
+const pumpThumbs = () => {
+  if (thumbBusy) return;
+  const id = thumbQueue.shift();
+  if (id === undefined) return;
+  thumbBusy = true;
+  makeThumb(id).then((res) => {
+    const prev = thumbMem.get(id);
+    const prevOk = prev && prev !== THUMB_FAIL;
+    if (!((res === '' || res === THUMB_FAIL) && prevOk)) {
+      thumbMem.set(id, res);
+      if (res !== THUMB_FAIL) saveThumb(id, res);
+    }
+    emitThumbs();
+    thumbBusy = false;
+    setTimeout(pumpThumbs, 150);
+  });
+};
+
+const ensureThumbs = (ids) => {
+  ids.forEach((id) => {
+    if (thumbChecked.has(id)) return;
+    thumbChecked.add(id);
+    const raw = lsGet(THUMB_KEY + id);
+    if (raw) {
+      const i = raw.indexOf('|');
+      thumbMem.set(id, raw.slice(i + 1));
+      if (Date.now() - parseInt(raw.slice(0, i), 10) < THUMB_TTL) return;
+    }
+    thumbQueue.push(id);
+  });
+  emitThumbs();
+  pumpThumbs();
+};
+
 const rgba = (hex, a) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   return `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -194,11 +277,18 @@ const styles = {
   error: { color: C.none, fontWeight: 600 },
 };
 
-const PhotoBase = ({ id, color }) => (
-  <div style={styles.photoWrap(color)}>
-    <img style={styles.photo} src={photoUrl(id)} alt="" onError={onAvatarError} loading="eager" decoding="async" />
-  </div>
-);
+const PhotoBase = ({ id, color }) => {
+  const thumb = useSyncExternalStore(subscribeThumbs, () => thumbMem.get(id), () => undefined);
+  // miniatur siap -> pakai; belum siap atau tidak punya foto -> siluet; miniatur tidak bisa dibuat -> foto asli
+  let src = DEFAULT_AVATAR;
+  if (thumb === THUMB_FAIL) src = photoUrl(id);
+  else if (thumb) src = thumb;
+  return (
+    <div style={styles.photoWrap(color)}>
+      <img style={styles.photo} src={src} alt="" onError={onAvatarError} decoding="async" />
+    </div>
+  );
+};
 PhotoBase.propTypes = { id: PropTypes.string.isRequired, color: PropTypes.string.isRequired };
 const Photo = React.memo(PhotoBase);
 
@@ -562,7 +652,7 @@ const DashboardTv = () => {
         const d = res.data.data;
         setData(d);
         setError(false);
-        preloadPhotos([...d.hadir, ...d.tidak_hadir, ...d.belum_clock_out].map((x) => x.employe_id));
+        ensureThumbs([...d.hadir, ...d.tidak_hadir, ...d.belum_clock_out].map((x) => x.employe_id));
       })
       .catch(() => setError(true));
   }, []);
