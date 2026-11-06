@@ -234,8 +234,6 @@ const CSS = `
 .abs-fade { animation: absFade .7s ease backwards; }
 .abs-live { animation: absPulse 2s ease-in-out infinite; }
 .abs-nav { font: inherit; cursor: pointer; }
-.leaflet-tooltip.abs-tip { background: rgba(11,18,32,.88); color: #f1f5f9; border: 1px solid rgba(255,255,255,.18); border-radius: .5em; padding: .2em .6em; font-size: 1em; font-weight: 600; box-shadow: none; }
-.leaflet-tooltip.abs-tip.leaflet-tooltip-top:before { border-top-color: rgba(255,255,255,.18); }
 .leaflet-container { font-family: inherit; background: #0b1220; }
 .abs-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.5); }
 .abs-nav:focus { outline: .15em solid #fff; outline-offset: .1em; }
@@ -914,7 +912,9 @@ const trafficOverall = (items) => {
   return avg >= 0.5 ? 'ramai' : 'macet';
 };
 
-// peta dasar OpenStreetMap digelapkan lewat CSS, dengan penanda berwarna menurut kualitas arus; penanda kantor memakai cincin emas
+// peta dasar OpenStreetMap digelapkan lewat CSS (nama tempat tampil); kondisi arus ada pada warna jalan dan daftar di kiri, hanya kantor yang diberi penanda berwarna menurut kualitas arus; penanda kantor memakai cincin emas
+const GOLD = '#fbbf24';
+
 const TrafficMap = ({ traffic }) => {
   const boxRef = useRef(null);
   const mapRef = useRef(null);
@@ -927,6 +927,7 @@ const TrafficMap = ({ traffic }) => {
     layerRef.current = L.layerGroup().addTo(map);
     map.createPane('abs-flow');
     map.getPane('abs-flow').style.zIndex = 250;
+
     mapRef.current = map;
     return () => {
       map.remove();
@@ -956,30 +957,28 @@ const TrafficMap = ({ traffic }) => {
     if (pusat) pts.push(pusat);
     if (pts.length === 0) return;
     const bounds = L.latLngBounds(pts);
-    const mid = bounds.getCenter();
-    const halfLon = (bounds.getEast() - bounds.getWest()) / 2 || 1;
-    // label di sisi luar untuk titik di tepi; titik berdekatan di tengah bergantian atas/bawah/kiri/kanan supaya label tidak saling menutup
-    const side = (i, n) => {
-      const dx = (i.lon - mid.lng) / halfLon;
-      if (dx > 0.6) return 'left';
-      if (dx < -0.6) return 'right';
-      return ['top', 'bottom', 'left', 'right'][n % 4];
-    };
-    withPos.forEach((i, n) => {
-      const s = TRAFFIC[i.status] || TRAFFIC.tidak_ada_data;
-      const dir = side(i, n);
-      const off = { top: [0, -12], bottom: [0, 12], left: [-12, 0], right: [12, 0] }[dir];
-      L.circleMarker([i.lat, i.lon], { radius: 20, stroke: false, fillColor: s.color, fillOpacity: 0.16 }).addTo(layer);
-      L.circleMarker([i.lat, i.lon], { radius: 11, color: '#0b1220', weight: 3, fillColor: s.color, fillOpacity: 1 })
-        .bindTooltip(i.nama, { permanent: true, direction: dir, offset: off, className: 'abs-tip' })
-        .addTo(layer);
-    });
-    if (pusat) L.circleMarker(pusat, { radius: 19, color: '#fbbf24', weight: 3, fill: false }).addTo(layer);
+    if (pusat) {
+      L.circleMarker(pusat, { radius: 13, color: GOLD, weight: 2, fill: false }).addTo(layer);
+      L.circleMarker(pusat, { radius: 4, stroke: false, fillColor: GOLD, fillOpacity: 1 }).addTo(layer);
+    }
     map.invalidateSize();
-    map.fitBounds(bounds, { padding: [110, 110], maxZoom: 14, animate: false });
+    map.fitBounds(bounds, { padding: [90, 90], maxZoom: 15, animate: false });
   }, [traffic]);
 
-  return <div ref={boxRef} style={{ height: '100%', width: '100%', borderRadius: '1.2em', overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#0b1220' }} />;
+  const legend = { display: 'flex', alignItems: 'center', gap: '.55em' };
+  return (
+    <div style={{ position: 'relative', height: '100%', width: '100%', borderRadius: '1.2em', overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#0b1220' }}>
+      <div ref={boxRef} style={{ height: '100%', width: '100%' }} />
+      <div style={{ position: 'absolute', left: '1em', bottom: '1.6em', zIndex: 1000, padding: '.6em .9em', borderRadius: '.8em', background: 'rgba(11,18,32,.82)', border: '1px solid rgba(255,255,255,.14)', fontSize: '.95em', color: C.text, display: 'grid', gap: '.35em' }}>
+        <div style={legend}>
+          <span style={{ width: '1em', height: '1em', borderRadius: '50%', border: `2px solid ${GOLD}`, boxSizing: 'border-box', display: 'inline-block', position: 'relative' }}>
+            <span style={{ position: 'absolute', inset: '.2em', borderRadius: '50%', background: GOLD }} />
+          </span>
+          <span>Posisi kantor</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 TrafficMap.propTypes = { traffic: PropTypes.shape({ tile_url: PropTypes.string, items: PropTypes.arrayOf(PropTypes.object), pusat: PropTypes.shape({ lat: PropTypes.number, lon: PropTypes.number }) }).isRequired };
 
