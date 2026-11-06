@@ -232,7 +232,7 @@ const Meeting = () => {
   const api = useAxios();
   const { auth } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('meeting');
-  const [scheduleFilter, setScheduleFilter] = useState(SCHEDULE_FILTER.UPCOMING);
+  const [scheduleFilter, setScheduleFilter] = useState(SCHEDULE_FILTER.LIVE_TODAY);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
@@ -244,8 +244,10 @@ const Meeting = () => {
     zoom: '',
     consumption: '',
     consumption_detail: '',
+    renbis_id: '',
     room: 'Growth',
   });
+  const [renbisList, setRenbisList] = useState([]);
   const [zoomFormData, setZoomFormData] = useState({
     topic: '',
     startTime: '',
@@ -389,7 +391,7 @@ const Meeting = () => {
   };
 
   const filterByScheduleGroup = (items) => {
-    return items.filter((item) => {
+    const filtered = items.filter((item) => {
       const bucket = getScheduleBucket(item);
       if (scheduleFilter === SCHEDULE_FILTER.UPCOMING) {
         return bucket === SCHEDULE_FILTER.UPCOMING;
@@ -399,6 +401,17 @@ const Meeting = () => {
       }
       return bucket === SCHEDULE_FILTER.PREVIOUS;
     });
+
+    if (scheduleFilter !== SCHEDULE_FILTER.PREVIOUS) {
+      return filtered;
+    }
+
+    // previous: rapat yang paling baru di atas
+    const startOf = (item) => {
+      const date = parseApiDateValue(getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']));
+      return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+    };
+    return [...filtered].sort((x, y) => startOf(y) - startOf(x));
   };
 
   const filteredRoomMeetings = useMemo(() => {
@@ -469,6 +482,7 @@ const Meeting = () => {
           consumption: meetingFormData.consumption,
           consumption_detail: meetingFormData.consumption_detail,
           consumptionDetail: meetingFormData.consumption_detail,
+          renbis_id: meetingFormData.consumption === '1' ? meetingFormData.renbis_id : null,
           room: meetingFormData.room,
         });
         ensureApiSuccess(response, 'Gagal membuat booking ruang rapat.');
@@ -482,6 +496,7 @@ const Meeting = () => {
           zoom: '',
           consumption: '',
           consumption_detail: '',
+          renbis_id: '',
           room: 'Growth',
         });
         setRoomSuccess('Booking ruang rapat berhasil.');
@@ -708,6 +723,7 @@ const Meeting = () => {
   };
 
   useEffect(() => {
+    api.get('dapi/sppd/static/renbis').then((res) => setRenbisList(Array.isArray(res.data.data) ? res.data.data : [])).catch(() => {});
     fetchZoomMeetings();
     fetchRoomMeetings();
     fetchGeneralDivisionApprover();
@@ -831,7 +847,24 @@ const Meeting = () => {
                 <option value="1">Ya</option>
                 <option value="0">Tidak</option>
               </Input>
+              <small className="text-muted d-block mt-1">
+                Catatan: permintaan konsumsi hanya untuk rapat selain rapat internal. Rapat tanpa tamu tidak disediakan konsumsi.
+              </small>
             </FormGroup>
+
+            {meetingFormData.consumption === '1' ? (
+              <FormGroup>
+                <Label for="renbis_id">Project / Renbis</Label>
+                <Input id="renbis_id" name="renbis_id" type="select" value={meetingFormData.renbis_id} onChange={handleMeetingChange} required>
+                  <option value="">Pilih project / renbis</option>
+                  {renbisList.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.renbis} (tahun anggaran {item.tahun})
+                    </option>
+                  ))}
+                </Input>
+              </FormGroup>
+            ) : null}
 
             {meetingFormData.consumption === '1' ? (
               <FormGroup>
@@ -934,6 +967,7 @@ const Meeting = () => {
                   { label: 'Butuh Zoom', value: getBooleanLabel(zoomFlag, Boolean(zoomLink)) },
                   { label: 'Butuh Konsumsi', value: getBooleanLabel(consumptionFlag) },
                   { label: 'Detail Konsumsi', value: getZoomValue(selectedRoomDetail, ['consumption_detail', 'consumptionDetail']) || '-' },
+                  { label: 'Project / Renbis', value: getZoomValue(selectedRoomDetail, ['renbis_name']) || '-' },
                 ];
 
                 return (

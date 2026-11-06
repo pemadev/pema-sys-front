@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import useAxios from '../../hooks/useAxios';
 import { DEFAULT_AVATAR } from '../../utils/defaultAvatar';
 
@@ -232,6 +234,10 @@ const CSS = `
 .abs-fade { animation: absFade .7s ease backwards; }
 .abs-live { animation: absPulse 2s ease-in-out infinite; }
 .abs-nav { font: inherit; cursor: pointer; }
+.leaflet-tooltip.abs-tip { background: rgba(11,18,32,.88); color: #f1f5f9; border: 1px solid rgba(255,255,255,.18); border-radius: .5em; padding: .2em .6em; font-size: 1em; font-weight: 600; box-shadow: none; }
+.leaflet-tooltip.abs-tip.leaflet-tooltip-top:before { border-top-color: rgba(255,255,255,.18); }
+.leaflet-container { font-family: inherit; background: #0b1220; }
+.abs-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.5); }
 .abs-nav:focus { outline: .15em solid #fff; outline-offset: .1em; }
 `;
 
@@ -891,8 +897,154 @@ OrgNode.propTypes = {
 };
 OrgNode.defaultProps = { up: false, pos: 'only' };
 
-const PHASE_COLOR = { hadir: C.hadir, tidak: C.none, kemarin: C.kemarin, rapat: C.rapat, struktur: ORG_COLORS[0], grafikHari: C.ket, grafikBulan: C.ket };
-const PHASE_LABEL = { hadir: 'Hadir', tidak: 'Tidak Hadir', kemarin: 'Belum Clock Out', rapat: 'Rapat', struktur: 'Struktur', grafikHari: 'Grafik Harian', grafikBulan: 'Grafik Bulanan' };
+// urutan bawaan bagian Dashboard TV (dipakai sebelum pengaturan termuat atau bila belum pernah diatur)
+// Lalu lintas: kualitas arus per titik (Lengang / Ramai / Macet) dari kecepatan sekarang dibanding kecepatan lancar, bukan peta langsung.
+const TRAFFIC = {
+  lengang: { color: '#34d399', label: 'Lengang' },
+  ramai: { color: '#fbbf24', label: 'Ramai' },
+  macet: { color: '#f87171', label: 'Macet' },
+  tidak_ada_data: { color: '#64748b', label: 'Tidak ada data' },
+};
+
+const trafficOverall = (items) => {
+  const ok = items.filter((i) => i.rasio !== null && i.rasio !== undefined);
+  if (ok.length === 0) return 'tidak_ada_data';
+  const avg = ok.reduce((s, i) => s + i.rasio, 0) / ok.length;
+  if (avg >= 0.75) return 'lengang';
+  return avg >= 0.5 ? 'ramai' : 'macet';
+};
+
+// peta dasar OpenStreetMap digelapkan lewat CSS, dengan penanda berwarna menurut kualitas arus; penanda kantor memakai cincin emas
+const TrafficMap = ({ traffic }) => {
+  const boxRef = useRef(null);
+  const mapRef = useRef(null);
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    if (!boxRef.current || mapRef.current) return undefined;
+    const map = L.map(boxRef.current, { zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, className: 'abs-tiles', attribution: '&copy; OpenStreetMap' }).addTo(map);
+    layerRef.current = L.layerGroup().addTo(map);
+    map.createPane('abs-flow');
+    map.getPane('abs-flow').style.zIndex = 250;
+    mapRef.current = map;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // warna jalan langsung (hijau lancar, kuning padat, merah macet); {t} membuat ubin diambil baru setiap halaman ditampilkan
+  const tileUrl = traffic.tile_url || '';
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !tileUrl) return undefined;
+    const flow = L.tileLayer(`${tileUrl}&t={t}`, { t: Date.now(), maxZoom: 18, opacity: 0.95, pane: 'abs-flow' }).addTo(map);
+    return () => {
+      flow.remove();
+    };
+  }, [tileUrl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const layer = layerRef.current;
+    if (!map || !layer) return;
+    layer.clearLayers();
+    const pusat = traffic.pusat && traffic.pusat.lat ? [traffic.pusat.lat, traffic.pusat.lon] : null;
+    const withPos = traffic.items.filter((i) => i.lat);
+    const pts = withPos.map((i) => [i.lat, i.lon]);
+    if (pusat) pts.push(pusat);
+    if (pts.length === 0) return;
+    const bounds = L.latLngBounds(pts);
+    const mid = bounds.getCenter();
+    const halfLon = (bounds.getEast() - bounds.getWest()) / 2 || 1;
+    // label di sisi luar untuk titik di tepi; titik berdekatan di tengah bergantian atas/bawah/kiri/kanan supaya label tidak saling menutup
+    const side = (i, n) => {
+      const dx = (i.lon - mid.lng) / halfLon;
+      if (dx > 0.6) return 'left';
+      if (dx < -0.6) return 'right';
+      return ['top', 'bottom', 'left', 'right'][n % 4];
+    };
+    withPos.forEach((i, n) => {
+      const s = TRAFFIC[i.status] || TRAFFIC.tidak_ada_data;
+      const dir = side(i, n);
+      const off = { top: [0, -12], bottom: [0, 12], left: [-12, 0], right: [12, 0] }[dir];
+      L.circleMarker([i.lat, i.lon], { radius: 20, stroke: false, fillColor: s.color, fillOpacity: 0.16 }).addTo(layer);
+      L.circleMarker([i.lat, i.lon], { radius: 11, color: '#0b1220', weight: 3, fillColor: s.color, fillOpacity: 1 })
+        .bindTooltip(i.nama, { permanent: true, direction: dir, offset: off, className: 'abs-tip' })
+        .addTo(layer);
+    });
+    if (pusat) L.circleMarker(pusat, { radius: 19, color: '#fbbf24', weight: 3, fill: false }).addTo(layer);
+    map.invalidateSize();
+    map.fitBounds(bounds, { padding: [110, 110], maxZoom: 14, animate: false });
+  }, [traffic]);
+
+  return <div ref={boxRef} style={{ height: '100%', width: '100%', borderRadius: '1.2em', overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#0b1220' }} />;
+};
+TrafficMap.propTypes = { traffic: PropTypes.shape({ tile_url: PropTypes.string, items: PropTypes.arrayOf(PropTypes.object), pusat: PropTypes.shape({ lat: PropTypes.number, lon: PropTypes.number }) }).isRequired };
+
+const TrafficRow = ({ item }) => {
+  const s = TRAFFIC[item.status] || TRAFFIC.tidak_ada_data;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '.7em', padding: '.35em 0', borderTop: '1px solid rgba(255,255,255,.07)' }}>
+      <span style={{ ...styles.dot(s.color), marginRight: 0, flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: C.text }}>{item.nama}</span>
+      <span style={{ color: s.color, fontWeight: 700, flexShrink: 0 }}>{s.label}</span>
+      <span style={{ color: C.faint, width: '4.6em', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{item.kecepatan === null ? '-' : `${item.kecepatan} km/j`}</span>
+    </div>
+  );
+};
+TrafficRow.propTypes = { item: PropTypes.shape({ nama: PropTypes.string, status: PropTypes.string, kecepatan: PropTypes.number }).isRequired };
+
+const TrafficPanel = ({ traffic }) => {
+  if (!traffic || !traffic.configured || traffic.items.length === 0) {
+    return (
+      <div style={styles.message}>
+        {traffic && !traffic.configured ? 'Data lalu lintas belum diaktifkan' : 'Memuat kondisi lalu lintas...'}
+      </div>
+    );
+  }
+  const overall = trafficOverall(traffic.items);
+  const o = TRAFFIC[overall];
+  const count = (k) => traffic.items.filter((i) => i.status === k).length;
+  const jam = traffic.updated_at ? new Date(traffic.updated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+  return (
+    <div style={{ height: '100%', display: 'grid', gridTemplateColumns: 'minmax(19em, 26em) 1fr', gap: '1.4em', alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '.5em', padding: '1.1em 1.3em', borderRadius: '1.2em', border: `1px solid ${rgba(o.color, 0.4)}`, background: `radial-gradient(circle at 50% 0%, ${rgba(o.color, 0.22)}, rgba(255,255,255,.03) 70%)`, minHeight: 0, fontSize: '1em' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '.95em', letterSpacing: '.25em', textTransform: 'uppercase', color: C.muted }}>Kondisi Umum</div>
+          <div style={{ fontSize: '3.6em', fontWeight: 800, lineHeight: 1.05, color: o.color, letterSpacing: '-.02em' }}>{o.label}</div>
+          <div style={{ fontSize: '1.05em', color: C.muted }}>Banda Aceh dan sekitarnya</div>
+          <div style={{ display: 'flex', gap: '1em', justifyContent: 'center', margin: '.5em 0 .3em', fontSize: '1em', color: C.muted }}>
+            {['lengang', 'ramai', 'macet'].map((k) => (
+              <span key={k}><span style={styles.dot(TRAFFIC[k].color)} />{TRAFFIC[k].label} {count(k)}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden', fontSize: '.95em' }}>
+          {traffic.items.map((i) => <TrafficRow key={i.nama} item={i} />)}
+        </div>
+        <div style={{ fontSize: '.85em', color: C.faint, textAlign: 'center' }}>
+          Warna jalan: hijau lancar, kuning padat, merah macet · cincin emas: {traffic.pusat ? traffic.pusat.nama : 'kantor'}{jam ? ` · diperbarui ${jam}` : ''}
+        </div>
+      </div>
+      <TrafficMap traffic={traffic} />
+    </div>
+  );
+};
+TrafficPanel.propTypes = {
+  traffic: PropTypes.shape({
+    configured: PropTypes.bool,
+    updated_at: PropTypes.string,
+    items: PropTypes.arrayOf(PropTypes.object),
+    pusat: PropTypes.shape({ nama: PropTypes.string }),
+  }),
+};
+TrafficPanel.defaultProps = { traffic: null };
+
+const DEFAULT_SLIDES = ['hadir', 'tidak', 'kemarin', 'grafikHari', 'grafikBulan', 'rapat', 'struktur', 'lalulintas'].map((key) => ({ key, tampil: true }));
+const PHASE_COLOR = { hadir: C.hadir, tidak: C.none, kemarin: C.kemarin, rapat: C.rapat, struktur: ORG_COLORS[0], grafikHari: C.ket, grafikBulan: C.ket, lalulintas: C.approved };
+const PHASE_LABEL = { hadir: 'Hadir', tidak: 'Tidak Hadir', kemarin: 'Belum Clock Out', rapat: 'Rapat', struktur: 'Struktur', grafikHari: 'Grafik Harian', grafikBulan: 'Grafik Bulanan', lalulintas: 'Lalu Lintas' };
 
 const DashboardTv = () => {
   const api = useAxios();
@@ -904,6 +1056,10 @@ const DashboardTv = () => {
   const [meetings, setMeetings] = useState([]);
   const [orgRows, setOrgRows] = useState(null);
   const [error, setError] = useState(false);
+  const [traffic, setTraffic] = useState(null);
+  const [slides, setSlides] = useState(null);
+  const slidesRef = useRef(null);
+  slidesRef.current = slides;
   const [phase, setPhase] = useState('hadir'); // 'hadir' -> 'tidak' -> 'kemarin' (dilewati bila kosong) -> muat ulang
   const [now, setNow] = useState(new Date());
   const scrollerRef = useRef(null);
@@ -926,16 +1082,24 @@ const DashboardTv = () => {
   const phaseList = () => {
     const s = statsRef.current;
     const d = dataRef.current;
-    const list = ['hadir', 'tidak'];
-    if (d && d.belum_clock_out.length > 0) list.push('kemarin');
-    if (s && s.harian.length > 0) list.push('grafikHari');
-    if (s) list.push('grafikBulan');
-    if (meetingsToday(meetingsRef.current, new Date()).length > 0) list.push('rapat');
-    if (orgRef.current) {
-      list.push('struktur');
-      pagesRef.current.forEach((x, i) => list.push(`divisi:${i}`));
-    }
-    return list;
+    // bagian yang punya data; urutan dan status tampil/sembunyi mengikuti pengaturan PIC Dashboard
+    const avail = {
+      hadir: true,
+      tidak: true,
+      kemarin: !!(d && d.belum_clock_out.length > 0),
+      grafikHari: !!(s && s.harian.length > 0),
+      grafikBulan: !!s,
+      rapat: meetingsToday(meetingsRef.current, new Date()).length > 0,
+      struktur: !!orgRef.current,
+      lalulintas: true,
+    };
+    const list = [];
+    (slidesRef.current || DEFAULT_SLIDES).forEach((x) => {
+      if (!x.tampil || !avail[x.key]) return;
+      list.push(x.key);
+      if (x.key === 'struktur') pagesRef.current.forEach((pg, i) => list.push(`divisi:${i}`));
+    });
+    return list.length > 0 ? list : ['hadir'];
   };
   const phaseRef = useRef('hadir');
   phaseRef.current = phase;
@@ -983,6 +1147,20 @@ const DashboardTv = () => {
       .catch(() => {});
   }, []);
 
+  const loadTraffic = useCallback(() => {
+    apiRef.current
+      .get('dapi/hr/dashboard-tv/lalu-lintas')
+      .then((res) => setTraffic(res.data.data))
+      .catch(() => {});
+  }, []);
+
+  const loadSlides = useCallback(() => {
+    apiRef.current
+      .get('dapi/hr/dashboard-tv/slides')
+      .then((res) => setSlides(Array.isArray(res.data.data) ? res.data.data : null))
+      .catch(() => {});
+  }, []);
+
   const loadOrg = useCallback(() => {
     apiRef.current
       .get('dapi/hr/struktur-organisasi')
@@ -1000,9 +1178,17 @@ const DashboardTv = () => {
     loadStats();
     loadMeetings();
     loadOrg();
+    loadSlides();
+    loadTraffic();
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
-  }, [load, loadStats, loadMeetings, loadOrg]);
+  }, [load, loadStats, loadMeetings, loadOrg, loadSlides, loadTraffic]);
+
+  // bagian yang sedang tampil disembunyikan atau belum diizinkan oleh pengaturan: pindah ke bagian pertama yang tersedia
+  useEffect(() => {
+    const l = phaseList();
+    if (!l.includes(phaseRef.current)) setPhase(l[0]);
+  }, [slides, data, stats, meetings, org]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // hari libur: tidak ada siklus; cukup cek ulang tiap 5 menit supaya berganti sendiri saat hari kerja tiba
   const isLibur = !!(data && data.libur);
@@ -1033,10 +1219,14 @@ const DashboardTv = () => {
         loadStats();
         loadMeetings();
         loadOrg();
-        setPhase('hadir');
+        loadSlides();
+        loadTraffic();
+        setPhase(phaseList()[0]);
       }
     };
-    const dwell = phase.startsWith('grafik') ? CHART_MS : DWELL_MS;
+    // lama tayang bagian yang muat satu layar: dari pengaturan PIC Dashboard (detik) bila ada, selain itu bawaan; daftar panjang mengikuti lama gulir
+    const cfg = (slidesRef.current || []).find((x) => x.key === orgGroup(phase));
+    const dwell = cfg && cfg.durasi ? cfg.durasi * 1000 : (phase.startsWith('grafik') || phase === 'lalulintas' ? CHART_MS : DWELL_MS);
 
     // bilah kemajuan: skala horizontal lewat transisi CSS (tidak memicu tata letak ulang)
     const setFill = (scale, ms) => {
@@ -1071,7 +1261,7 @@ const DashboardTv = () => {
       cancelled = true;
       timers.forEach(clearTimeout);
     };
-  }, [phase, data ? data.tanggal : null, isLibur, load, loadStats, loadMeetings, loadOrg]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, data ? data.tanggal : null, isLibur, load, loadStats, loadMeetings, loadOrg, loadSlides, loadTraffic]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const r = data ? data.ringkasan : null;
   const tanggal = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -1080,7 +1270,7 @@ const DashboardTv = () => {
     <div style={styles.header}>
       <div>
         <div style={styles.brand}>PT Pema · Sistem Informasi</div>
-        <h1 style={styles.title}>Kehadiran &amp; Agenda Hari Ini</h1>
+        <h1 style={styles.title}>Ikhtisar Harian Perusahaan</h1>
         <div style={styles.date}>{tanggal}</div>
       </div>
       <div style={styles.clockBox}>
@@ -1173,6 +1363,13 @@ const DashboardTv = () => {
         </div>
       );
     }
+    if (phase === 'lalulintas') {
+      return (
+        <div className="abs-fade" key="lalulintas" style={{ height: '100%' }}>
+          <TrafficPanel traffic={traffic} />
+        </div>
+      );
+    }
     if (phase === 'grafikHari' && stats) {
       return (
         <div className="abs-fade" key="grafikHari" style={{ height: '100%' }}>
@@ -1215,6 +1412,7 @@ const DashboardTv = () => {
     struktur: `Struktur Organisasi · Direksi${org ? ` (${org.total + 1} karyawan)` : ''}`,
     grafikHari: `Grafik Kehadiran Karyawan Harian${stats ? ` · ${stats.bulan}` : ''}`,
     grafikBulan: `Grafik Kehadiran Karyawan Bulanan${stats ? ` · ${stats.tahun}` : ''}`,
+    lalulintas: 'Lalu Lintas Banda Aceh dan Sekitarnya',
   }[phase] || (pages[Number(phase.slice(7))] ? `${pages[Number(phase.slice(7))].divisi} (${pages[Number(phase.slice(7))].count})` : '');
   const phaseColor = PHASE_COLOR[orgGroup(phase)];
 

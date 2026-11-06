@@ -165,10 +165,24 @@ const SidebarData = [
   { caption: 'Report' },
   {
     title: 'Report',
-    href: '/insert-image',
     id: 10,
     icon: <MaterialIcon icon="assignment" />,
-    allowedRoles: ['AdminLayar'],
+    allowedRoles: ['AdminLayar', 'PICDashboard'],
+    collapisble: true,
+    children: [
+      {
+        title: 'Insert Image',
+        href: '/insert-image',
+        allowedRoles: ['AdminLayar'],
+        icon: <MaterialIcon icon="image" />,
+      },
+      {
+        title: 'Atur Dashboard TV',
+        href: '/pengaturan-dashboard-tv',
+        allowedRoles: ['PICDashboard'],
+        icon: <MaterialIcon icon="tv" />,
+      },
+    ],
   },
 
   // { caption: 'Manual Book' },

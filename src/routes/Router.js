@@ -53,6 +53,7 @@ const MobilPage = Loadable(lazy(() => import('../pages/mobil')));
 /***** abse****/
 // const AbsenPage = Loadable(lazy(() => import('../pages/absen')));
 const DashboardTv = Loadable(lazy(() => import('../pages/absen/DashboardTv')));
+const PengaturanDashboardTv = Loadable(lazy(() => import('../pages/absen/PengaturanDashboardTv')));
 
 /***** Pengajuan ****/
 const Pengajuan = Loadable(lazy(() => import('../pages/pengajuan/Pengajuan')));
@@ -153,6 +154,7 @@ const inProgressTaskAllowedRoles = ['Director'];
 const ApprovalTenderAllowedRoles = ['Manager'];
 const PengajuanAllowedRoles = ['AdminPengajuan', 'ManagerUmum', 'DirekturUmumKeuangan', 'Presdir'];
 const LayarRoles = ['AdminLayar'];
+const DashboardTvRoles = ['PICDashboard'];
 
 /*****Routes******/
 const ThemeRoutes = [
@@ -354,6 +356,18 @@ const ThemeRoutes = [
                 path: 'atk',
                 name: 'Atk',
                 element: <AtkReportPage />,
+              },
+            ],
+          },
+          {
+            path: 'pengaturan-dashboard-tv',
+            name: 'Atur Dashboard TV',
+            element: <RequireAuth allowedRoles={DashboardTvRoles} />,
+            children: [
+              {
+                path: '',
+                name: 'Atur Dashboard TV',
+                element: <PengaturanDashboardTv />,
               },
             ],
           },
