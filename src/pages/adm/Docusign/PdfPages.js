@@ -130,7 +130,8 @@ const PdfPages = ({ source, fields, width, onPageClick, renderField, onFieldMove
     let doc;
     setError('');
     pdfjsLib
-      .getDocument({ data: new Uint8Array(source.slice(0)) })
+      // isEvalSupported:false menutup CVE-2024-4367 (eksekusi JS lewat PDF berbahaya) tanpa mengubah hasil render
+      .getDocument({ data: new Uint8Array(source.slice(0)), isEvalSupported: false })
       .promise.then((d) => {
         doc = d;
         setPdf(d);
