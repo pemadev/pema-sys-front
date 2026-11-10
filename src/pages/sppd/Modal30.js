@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { Modal, ModalBody, FormGroup, Label, Row, Col, Input } from 'reactstrap';
 import { useEffect, useState } from 'react';
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';

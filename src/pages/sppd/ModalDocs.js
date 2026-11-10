@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Card, Col, Modal, ModalBody, Row, Alert } from 'reactstrap';
 import MaterialIcon from '@material/react-material-icon';
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
 import dayjs from 'dayjs';
 import 'dayjs/locale/id';

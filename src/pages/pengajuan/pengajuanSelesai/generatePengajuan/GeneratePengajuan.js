@@ -1,4 +1,4 @@
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
 // import image from '../../../assets/image';
 const pdfFonts = require('../../../../assets/vfs_fonts');

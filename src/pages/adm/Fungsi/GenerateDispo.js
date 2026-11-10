@@ -1,4 +1,4 @@
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
 import image from '../../../assets/image';
 // import draft from '../../../assets/images/surat/160133.png';

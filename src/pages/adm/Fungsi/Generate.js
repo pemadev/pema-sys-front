@@ -1,4 +1,4 @@
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
 import { tidySuratHtml } from './wordHtml';
 import image from '../../../assets/image';

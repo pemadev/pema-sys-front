@@ -17,7 +17,7 @@ import {
   ModalHeader,
   Row,
 } from 'reactstrap';
-import * as pdfMake from 'pdfmake/build/pdfmake';
+import pdfMake from 'pdfmake/build/pdfmake';
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import useAxios from '../../hooks/useAxios';
 import { AuthContext } from '../../context/AuthContext';
