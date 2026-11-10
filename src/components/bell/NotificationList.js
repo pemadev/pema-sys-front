@@ -7,6 +7,7 @@ import newDate from '../../utils/formatDate';
 import user1 from '../../assets/images/users/user1.jpg';
 import relax from '../../assets/images/icons/nonotif.png';
 import useAxios from '../../hooks/useAxios';
+import { aktifkanPush, pushDidukung } from '../../utils/pushNotif';
 
 const NotificationList = ({ setOpenNotif, setShowTask, setTaskId, data, refetch }) => {
   const navigate = useNavigate();
@@ -18,6 +19,15 @@ const NotificationList = ({ setOpenNotif, setShowTask, setTaskId, data, refetch 
   const [selectedNotifId, setSelectedNotifId] = useState(undefined);
 
   const api = useAxios();
+  const [izinPush, setIzinPush] = useState(pushDidukung() ? Notification.permission : 'unsupported');
+
+  const handleAktifkanPush = async () => {
+    try {
+      setIzinPush(await aktifkanPush(api));
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const handleAction = async (id, entity, entityId, url, queryKey) => {
     let entitySplit;
@@ -77,11 +87,13 @@ const NotificationList = ({ setOpenNotif, setShowTask, setTaskId, data, refetch 
         <h5 className="fw-bold">Notifications</h5>
         <MaterialIcon icon="close" onClick={() => setOpenNotif(false)} />
       </div>
-      {/* <div className="not text-center">
-        <div className="not-item">
-          <h6>Soon..</h6>
+      {izinPush === 'default' && (
+        <div className="px-3 pb-2">
+          <Button type="button" color="success" outline size="sm" block onClick={handleAktifkanPush}>
+            Aktifkan notifikasi di browser ini
+          </Button>
         </div>
-      </div> */}
+      )}
       <div className="not">
         <div className="not-overflow">
           {data?.length > 0 ? (
