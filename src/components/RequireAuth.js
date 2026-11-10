@@ -19,7 +19,12 @@ const RequireAuth = ({ allowedRoles }) => {
   ) : auth?.user ? (
     <Navigate to="/unauthorized" state={{ from: location }} replace />
   ) : (
-    <Navigate to="/auth/login" state={{ from: location?.pathname }} replace />
+    // query dan hash ikut disimpan supaya tautan dari notifikasi (mis. /adm?dok=...#2) tetap sampai ke dokumennya setelah login
+    <Navigate
+      to="/auth/login"
+      state={{ from: `${location?.pathname}${location?.search || ''}${location?.hash || ''}` }}
+      replace
+    />
   );
 };
 

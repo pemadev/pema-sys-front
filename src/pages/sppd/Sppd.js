@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import Tab from '@mui/material/Tab';
 import Badge from '@mui/material/Badge';
@@ -39,7 +39,7 @@ const Sppd = () => {
   const [detailSppd, setDetailSppd] = useState();
 
   const { auth } = useAuth();
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
 
   const [employes, setemployees] = useState();
   const [pihaks, setPihaks] = useState();
@@ -238,6 +238,24 @@ const Sppd = () => {
       setValue('4');
     }
   }, [hash]);
+
+  // tautan dari notifikasi (?dok=<nomor dokumen>#<tab>): buka dokumennya sekali saja setelah daftar pada tab yang dituju termuat.
+  // Tab review (#3) membuka layar Review, tab lain membuka Detail.
+  const dokDariLink = new URLSearchParams(search).get('dok');
+  const sudahDibuka = useRef(false);
+  useEffect(() => {
+    const tabTujuan = hash.replace('#', '');
+    if (!dokDariLink || sudahDibuka.current || !tabTujuan || value !== tabTujuan) return;
+    const row = (submitted || []).find((p) => p.nomor_dokumen === dokDariLink);
+    if (!row) return;
+    sudahDibuka.current = true;
+    if (tabTujuan === '3') {
+      toggleR(row);
+    } else {
+      toggleDetail(row);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dokDariLink, hash, value, submitted]);
 
   const closeForm = () => {
     setSppdForm(!sppdForm);

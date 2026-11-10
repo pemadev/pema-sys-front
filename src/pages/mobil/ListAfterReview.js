@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 
@@ -6,6 +7,7 @@ import useAxios from '../../hooks/useAxios';
 
 const ListAfterReview = React.forwardRef((props, ref) => {
     const api = useAxios();
+    const location = useLocation();
     const [data, setData] = useState([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
@@ -40,6 +42,18 @@ const ListAfterReview = React.forwardRef((props, ref) => {
         setModalOpen(false);
         setSelectedRow(null);
     };
+
+    // tautan dari notifikasi (?permintaan=<id>): buka detail permintaannya sekali saja
+    const permintaanDariLink = new URLSearchParams(location.search).get('permintaan');
+    const sudahDibuka = useRef(false);
+    useEffect(() => {
+        if (!permintaanDariLink || sudahDibuka.current || !data.length) return;
+        const row = data.find((d) => String(d.id) === permintaanDariLink);
+        if (!row) return;
+        sudahDibuka.current = true;
+        handleRowClick(row);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [permintaanDariLink, data]);
 
     const columns = [
         { name: 'Keperluan', selector: row => row.keperluan, sortable: true },

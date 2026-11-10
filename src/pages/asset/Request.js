@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import DataTable from 'react-data-table-component';
 import { Badge, Button, ModalBody, ModalHeader, Modal, Col, Row, ModalFooter, Input, FormGroup, Label } from 'reactstrap';
@@ -12,6 +13,7 @@ import { alert } from '../../components/atoms/Toast';
 const Request = ({ reqser, refetch2 }) => {
   const inputRef = useRef(null);
   const { auth } = useAuth();
+  const location = useLocation();
   const [modal, setModal] = useState(false);
   const [modal2, setModal2] = useState(false);
   const [dat, setDat] = useState();
@@ -25,6 +27,19 @@ const Request = ({ reqser, refetch2 }) => {
     setDat(row);
     console.log(row);
   };
+
+  // tautan dari notifikasi (?servis=<id>): PIC aset langsung melihat permintaan yang masih menunggu (Check), sekali saja
+  const servisDariLink = new URLSearchParams(location.search).get('servis');
+  const sudahDibuka = useRef(false);
+  useEffect(() => {
+    if (!servisDariLink || sudahDibuka.current || !reqser?.length || !auth.user.roles.includes('PicAsset')) return;
+    const row = reqser.find((r) => String(r.id) === servisDariLink && r.status === 'submit');
+    if (!row) return;
+    sudahDibuka.current = true;
+    setDat(row);
+    setModal(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servisDariLink, reqser]);
 
   const openFile = () => {
     inputRef.current.click();

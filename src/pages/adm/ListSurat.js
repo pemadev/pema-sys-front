@@ -5,6 +5,7 @@ import { QRCode } from 'react-qrcode-logo';
 import { Input, Badge, Button, Modal, ModalBody, ModalHeader } from 'reactstrap';
 import dayjs from "dayjs";
 import 'dayjs/locale/id';
+import { useLocation } from "react-router-dom";
 import { confirmAlert } from "react-confirm-alert";
 import { alert } from "../../components/atoms/Toast";
 import GenerateSurat from "./Fungsi/Generate";
@@ -44,6 +45,7 @@ const lebarKolomTombol = (rows, labelsOf, ekstra = 0) => {
 
 const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
     const qrCodeRef = useRef();
+    const location = useLocation();
     const api = useAxios();
     const auth = useAuth();
     const baseURL1 = process.env.REACT_APP_FRONTEND;
@@ -218,6 +220,24 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         return null;
     }
 
+    // tautan dari notifikasi (?dok=<no_document>): langsung membuka dokumennya sekali saja.
+    // Tab Review (#2) membuka "Lihat & paraf/tanda tangan", tab Surat Saya (#1) membuka progres approval.
+    const dokDariLink = new URLSearchParams(location.search).get('dok');
+    const sudahDibuka = useRef(false);
+    useEffect(() => {
+        if (!dokDariLink || sudahDibuka.current || !listSurat?.length) return;
+        const row = listSurat.find((p) => p.no_document === dokDariLink);
+        if (!row) return;
+        if (type === 'review' && valueNow === '2') {
+            sudahDibuka.current = true;
+            lihatparaf(row.id);
+        } else if (valueNow === '1' && !row.ttd_basah) {
+            sudahDibuka.current = true;
+            openApproval(row.id);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dokDariLink, listSurat, valueNow, type]);
+
     // const handleParaf = async () => {
     //     if (!dataIsi?.detail?.no_document) return alert('error', 'No document tidak tersedia');
     //     try {
@@ -305,6 +325,21 @@ Alasan (boleh kosong):`);
         })
         return null;
     }
+
+    // tautan dari notifikasi surat masuk, disposisi, dan CC (?masuk=<id surat masuk>): daftar disaring ke surat itu saja supaya langsung terlihat.
+    // Surat tidak dibuka otomatis karena "Lihat Surat" membuka tab baru dan diblokir browser tanpa klik pengguna.
+    const masukDariLink = new URLSearchParams(location.search).get('masuk');
+    const sudahDisaring = useRef(false);
+    useEffect(() => {
+        if (!masukDariLink || sudahDisaring.current || !listSurat?.length) return;
+        if (!((type === 'masuk' && valueNow === '4') || (type === 'cc' && valueNow === '5'))) return;
+        const row = listSurat.find((p) => String(p.id_surat ?? p.id) === masukDariLink);
+        if (!row) return;
+        sudahDisaring.current = true;
+        const kunci = row.nomor || row.perihal || row.pengirim || '';
+        setSearch(String(kunci).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [masukDariLink, listSurat, valueNow, type]);
 
     const dispoSurat = (id) => {
         const dt = listP.find((p) => p.id === id);

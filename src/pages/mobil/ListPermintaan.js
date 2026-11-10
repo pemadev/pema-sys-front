@@ -1,4 +1,5 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { confirmAlert } from 'react-confirm-alert';
@@ -10,6 +11,7 @@ import useAuth from '../../hooks/useAuth'; // Import your authentication hook
 
 const ListPermintaan = forwardRef((props, ref) => {
   const api = useAxios();
+  const location = useLocation();
   const [data, setData] = useState([]);
   const {auth} = useAuth(); // Gunakan langsung jika hanya butuh auth.user
   const [modalOpen, setModalOpen] = useState(false);
@@ -158,6 +160,18 @@ const ListPermintaan = forwardRef((props, ref) => {
   useEffect(() => {
     fetchData(); // Fetch data only once when the component mounts
   }, []);
+
+  // tautan dari notifikasi (?permintaan=<id>): buka detail permintaannya sekali saja
+  const permintaanDariLink = new URLSearchParams(location.search).get('permintaan');
+  const sudahDibuka = useRef(false);
+  useEffect(() => {
+    if (!permintaanDariLink || sudahDibuka.current || !data.length) return;
+    const row = data.find((d) => String(d.id) === permintaanDariLink);
+    if (!row) return;
+    sudahDibuka.current = true;
+    handleRowClick(row);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permintaanDariLink, data]);
 
   useImperativeHandle(ref, () => ({
     refreshData: fetchData, // Expose the fetchData method to the parent

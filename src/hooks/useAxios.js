@@ -25,7 +25,12 @@ const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
 
         if (isExpired) {
           dispatch({ type: 'LOGOUT' });
-          navigate('/auth/login');
+          // halaman yang sedang dibuka (termasuk query dan hash dari tautan notifikasi) dibuka lagi setelah login
+          const { pathname, search, hash } = window.location;
+          navigate(
+            '/auth/login',
+            pathname.startsWith('/auth') ? undefined : { state: { from: `${pathname}${search}${hash}` } },
+          );
 
           // let hours = tokenExp.diff(dayjs(), 'hours');
           // const days = Math.floor(hours / 24);
