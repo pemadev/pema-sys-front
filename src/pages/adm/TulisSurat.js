@@ -3,7 +3,9 @@ import Box from '@mui/material/Box';
 import PropTypes from 'prop-types';
 import TextField from '@mui/material/TextField';
 import { MenuItem } from '@mui/material';
-import { Button, InputGroup, Badge, ButtonGroup } from 'reactstrap';
+import { Alert, Button, InputGroup, Badge, ButtonGroup } from 'reactstrap';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 import { QRCode } from 'react-qrcode-logo';
 // import { Navigate } from 'react-router-dom';
 import useAxios from '../../hooks/useAxios';
@@ -16,8 +18,9 @@ import { alert } from '../../components/atoms/Toast';
 
 import logo from '../../assets/images/qrcode/qr-code-logo.png';
 import toRoman from './Fungsi/toRoman';
+import unduhSuratBasah from './Fungsi/unduhSuratBasah';
 
-const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm }) => {
+const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm, onSubmitted }) => {
   const baseURL1 = process.env.REACT_APP_FRONTEND;
   const api = useAxios();
   const qrCodeRef = useRef();
@@ -50,6 +53,16 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
 
   const [bhs, setBhs]=useState(dataSurat?.bhs || 'id');
 
+  // mode backdate (hanya surat baru): surat tidak mengambil nomor, melainkan diajukan ke PICAdm yang memilih nomor dari saran sistem
+  const pad = (n) => String(n).padStart(2, '0');
+  const kemarin = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const maxTanggal = `${kemarin.getFullYear()}-${pad(kemarin.getMonth() + 1)}-${pad(kemarin.getDate())}`;
+  const minTanggal = `${new Date().getFullYear()}-01-01`;
+  const [modeBackdate, setModeBackdate] = useState(!id && !!dataSurat?.modeBackdate);
+  const [tanggal, setTanggal] = useState(dataSurat?.tanggal || '');
+  // surat tanda tangan basah: tanpa paraf/tanda tangan di sistem; PDF langsung diunduh admin
+  const [ttdBasah, setTtdBasah] = useState(!id && !!dataSurat?.ttdBasah);
+
   const saveDataLocal = () => {
     localStorage.setItem(
       'dataSurat',
@@ -68,6 +81,9 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
         signer: ttdBys?.find((s) => s.employe_id === ttdBy),
         tglSurat,
         nomorSurat,
+        modeBackdate,
+        tanggal,
+        ttdBasah,
         draft: true,
         bhs,
       }),
@@ -88,6 +104,9 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
     ttdBys,
     isiSurat,
     bhs,
+    modeBackdate,
+    tanggal,
+    ttdBasah,
   ]);
 
   const addTembusan = () => {
@@ -161,23 +180,37 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
   }
 
   const submit = async () => {
+    if (modeBackdate && !tanggal) {
+      alert('error', 'Pilih tanggal surat untuk mode backdate.');
+      return;
+    }
 
     setLoading(true);
     const allData = {
       ...dataSurat, fileLampiran, type: 'main'
     }
 
-    await api.post(`dapi/adm/insert`, allData).then((res) => {
+    await api.post(modeBackdate ? `dapi/adm/backdate/ajukan` : `dapi/adm/insert`, allData).then(async (res) => {
       console.log(res?.data);
       if (res.status === 200) {
-        alert('success', 'Dokumen Berhasil submit !');
+        alert('success', modeBackdate ? 'Permintaan backdate dikirim ke PICAdm. Nomor surat dipilih PICAdm.' : 'Dokumen Berhasil submit !');
+        if (ttdBasah && !modeBackdate && res.data?.data?.id) {
+          // PDF dibuat sebelum form ditutup (pembuatnya memakai elemen QR di form ini)
+          try {
+            await unduhSuratBasah(api, res.data.data.id, qrCodeRef);
+          } catch (e) {
+            alert('error', 'Surat tersimpan, tetapi PDF gagal diunduh. Unduh dari daftar TTD Manual.');
+          }
+        }
+        // backdate (juga bila sekaligus TTD manual, karena belum bernomor) ke tab Backdate; TTD manual ke tab TTD Manual
+        if (onSubmitted) onSubmitted(modeBackdate ? 'backdate' : ttdBasah ? 'basah' : 'belum');
         afterSubmit();
       } else {
         alert('error', 'Dokumen Gagal submit, Hubungi Tim IT untuk problem selanjutnya !');
       }
       setLoading(false);
     }).catch((err) => {
-      alert('error', `${err.message}`);
+      alert('error', `${err?.response?.data?.message || err.message}`);
       setLoading(false);
     });
   };
@@ -236,6 +269,47 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
               </TextField>
             </Box>
           )}
+          {!id && (
+            <Box className="mb-3">
+              <FormControlLabel
+                control={<Checkbox checked={ttdBasah} onChange={(e) => setTtdBasah(e.target.checked)} />}
+                label="Surat TTD manual (tanda tangan basah di kertas, tanpa paraf dan tanda tangan di sistem)"
+              />
+              {ttdBasah && (
+                <Alert color="info" className="mt-2">
+                  Surat ini <strong>tidak masuk alur paraf</strong> di sistem dan tidak ada notifikasi ke approver. Setelah disimpan, PDF surat dengan ruang
+                  kosong untuk tanda tangan langsung terunduh (untuk surat backdate, unduh dari daftar <strong>TTD Manual</strong> setelah nomor dipilih
+                  PICAdm). Setelah ditandatangani, unggah berkas surat ber-tanda tangan dari daftar <strong>TTD Manual</strong>.
+                </Alert>
+              )}
+              <FormControlLabel
+                control={<Checkbox checked={modeBackdate} onChange={(e) => setModeBackdate(e.target.checked)} />}
+                label="Mode backdate (surat bertanggal mundur, nomor dipilih PICAdm)"
+              />
+              {modeBackdate && (
+                <Alert color="info" className="mt-2">
+                  <strong>Sebelum mengajukan backdate:</strong> pastikan surat yang belum di-approve dan sudah tidak digunakan lagi telah ditandai{' '}
+                  <strong>Void</strong> di daftar surat Anda. Nomor surat void menjadi nomor kosong yang bisa dipilih PICAdm, sehingga surat ini
+                  tidak perlu memakai nomor sisipan (misalnya 107-A) dan data penomoran tetap selaras. Surat ini tidak mengambil nomor hari ini;
+                  nomornya dipilih PICAdm dari saran sistem.
+                </Alert>
+              )}
+              {modeBackdate && (
+                <TextField
+                  type="date"
+                  style={{ width: '100%' }}
+                  variant="outlined"
+                  label="Tanggal Surat yang Diminta"
+                  value={tanggal}
+                  onChange={(e) => setTanggal(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ min: minTanggal, max: maxTanggal }}
+                  helperText="Surat tidak mengambil nomor hari ini dan belum masuk alur paraf. Setelah PICAdm memilih nomor, surat muncul di daftar Anda."
+                />
+              )}
+            </Box>
+          )}
+
           <Box className="mb-3">
             <TextField
               id="outlined-basic"
@@ -487,7 +561,8 @@ TulisSurat.propTypes = {
   refresh: PropTypes.func,
   func1: PropTypes.func,
   detailSurat: PropTypes.object,
-  updateForm: PropTypes.bool
+  updateForm: PropTypes.bool,
+  onSubmitted: PropTypes.func,
 };
 
 export default TulisSurat;

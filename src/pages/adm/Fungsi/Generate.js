@@ -166,10 +166,13 @@ const GenerateSurat = (dataSurat, htmlRef) => {
                   text: 'PT PEMBANGUNAN ACEH (Perseroda)',
                   style: 'boldText',
                 },
-                {
-                  image: `${dataSurat?.status === 'signed' ? qrcode : image.placeholder}`,
-                  width: 60, // Sesuaikan lebar logo sesuai kebutuhan
-                },
+                // surat tanda tangan basah: ruang kosong untuk tanda tangan, tanpa QR verifikasi
+                dataSurat?.ttdBasah
+                  ? { text: ' ', margin: [0, 0, 0, 60] }
+                  : {
+                    image: `${dataSurat?.status === 'signed' ? qrcode : image.placeholder}`,
+                    width: 60, // Sesuaikan lebar logo sesuai kebutuhan
+                  },
                 {
                   text: `${dataSurat?.signer?.first_name}`,
                   style: 'boldText',

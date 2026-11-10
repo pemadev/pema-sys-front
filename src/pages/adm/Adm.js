@@ -1,7 +1,8 @@
 import React, { useEffect, useState} from 'react';
-import { Card, CardBody, Button, CardHeader } from 'reactstrap';
+import { Alert, Card, CardBody, Button, CardHeader } from 'reactstrap';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import { useQueries } from '@tanstack/react-query';
 import MaterialIcon from '@material/react-material-icon';
 import Badge from '@mui/material/Badge';
@@ -13,6 +14,7 @@ import ListSurat from './ListSurat';
 import AddSuratMasuk from './AddSuratMasuk';
 import DashboardAdm from './DashboardAdm';
 import Docusign from './Docusign/Docusign';
+import BackdateSurat from './BackdateSurat';
 
 
 
@@ -24,6 +26,9 @@ const Adm = () => {
   const formData = JSON.parse(localStorage.getItem('formData'))
   const [value, setValue] = useState(`${hash!==''?hash.replace(/#/g, '').toString():'99'}`);
   const [tulisForm, setTulisForm] = useState(formData?.tulisForm || false);
+  // daftar surat milik admin dipisah: belum di-approve, sudah di-approve, void
+  const [subTab, setSubTab] = useState('belum');
+  const [backdateReq, setBackdateReq] = useState([]);
   const [divisis, setDivisis] = useState([]);
   const [mydivisi, setMyDivisi] = useState('');
   const [listSurat, setListSurat] = useState([]);
@@ -93,6 +98,10 @@ const Adm = () => {
       api.get(`dapi/adm/surat/all`).then((res) => {
         setListSurat(res.data.data);
       });
+      // permintaan backdate yang belum mendapatkan nomor (yang sudah mendapat nomor tampil sebagai surat biasa)
+      api.get(`dapi/adm/backdate/daftar`).then((res) => {
+        setBackdateReq(res.data.data.filter((r) => r.status !== 'selesai'));
+      }).catch(() => setBackdateReq([]));
     } else if (val === '2') {
       api.get(`dapi/adm/surat/review`).then((res) => {
         setListSurat(res.data.data);
@@ -267,6 +276,22 @@ const Adm = () => {
               value="4"
             />
 
+            {auth?.user.roles.includes('PICAdm') ? (<Tab
+              label={
+                <Badge
+                  badgeContent={0}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  color="primary"
+                >
+                  <strong>BACKDATE</strong> &nbsp;&nbsp;
+                </Badge>
+              }
+              value="7"
+            />) : ''}
+
             <Tab
               label={
                 <Badge
@@ -298,7 +323,7 @@ const Adm = () => {
                     style={{ cursor: 'pointer' }}
                     onClick={() => setTulisForm(!tulisForm)}
                   />
-                  <TulisSurat divisis={divisis} mydivisi={mydivisi} refresh={refreshData} func1={setTulisForm} detailSurat={detailSurat} updateForm={updateForm} />
+                  <TulisSurat divisis={divisis} mydivisi={mydivisi} refresh={refreshData} func1={setTulisForm} detailSurat={detailSurat} updateForm={updateForm} onSubmitted={setSubTab} />
                 </>
               ) : (
                 <Button
@@ -313,10 +338,38 @@ const Adm = () => {
             </CardBody>
           </Card>
 
-          {tulisForm === false && listSurat?.length > 0 && (
+          {tulisForm === false && (listSurat?.length > 0 || backdateReq.length > 0) && (
             <Card>
               <CardBody>
-                <ListSurat listSurat={listSurat} valueNow={value} update={updateSurat} refresh={refreshData} />
+                {listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length > 0 && (
+                  <Alert color="warning">
+                    <strong>Jaga keselarasan nomor surat.</strong> Anda punya {listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length} surat yang
+                    belum di-approve. Surat yang sudah tidak digunakan lagi sebaiknya segera ditandai <strong>Void</strong> (tombol Void di kolom
+                    Actions) agar nomornya kosong kembali dan bisa dipakai untuk surat backdate, serta data penomoran tetap sesuai dengan surat yang
+                    benar-benar terpakai.
+                  </Alert>
+                )}
+                <Tabs value={subTab} onChange={(e, v) => setSubTab(v)} className="mb-3">
+                  <Tab value="belum" label={`Belum di-approve (${listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length})`} />
+                  <Tab value="sudah" label={`Sudah di-approve (${listSurat.filter((s) => s.status === 'signed' && !s.void && !s.ttd_basah).length})`} />
+                  <Tab value="basah" label={`TTD Manual (${listSurat.filter((s) => s.ttd_basah && !s.void).length + backdateReq.filter((r) => r.ttd_basah).length})`} />
+                  <Tab value="void" label={`Void (${listSurat.filter((s) => s.void).length})`} />
+                  <Tab value="backdate" label={`Backdate (${backdateReq.length})`} />
+                </Tabs>
+                {subTab === 'backdate' ? (
+                  <BackdateSurat hideDone refresh={refreshData} />
+                ) : (
+                  <>
+                    {/* permintaan backdate yang sekaligus TTD manual juga tampil di sini selama belum bernomor */}
+                    {subTab === 'basah' && <BackdateSurat hideDone hanyaTtdManual refresh={refreshData} />}
+                    <ListSurat
+                      listSurat={listSurat.filter((s) => (subTab === 'void' ? s.void : subTab === 'basah' ? s.ttd_basah && !s.void : subTab === 'sudah' ? s.status === 'signed' && !s.void && !s.ttd_basah : s.status !== 'signed' && !s.void && !s.ttd_basah))}
+                      valueNow={value}
+                      update={updateSurat}
+                      refresh={refreshData}
+                    />
+                  </>
+                )}
               </CardBody>
             </Card>
           )}
@@ -407,6 +460,10 @@ const Adm = () => {
 
 
           }
+        </TabPanel>
+
+        <TabPanel value="7" className="ps-0 pe-0">
+          <BackdateSurat pic refresh={refreshData} />
         </TabPanel>
 
         <TabPanel value="5" className="ps-0 pe-0">

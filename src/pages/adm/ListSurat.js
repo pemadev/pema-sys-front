@@ -24,6 +24,24 @@ import GenerateDispo from "./Fungsi/GenerateDispo";
 
 
 
+// Lebar kolom tombol mengikuti baris dengan tombol terbanyak pada tab atau sub-tab yang sedang tampil. Teks tombol diukur dengan canvas;
+// tiap tombol kecil Bootstrap menambah padding 2x8px + border 2px + margin kanan 8px, sel tabel menambah padding 2x16px.
+let konteksUkur;
+const ukurTeks = (teks) => {
+    if (!konteksUkur) konteksUkur = document.createElement('canvas').getContext('2d');
+    // font tombol kecil Bootstrap: 0,875rem dengan font-family turunan dari body (sama dengan yang dirender)
+    const akar = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+    konteksUkur.font = `${akar * 0.875}px ${window.getComputedStyle(document.body).fontFamily}`;
+    return Math.ceil(konteksUkur.measureText(teks).width);
+};
+// untuk tombol yang labelnya berganti (mis. "Lihat Surat" menjadi "Loading . . ."), pakai label yang terlebar agar lebar kolom tidak bergeser
+const terlebar = (...labels) => labels.reduce((a, b) => (ukurTeks(b) > ukurTeks(a) ? b : a));
+const lebarKolomTombol = (rows, labelsOf, ekstra = 0) => {
+    const maks = Math.max(0, ...(rows || []).map((r) => labelsOf(r).reduce((s, l) => s + ukurTeks(l) + 26, 0)));
+
+    return `${Math.max(maks + ekstra + 32 + 6, 110)}px`;
+};
+
 const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
     const qrCodeRef = useRef();
     const api = useAxios();
@@ -69,7 +87,54 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
 
     }, [search]);
 
+    // surat tanda tangan basah: unggah dan buka berkas surat yang sudah ditandatangani (PDF, JPG, atau PNG, maksimal 10 MB)
+    const ttdFileRef = useRef();
+    const [ttdUploadId, setTtdUploadId] = useState(null);
+
+    const pilihBerkasTtd = (row) => {
+        setTtdUploadId(row.id);
+        if (ttdFileRef.current) {
+            ttdFileRef.current.value = '';
+            ttdFileRef.current.click();
+        }
+    };
+
+    const unggahTtd = (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !ttdUploadId) return;
+        if (file.size > 10 * 1024 * 1024) {
+            alert('error', 'Ukuran berkas maksimal 10 MB.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            api.post(`dapi/adm/surat/${ttdUploadId}/ttd-basah`, { file: reader.result })
+                .then((res) => {
+                    alert('success', res.data?.message || 'Berkas tersimpan');
+                    refresh();
+                })
+                .catch((err) => alert('error', err?.response?.data?.message || err.message));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const lihatTtd = (row) => {
+        api.get(`dapi/adm/surat/${row.id}/ttd-basah`)
+            .then((res) => {
+                const { file, mime } = res.data.data;
+                const bytes = Uint8Array.from(atob(file), (c) => c.charCodeAt(0));
+                window.open(URL.createObjectURL(new Blob([bytes], { type: mime })));
+            })
+            .catch((err) => alert('error', err?.response?.data?.message || err.message));
+    };
+
     const viewSurat = (id) => {
+        // surat tanda tangan basah yang berkas ber-ttd-nya sudah diunggah: buka berkas itu, bukan PDF buatan sistem
+        const baris = listSurat?.find((p) => p.id === id);
+        if (baris?.ttd_basah && baris?.file_ttd) {
+            lihatTtd(baris);
+            return;
+        }
         setLoadingView(id);
 
         setDetail(listSurat?.find((p) => p.id === id));
@@ -197,6 +262,22 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         return null;
     }
 
+    // tandai void: surat tidak terpakai lagi dan belum ada yang menyetujui; nomornya bisa dipakai PICAdm untuk backdate
+    const voidSurat = (row) => {
+        // eslint-disable-next-line no-alert
+        const alasan = window.prompt(`Tandai surat ${row.nomor_surat} sebagai VOID?
+Nomornya bisa dipakai lagi untuk backdate dan surat tidak bisa diproses lagi.
+
+Alasan (boleh kosong):`);
+        if (alasan === null) return;
+        api.post(`dapi/adm/void/${row.id}`, { alasan })
+            .then((res) => {
+                alert('success', res.data?.message || 'Surat ditandai void');
+                refresh();
+            })
+            .catch((err) => alert('error', err?.response?.data?.message || err.message));
+    };
+
     const detailSm = async (id) => {
         setLoadingViewSM(id);
         await api.get(`dapi/adm/suratmasuk/detail/${id}`).then((res) => {
@@ -317,10 +398,23 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
     };
 
 
+    const labelsMasuk = () => {
+        const { roles } = auth.auth.user;
+        const l = [terlebar('Lihat Surat', 'Loading . . .')];
+        if (!roles.includes('SuperAdminAdm') && status !== 'done') {
+            if (roles.includes('Presdir') || roles.includes('Director') || roles.includes('ManagerEksekutif')) l.push('Dispo');
+            l.push('Tinjut');
+        }
+        l.push('Riwayat');
+        if (roles.includes('SuperAdminAdm')) l.push('Delete');
+        return l;
+    };
+    const labelsCc = () => [terlebar('Lihat Surat', 'Loading . . .'), 'Riwayat'];
+
     const columsMasuk = [
         {
             name: 'Action',
-            width: `${status === 'progress' ? '350px' : '230px'}`,
+            width: lebarKolomTombol(listSurat, labelsMasuk),
             selector: (row) =>
                 <>
                     <Button
@@ -449,7 +543,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
     const columsCC = [
         {
             name: 'Action',
-            width: '250px',
+            width: lebarKolomTombol(listSurat, labelsCc),
             selector: (row) =>
                 <>
                     <Button
@@ -520,14 +614,34 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         }
     ];
 
+    // syarat tampil tiap tombol kolom Actions; dipakai juga untuk menghitung lebar kolom
+    const tampilUpdate = (row) => valueNow === '1' && !row.void && !row.file_ttd;
+    const tampilUnggah = (row) => valueNow === '1' && !!row.ttd_basah && !row.void;
+    const tampilLihatTtd = (row) => valueNow === '1' && !!row.ttd_basah && !!row.file_ttd;
+    const tampilVoid = (row) => valueNow === '1' && !row.void && !row.file_ttd && row.status !== 'signed';
+    const tampilApproval = (row) => !row.ttd_basah;
+    const labelsAksi = (row) => {
+        const l = [];
+        if (tampilUpdate(row)) l.push(terlebar('Update', 'Loading . . .'));
+        if (tampilUnggah(row)) l.push(row.file_ttd ? 'Ganti Berkas Ber-TTD' : 'Unggah Surat Ber-TTD');
+        if (tampilLihatTtd(row)) l.push('Lihat Surat Ber-TTD');
+        if (tampilVoid(row)) l.push('Void');
+        l.push(terlebar('Lihat Surat', 'Loading . . .'));
+        if (tampilApproval(row)) l.push('Approval');
+        l.push('Logs');
+        return l;
+    };
+    // kolom Logs dan Lihat & ... pada daftar review (titik biru 12px + margin 2x8px di depannya)
+    const labelsReview = (row) => ['Logs', terlebar(`Lihat & ${row.current_type}`, 'Loading . . .')];
+
     const columns = [
         {
             name: 'Actions',
-            width: `${valueNow === '3' || type === 'approved' ? '270px' : '450px'}`,
+            width: lebarKolomTombol(listSurat, labelsAksi),
             omit: valueNow === '2' && type === 'review',
             selector: (row) => (
                 <>
-                    {valueNow === '1' && <Button
+                    {tampilUpdate(row) && <Button
                         className="me-2"
                         size="sm"
                         outline
@@ -536,6 +650,36 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                         type="button"
                         value={loadingUpdate === row.id ? 'Loading . . .' : 'Update'}
                         onClick={() => updateSurat(row.id)}
+                    />}
+                    {tampilUnggah(row) && <Button
+                        className="me-2"
+                        size="sm"
+                        outline
+                        color="primary"
+                        tag="input"
+                        type="button"
+                        value={row.file_ttd ? 'Ganti Berkas Ber-TTD' : 'Unggah Surat Ber-TTD'}
+                        onClick={() => pilihBerkasTtd(row)}
+                    />}
+                    {tampilLihatTtd(row) && <Button
+                        className="me-2"
+                        size="sm"
+                        outline
+                        color="success"
+                        tag="input"
+                        type="button"
+                        value="Lihat Surat Ber-TTD"
+                        onClick={() => lihatTtd(row)}
+                    />}
+                    {tampilVoid(row) && <Button
+                        className="me-2"
+                        size="sm"
+                        outline
+                        color="secondary"
+                        tag="input"
+                        type="button"
+                        value="Void"
+                        onClick={() => voidSurat(row)}
                     />}
                     <Button
                         className="me-2"
@@ -547,7 +691,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                         value={loadingView === row.id ? 'Loading . . .' : 'Lihat Surat'}
                         onClick={() => viewSurat(row.id)}
                     />
-                    <Button
+                    {tampilApproval(row) && <Button
                         className="me-2"
                         size="sm"
                         outline
@@ -556,7 +700,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
                         type="button"
                         value="Approval"
                         onClick={() => openApproval(row.id)}
-                    />
+                    />}
 
                     <Button
                         className="me-2"
@@ -602,7 +746,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         // Kolom status baca (titik biru)
         {
             name: '',
-            width: '250px',
+            width: lebarKolomTombol(listSurat, labelsReview, 28),
             omit: !(valueNow === '2' && type === 'review'),
 
             selector: (row) => <>
@@ -675,7 +819,15 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
         },
         {
             name: 'Status',
-            selector: (row) => row.status === 'signed' ? (
+            selector: (row) => row.void ? (
+                <Badge color="dark" style={{ width: '100px' }}>
+                    Void
+                </Badge>
+            ) : row.ttd_basah ? (
+                <Badge color="info" style={{ width: '100px' }}>
+                    {row.file_ttd ? 'TTD Manual (sudah ada berkas)' : 'TTD Manual'}
+                </Badge>
+            ) : row.status === 'signed' ? (
                 <Badge color="success" style={{ width: '100px' }}>
                     Approved
                 </Badge>
@@ -733,6 +885,7 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
 
     return (
         <>
+            <input ref={ttdFileRef} type="file" accept="application/pdf,image/jpeg,image/png" style={{ display: 'none' }} onChange={unggahTtd} />
             <div ref={qrCodeRef} style={{ display: 'none' }}>
                 <QRCode
                     value={`${baseURL1}verification/${detail?.no_document}?type=sign`}
