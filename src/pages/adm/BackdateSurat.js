@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Button, Card, CardBody, Input } from 'reactstrap';
 import dayjs from 'dayjs';
@@ -86,6 +87,7 @@ PanelPilih.propTypes = {
 // Daftar permintaan surat bertanggal mundur. PICAdm memproses; AdminAdm hanya melihat statusnya.
 const BackdateSurat = ({ pic, refresh, hideDone, hanyaTtdManual }) => {
   const api = useAxios();
+  const location = useLocation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [buka, setBuka] = useState(null);
@@ -102,6 +104,17 @@ const BackdateSurat = ({ pic, refresh, hideDone, hanyaTtdManual }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  // tautan dari notifikasi (?backdate=<id>): PICAdm langsung melihat panel "Pilih nomor" permintaan itu, sekali saja
+  const backdateDariLink = new URLSearchParams(location.search).get('backdate');
+  const sudahDibuka = useRef(false);
+  useEffect(() => {
+    if (!pic || !backdateDariLink || sudahDibuka.current || !items.length) return;
+    const it = items.find((i) => String(i.id) === backdateDariLink && i.status === 'menunggu');
+    if (!it) return;
+    sudahDibuka.current = true;
+    setBuka(it.id);
+  }, [pic, backdateDariLink, items]);
 
   let tampil = hideDone ? items.filter((it) => it.status !== 'selesai') : items;
   // dipakai di sub-tab TTD Manual: hanya permintaan backdate yang sekaligus TTD manual, disembunyikan bila tidak ada

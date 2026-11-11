@@ -46,7 +46,11 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
 
   const [berang, setBerang] = useState(dataSurat?.berang || 'form1');
 
-  const [isiSurat, setIsiSurat] = useState(dataSurat?.isiSurat || 'Dengan Hormat');
+  // isi yang hanya spasi (editor menyimpan isi kosong sebagai ' ') dianggap kosong: pakai isi dari server saat edit, atau teks awal
+  const adaIsi = (teks) => typeof teks === 'string' && teks.replace(/&nbsp;|\s|<[^>]*>/g, '') !== '';
+  const [isiSurat, setIsiSurat] = useState(
+    adaIsi(dataSurat?.isiSurat) ? dataSurat.isiSurat : adaIsi(detailSurat?.isiSurat) ? detailSurat.isiSurat : 'Dengan Hormat',
+  );
   const [mergedSurat, setMergedSurat] = useState('');
 
   const [loading, setLoading] = useState(false);

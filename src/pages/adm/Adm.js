@@ -21,13 +21,14 @@ import BackdateSurat from './BackdateSurat';
 const Adm = () => {
   const { auth } = useAuth();
   const api = useAxios();
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
 
   const formData = JSON.parse(localStorage.getItem('formData'))
   const [value, setValue] = useState(`${hash!==''?hash.replace(/#/g, '').toString():'99'}`);
   const [tulisForm, setTulisForm] = useState(formData?.tulisForm || false);
   // daftar surat milik admin dipisah: belum di-approve, sudah di-approve, void
-  const [subTab, setSubTab] = useState('belum');
+  // ?sub=backdate dari tautan notifikasi membuka sub-tab Backdate pada tab Surat Saya
+  const [subTab, setSubTab] = useState(new URLSearchParams(search).get('sub') || 'belum');
   const [backdateReq, setBackdateReq] = useState([]);
   const [divisis, setDivisis] = useState([]);
   const [mydivisi, setMyDivisi] = useState('');
