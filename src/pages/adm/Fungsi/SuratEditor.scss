@@ -465,3 +465,87 @@ $we-canvas: #e9ebee;
     display: none;
   }
 }
+
+// ---- layar kecil dan layar sentuh ----
+@media (max-width: 860px) {
+  .we-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .we-tab {
+    flex-shrink: 0;
+  }
+
+  .we-ribbon {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .we-root:not(.we-full) {
+    max-height: 88vh;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .we-titlebar {
+    gap: 8px;
+  }
+
+  .we-tab {
+    padding: 8px 12px 7px;
+  }
+
+  // dropdown tidak boleh keluar dari layar
+  .we-pop {
+    max-width: calc(100vw - 16px);
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  .we-status {
+    gap: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .we-zoom input[type='range'] {
+    width: 72px;
+  }
+}
+
+@media (pointer: coarse) {
+  .we-btn {
+    min-width: 34px;
+    min-height: 34px;
+    justify-content: center;
+
+    &.we-big {
+      min-height: 72px;
+    }
+  }
+
+  .we-select {
+    height: 32px;
+  }
+
+  .we-menu-item {
+    padding: 10px 14px;
+  }
+
+  .we-swatch {
+    width: 26px;
+    height: 26px;
+  }
+
+  .we-swatches {
+    grid-template-columns: repeat(7, 26px);
+    gap: 6px;
+  }
+}

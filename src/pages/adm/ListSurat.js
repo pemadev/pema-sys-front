@@ -927,6 +927,16 @@ Alasan (boleh kosong):`);
     const kolomTabel = type === 'masuk' ? columsMasuk : type === 'cc' ? columsCC : columns;
     const namaBerkas = `${type === 'masuk' ? 'Surat Masuk' : type === 'review' ? 'Approval Surat' : type === 'approved' ? 'Surat Disetujui' : 'Surat Keluar'} ${tahun === SEMUA_TAHUN ? 'Semua Tahun' : tahun}`;
 
+    // judul jendela modal ditampilkan di header, bukan di dalam isi
+    const judulReview = dataIsi?.current_type === 'paraf' ? 'Paraf Dokumen' : 'Tanda Tangan Dokumen';
+    const judulModal = {
+        log: 'Log Dokumen',
+        approval: 'List Approval Dokumen',
+        review: judulReview,
+        paraf: judulReview,
+        dispo: `Disposisi Surat ${dataIsi?.nomor || ''}`.trim(),
+    }[isiModal] || '';
+
     return (
         <>
             <input ref={ttdFileRef} type="file" accept="application/pdf,image/jpeg,image/png" style={{ display: 'none' }} onChange={unggahTtd} />
@@ -954,12 +964,12 @@ Alasan (boleh kosong):`);
                         (valueNow === '2' && type === 'review' ? [...pointerRowStyles, ...reviewRowStyles] : undefined)
                 }
                 subHeaderComponent={
-                    <div className="d-flex justify-content-end align-items-center gap-2 w-100">
+                    <div className="baris-filter">
                         <Input
                             type="text"
                             value={search}
                             placeholder="search . . . . "
-                            className="w-25"
+                            className="kolom-cari"
                             onChange={(e) => setSearch(e.target.value)}
                         />
                         {pakaiTahun ? <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} /> : null}
@@ -968,8 +978,8 @@ Alasan (boleh kosong):`);
                 }
             />
 
-            <Modal isOpen={modal} toggle={toggleModal} size="xl">
-                <ModalHeader toggle={toggleModal}></ModalHeader>
+            <Modal isOpen={modal} toggle={toggleModal} size="xl" className="tampilan-pro-modal">
+                <ModalHeader toggle={toggleModal}>{judulModal}</ModalHeader>
                 <ModalBody >
                     {isiModal === 'log' ? (
                         <ViewLogs type={typeLog} data={dataIsi} func1={openLembarDispo} />

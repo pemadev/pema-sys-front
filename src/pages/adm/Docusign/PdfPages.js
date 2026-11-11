@@ -43,7 +43,9 @@ const PageCanvas = ({ pdf, pageNumber, width, onPageClick, children }) => {
         width: size.w,
         height: size.h,
         margin: '0 auto 12px',
-        boxShadow: '0 0 6px rgba(0,0,0,.3)',
+        maxWidth: '100%',
+        borderRadius: 4,
+        boxShadow: '0 1px 3px rgba(16,24,40,.18), 0 4px 12px rgba(16,24,40,.08)',
         cursor: onPageClick ? 'crosshair' : 'default',
         background: '#fff',
       }}
@@ -66,7 +68,27 @@ PageCanvas.propTypes = {
 const PdfPages = ({ source, fields, width, onPageClick, renderField, onFieldMove, onFieldResize }) => {
   const [pdf, setPdf] = useState(null);
   const [error, setError] = useState('');
+  const wrapRef = React.useRef(null);
+  const [wrapW, setWrapW] = useState(0);
   const dragRef = React.useRef(null);
+
+  // halaman diperkecil mengikuti lebar kontainer (ponsel, tablet), tidak pernah lebih lebar dari `width`
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    const ukur = () => setWrapW(el.clientWidth);
+    ukur();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', ukur);
+      return () => window.removeEventListener('resize', ukur);
+    }
+    const ro = new ResizeObserver(ukur);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [pdf]);
+  const lebarHalaman = wrapW ? Math.max(200, Math.min(width, wrapW - 24)) : width;
+  const sentuh = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+  const ukuranGagang = sentuh ? 24 : 14;
   const resizeRef = React.useRef(null);
 
   const startDrag = (e, f, idx) => {
@@ -146,9 +168,9 @@ const PdfPages = ({ source, fields, width, onPageClick, renderField, onFieldMove
   if (!pdf) return <div>Memuat dokumen...</div>;
 
   return (
-    <div style={{ overflow: 'auto', background: '#e9ecef', padding: 12 }}>
+    <div ref={wrapRef} style={{ overflow: 'auto', background: '#eef0f3', padding: 12, borderRadius: 10 }}>
       {Array.from({ length: pdf.numPages }, (_, i) => i + 1).map((n) => (
-        <PageCanvas key={n} pdf={pdf} pageNumber={n} width={width} onPageClick={onPageClick}>
+        <PageCanvas key={n} pdf={pdf} pageNumber={n} width={lebarHalaman} onPageClick={onPageClick}>
           {(pageScale) =>
             (fields || []).map((f, idx) =>
               f.page === n ? (
@@ -182,8 +204,8 @@ const PdfPages = ({ source, fields, width, onPageClick, renderField, onFieldMove
                         position: 'absolute',
                         right: 0,
                         bottom: 0,
-                        width: 14,
-                        height: 14,
+                        width: ukuranGagang,
+                        height: ukuranGagang,
                         padding: 0,
                         border: '1px solid #fff',
                         borderRadius: 2,

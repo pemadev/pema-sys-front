@@ -5,6 +5,7 @@ import { cleanWordPaste, PDF_LINE_RATIO, scaleLineHeights } from './wordHtml';
 import './SuratEditor.scss';
 
 const PAGE_CM = 29.7; // A4 height
+const PAGE_PX = (21 / 2.54) * 96; // A4 width (21 cm) in CSS px
 const PHONE_PX = 640; // editor panes this narrow use the fluid (non-A4) layout
 const TAB_STOP_CM = 1.27; // Word's default tab stop (0.5")
 
@@ -413,6 +414,12 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
   const [st, setSt] = useState({});
   const [words, setWords] = useState(0);
   const [zoom, setZoom] = useState(100);
+  // zoom diubah pengguna: berhenti menyesuaikan otomatis dengan lebar panel
+  const zoomManual = useRef(false);
+  const ubahZoom = (z) => {
+    zoomManual.current = true;
+    setZoom(z);
+  };
   const [full, setFull] = useState(false);
   const [grid, setGrid] = useState([0, 0]);
   const [pages, setPages] = useState(1);
@@ -1075,21 +1082,21 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
           icon="zoom-in"
           fallback="+"
           label="Perbesar"
-          onClick={() => setZoom(Math.min(200, zoom + 10))}
+          onClick={() => ubahZoom(Math.min(200, zoom + 10))}
         />
         <Btn
           big
           icon="zoom-out"
           fallback="-"
           label="Perkecil"
-          onClick={() => setZoom(Math.max(50, zoom - 10))}
+          onClick={() => ubahZoom(Math.max(50, zoom - 10))}
         />
         <Btn
           big
           icon="document-properties"
           fallback="1:1"
           label="100%"
-          onClick={() => setZoom(100)}
+          onClick={() => ubahZoom(100)}
         />
       </Group>
     </>
@@ -1197,7 +1204,15 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
               countWords();
               setPages(refreshLayout(editor));
               // the Archivo web font changes line heights once loaded; the pane width decides the phone layout
+              // panel lebih sempit dari selembar A4 (tablet, jendela kecil): perkecil kertas agar muat, tanpa geser samping
+              const sesuaikanZoom = () => {
+                const w = editor.getWin()?.innerWidth || 0;
+                if (zoomManual.current || !w) return;
+                setZoom(w <= PHONE_PX ? 100 : Math.max(50, Math.min(100, Math.floor(((w - 24) / PAGE_PX) * 100))));
+              };
+              sesuaikanZoom();
               const relayout = () => {
+                sesuaikanZoom();
                 if (edRef.current) setPages(refreshLayout(edRef.current));
               };
               const fontsReady = editor.getDoc().fonts && editor.getDoc().fonts.ready;
@@ -1305,7 +1320,7 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
           <div className="we-zoom">
             <button
               type="button"
-              onClick={() => setZoom(Math.max(50, zoom - 10))}
+              onClick={() => ubahZoom(Math.max(50, zoom - 10))}
               aria-label="Perkecil"
             >
               −
@@ -1316,12 +1331,12 @@ const SuratEditor = ({ value, onChange, apiKey, height }) => {
               max="200"
               step="10"
               value={zoom}
-              onChange={(e) => setZoom(+e.target.value)}
+              onChange={(e) => ubahZoom(+e.target.value)}
               aria-label="Zoom"
             />
             <button
               type="button"
-              onClick={() => setZoom(Math.min(200, zoom + 10))}
+              onClick={() => ubahZoom(Math.min(200, zoom + 10))}
               aria-label="Perbesar"
             >
               +

@@ -1,20 +1,17 @@
 import React from 'react';
 import JotformEmbed from 'react-jotform-embed';
+import HalamanPro from '../../components/HalamanPro';
 import './Report.scss';
 
 const AtkReport = () => {
   return (
-    <div
-      className=""
-      style={{ width: '100vw', height: '1000px', position: 'relative', backgroundColor: 'green' }}
-    >
-      <div
-        className=""
-        style={{ position: 'absolute', top: '0', zIndex: '0', width: '100%', height: '100%' }}
-      >
-        <JotformEmbed src="https://www.jotform.com/tables/233041253562043" />
+    <HalamanPro judul="Laporan ATK" keterangan="Rekap permintaan alat tulis kantor">
+      <div className="card">
+        <div className="card-body p-0 bingkai-laporan">
+          <JotformEmbed src="https://www.jotform.com/tables/233041253562043" />
+        </div>
       </div>
-    </div>
+    </HalamanPro>
   );
 };
 

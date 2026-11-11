@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { Modal, ModalBody, FormGroup, Label, Row, Col, Input } from 'reactstrap';
+import { Modal, ModalHeader, ModalBody, FormGroup, Label, Row, Col, Input } from 'reactstrap';
 import { useEffect, useState } from 'react';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -96,9 +96,8 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
 
   return (
     <Modal isOpen={modal3} toggle={toggle3} size="md" className="modal1" centered>
+      <ModalHeader toggle={toggle3}>Pengajuan Biaya Hotel 30%</ModalHeader>
       <ModalBody className="p-4 ">
-        <h4>Pengajuan Biaya Hotel 30%</h4>
-        <hr />
         <p>Pelaku Perjalanan Dinas yang tidak menginap di Hotel/Penginapan atau tidak memiliki bill hotel bisa mengajukan 30% dari rate hotel yang disedikan oleh perusahaan. Silakan pilih tujuan Perjalanan Dinas di bawah ini untuk mengajukan</p>
         <FormGroup>
           <Label>Tujuan SPPD</Label>

@@ -155,13 +155,14 @@ const ListApproved = ({
         pagination
         subHeader
         subHeaderComponent={
-          <div className="d-flex justify-content-between align-items-center w-100">
+          <div className="baris-filter baris-filter-judul">
             <h5 className="mb-0">Pengajuan yang Telah Saya Setujui</h5>
-            <div className="d-flex align-items-center gap-2 w-50 justify-content-end">
+            <div className="baris-filter">
               <Input
                 type="text"
                 value={search}
                 placeholder="search . . . . "
+                className="kolom-cari"
                 onChange={(e) => setSearch(e.target.value)}
               />
               <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} />

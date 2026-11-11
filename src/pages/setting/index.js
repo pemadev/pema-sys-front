@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardBody, Nav, NavItem, NavLink } from 'reactstrap';
+import HalamanPro from '../../components/HalamanPro';
 import RoleUser from './RoleUser';
 import Whatsapp from './Whatsapp';
 import Pengiriman from './Pengiriman';
@@ -15,14 +16,20 @@ const Setting = () => {
   const [tab, setTab] = useState('role');
 
   return (
-    <>
-      <h4 className="mb-3">Setting</h4>
+    <HalamanPro judul="Setting" keterangan="Kelola role pengguna, status WhatsApp dan pengiriman notifikasi">
       <Card>
         <CardBody>
-          <Nav tabs className="mb-3">
+          <Nav tabs className="mb-4">
             {TAB.map(([kode, label]) => (
               <NavItem key={kode}>
-                <NavLink href="#" active={tab === kode} onClick={(e) => { e.preventDefault(); setTab(kode); }}>
+                <NavLink
+                  href="#"
+                  active={tab === kode}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setTab(kode);
+                  }}
+                >
                   {label}
                 </NavLink>
               </NavItem>
@@ -33,7 +40,7 @@ const Setting = () => {
           {tab === 'kirim' && <Pengiriman />}
         </CardBody>
       </Card>
-    </>
+    </HalamanPro>
   );
 };
 

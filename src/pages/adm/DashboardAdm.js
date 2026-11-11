@@ -114,7 +114,7 @@ const DashboardAdm = () => {
             <>
                 <Row>
 
-                    <Col md={3} className="mt-3" >
+                    <Col xs={12} sm={6} lg={3} className="mt-3" >
                         <BandwidthUsage
                             title='Surat Keluar'
                             sub='Tahun 2026'
@@ -124,7 +124,7 @@ const DashboardAdm = () => {
                         />
                     </Col>
 
-                    <Col md={3} className="mt-3" >
+                    <Col xs={12} sm={6} lg={3} className="mt-3" >
                         <BandwidthUsage
                             title='Surat Masuk'
                             sub='Tahun 2026'
@@ -133,7 +133,7 @@ const DashboardAdm = () => {
                             color='bg-success'
                         />
                     </Col>
-                    <Col md={3} className="mt-3" >
+                    <Col xs={12} sm={6} lg={3} className="mt-3" >
                         <BandwidthUsage
                             title='Disposisi'
                             sub='ke saya'
@@ -142,7 +142,7 @@ const DashboardAdm = () => {
                             color='bg-secondary'
                         />
                     </Col>
-                    <Col md={3} className="mt-3" >
+                    <Col xs={12} sm={6} lg={3} className="mt-3" >
                         <BandwidthUsage
                             title='Tanda Tangan'
                             sub='saya'
@@ -157,7 +157,7 @@ const DashboardAdm = () => {
                 </Row>
 
                 <Row className="mt-4">
-                    <Col md={4}>
+                    <Col lg={4}>
                         <h3 className="list-group-title">Surat Keluar Terbaru</h3>
                         <ListGroup>
                             {isLatestSuratLoading ? (
@@ -199,7 +199,7 @@ const DashboardAdm = () => {
                             )}
                         </ListGroup>
                     </Col>
-                    <Col md={8}>
+                    <Col lg={8} className="mt-3 mt-lg-0">
 
                         {isChartLoaing ? (<>
                          <div className="skeleton" style={{ width: '70%', height: 20, background: '#eee', borderRadius: 4, marginTop: 3 }} />

@@ -1,0 +1,546 @@
+/* Tampilan profesional untuk halaman ADM, SPPD, Report dan Setting.
+   Semua aturan dibatasi di bawah .tampilan-pro supaya halaman lain tidak berubah. */
+
+.tampilan-pro {
+  --pro-teks: #101828;
+  --pro-teks-lembut: #475467;
+  --pro-teks-redup: #667085;
+  --pro-garis: #eaecf0;
+  --pro-garis-input: #d0d5dd;
+  --pro-latar-lembut: #f9fafb;
+  --pro-latar-hover: #f2f4f7;
+  --pro-kartu: #ffffff;
+  --pro-aksen: #1e88e5;
+  --pro-aksen-lembut: #e8f2fd;
+  --pro-bayangan: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --pro-bayangan-besar: 0 12px 32px rgba(16, 24, 40, 0.14);
+
+  color: var(--pro-teks);
+  font-feature-settings: 'tnum';
+  -webkit-font-smoothing: antialiased;
+}
+
+.tampilan-pro.gelap {
+  --pro-teks: #f2f4f7;
+  --pro-teks-lembut: #cbd2dc;
+  --pro-teks-redup: #98a2b3;
+  --pro-garis: #2b3340;
+  --pro-garis-input: #3a4454;
+  --pro-latar-lembut: #1d2430;
+  --pro-latar-hover: #232b38;
+  --pro-kartu: #171d27;
+  --pro-aksen: #5aa9f0;
+  --pro-aksen-lembut: #1c2a3d;
+  --pro-bayangan: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --pro-bayangan-besar: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Judul halaman ---------- */
+.tampilan-pro .judul-halaman {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tampilan-pro .judul-halaman h4 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pro-teks);
+}
+.tampilan-pro .judul-halaman p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--pro-teks-redup);
+}
+.tampilan-pro h1,
+.tampilan-pro h2,
+.tampilan-pro h3,
+.tampilan-pro h4,
+.tampilan-pro h5,
+.tampilan-pro h6 {
+  color: var(--pro-teks);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/* ---------- Kartu ---------- */
+.tampilan-pro .card {
+  background: var(--pro-kartu);
+  border: 1px solid var(--pro-garis);
+  border-radius: 12px;
+  box-shadow: var(--pro-bayangan);
+}
+.tampilan-pro .card-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---------- Tab (MUI dan reactstrap) ---------- */
+.tampilan-pro .MuiTabs-root {
+  min-height: 44px;
+  border-bottom: 1px solid var(--pro-garis);
+}
+.tampilan-pro .MuiTabs-indicator {
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background-color: var(--pro-aksen);
+}
+.tampilan-pro .MuiTab-root {
+  min-height: 44px;
+  padding: 8px 16px;
+  text-transform: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pro-teks-lembut);
+  letter-spacing: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.tampilan-pro .MuiTab-root strong {
+  font-weight: 600;
+}
+.tampilan-pro .MuiTab-root:hover {
+  color: var(--pro-aksen);
+  background-color: var(--pro-aksen-lembut);
+}
+.tampilan-pro .MuiTab-root.Mui-selected {
+  color: var(--pro-aksen);
+}
+.tampilan-pro .nav-tabs {
+  border-bottom: 1px solid var(--pro-garis);
+  gap: 4px;
+}
+.tampilan-pro .nav-tabs .nav-link {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pro-teks-lembut);
+  background: transparent;
+}
+.tampilan-pro .nav-tabs .nav-link:hover {
+  color: var(--pro-aksen);
+  background: var(--pro-aksen-lembut);
+}
+.tampilan-pro .nav-tabs .nav-link.active {
+  color: var(--pro-aksen);
+  border-bottom-color: var(--pro-aksen);
+  background: transparent;
+}
+
+/* ---------- Tabel ---------- */
+.tampilan-pro .table {
+  --bs-table-bg: transparent;
+  color: var(--pro-teks);
+  font-size: 0.85rem;
+}
+.tampilan-pro .table > thead > tr > th {
+  background: var(--pro-latar-lembut);
+  border-bottom: 1px solid var(--pro-garis);
+  color: var(--pro-teks-redup);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+.tampilan-pro .table > tbody > tr > td {
+  border-color: var(--pro-garis);
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+.tampilan-pro .table-hover > tbody > tr:hover > * {
+  background: var(--pro-latar-hover);
+  color: var(--pro-teks);
+}
+
+/* react-data-table-component */
+.tampilan-pro .rdt_Table {
+  background: transparent !important;
+  border: 1px solid var(--pro-garis);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tampilan-pro .rdt_TableHead {
+  background: transparent !important;
+}
+.tampilan-pro .rdt_TableHeadRow {
+  background: var(--pro-latar-lembut) !important;
+  border-bottom: 1px solid var(--pro-garis) !important;
+  min-height: 44px !important;
+}
+.tampilan-pro .rdt_TableCol {
+  color: var(--pro-teks-redup) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tampilan-pro .rdt_TableCol div,
+.tampilan-pro .rdt_TableCol_Sortable {
+  font-size: inherit;
+}
+.tampilan-pro .rdt_TableRow {
+  background: transparent !important;
+  color: var(--pro-teks) !important;
+  border-bottom: 1px solid var(--pro-garis) !important;
+  font-size: 0.85rem !important;
+  transition: background-color 0.12s ease;
+}
+.tampilan-pro .rdt_TableRow:hover {
+  background: var(--pro-latar-hover) !important;
+}
+.tampilan-pro .rdt_TableCell {
+  color: var(--pro-teks);
+}
+.tampilan-pro .rdt_Pagination {
+  background: transparent !important;
+  color: var(--pro-teks-lembut) !important;
+  border-top: 1px solid var(--pro-garis) !important;
+  font-size: 0.8rem !important;
+}
+.tampilan-pro .rdt_Pagination button {
+  color: var(--pro-teks-lembut) !important;
+  fill: var(--pro-teks-lembut) !important;
+}
+.tampilan-pro .rdt_Pagination button:disabled {
+  opacity: 0.35;
+}
+
+/* ---------- Tombol ---------- */
+.tampilan-pro .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0;
+  box-shadow: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.tampilan-pro .btn:focus-visible {
+  outline: 2px solid var(--pro-aksen);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.tampilan-pro .btn-sm {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+}
+.tampilan-pro .btn-primary {
+  background: var(--pro-aksen);
+  border-color: var(--pro-aksen);
+}
+.tampilan-pro .btn-primary:hover {
+  filter: brightness(0.93);
+}
+.tampilan-pro .btn-outline-primary:hover {
+  background: var(--pro-aksen);
+  border-color: var(--pro-aksen);
+  color: #fff;
+}
+.tampilan-pro .btn-secondary {
+  background: var(--pro-latar-hover);
+  border-color: var(--pro-garis-input);
+  color: var(--pro-teks-lembut);
+}
+.tampilan-pro .btn-secondary:hover {
+  background: var(--pro-garis);
+  border-color: var(--pro-garis-input);
+  color: var(--pro-teks);
+}
+
+/* ---------- Isian ---------- */
+.tampilan-pro .form-control,
+.tampilan-pro .form-select {
+  border: 1px solid var(--pro-garis-input);
+  border-radius: 8px;
+  background-color: var(--pro-kartu);
+  color: var(--pro-teks);
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.tampilan-pro .form-control::placeholder {
+  color: var(--pro-teks-redup);
+}
+.tampilan-pro .form-control:focus,
+.tampilan-pro .form-select:focus {
+  border-color: var(--pro-aksen);
+  box-shadow: 0 0 0 3px var(--pro-aksen-lembut);
+}
+.tampilan-pro .form-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pro-teks-lembut);
+}
+
+/* ---------- Lencana ---------- */
+.tampilan-pro .badge {
+  border-radius: 999px;
+  padding: 0.3em 0.7em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Peringatan ---------- */
+.tampilan-pro .alert {
+  border-radius: 10px;
+  border-width: 1px;
+  font-size: 0.875rem;
+}
+
+/* ---------- Modal ---------- */
+.modal-content.tampilan-pro-modal,
+.tampilan-pro-modal .modal-content {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--pro-bayangan-besar);
+}
+
+/* ---------- Layar kecil ---------- */
+@media (max-width: 576px) {
+  .tampilan-pro .judul-halaman h4 {
+    font-size: 1.15rem;
+  }
+  .tampilan-pro .MuiTab-root {
+    padding: 8px 12px;
+  }
+}
+
+/* ---------- Responsif ---------- */
+.tampilan-pro,
+.tampilan-pro .card,
+.tampilan-pro .card-body {
+  min-width: 0;
+}
+
+/* baris pencarian + filter tahun + tombol Excel di atas tabel */
+.tampilan-pro .baris-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+.tampilan-pro .baris-filter-judul {
+  justify-content: space-between;
+}
+.tampilan-pro .baris-filter-judul > .baris-filter {
+  width: auto;
+  flex: 1 1 320px;
+}
+.tampilan-pro .kolom-cari {
+  flex: 1 1 200px;
+  max-width: 300px;
+  min-width: 0;
+}
+.tampilan-pro .btn-group {
+  flex-wrap: wrap;
+}
+
+/* tabel boleh digeser ke samping, tidak memecah halaman */
+.tampilan-pro .table-responsive,
+.tampilan-pro .rdt_Table,
+.tampilan-pro .rdt_TableWrapper {
+  max-width: 100%;
+}
+.tampilan-pro .rdt_TableWrapper,
+.tampilan-pro > div > .card {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Report: bingkai Jotform mengikuti tinggi layar */
+.tampilan-pro .bingkai-laporan {
+  min-height: 70vh;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.tampilan-pro .bingkai-laporan iframe {
+  max-width: 100%;
+}
+
+/* sentuhan jari: target tombol cukup besar di layar sentuh */
+@media (pointer: coarse) {
+  .tampilan-pro .btn-sm {
+    min-height: 36px;
+  }
+  .tampilan-pro .form-control,
+  .tampilan-pro .form-select {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .tampilan-pro .judul-halaman {
+    margin-bottom: 14px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .tampilan-pro .card-body {
+    padding: 0.85rem;
+  }
+  .tampilan-pro .baris-filter {
+    justify-content: stretch;
+  }
+  .tampilan-pro .kolom-cari {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .tampilan-pro .baris-filter-judul > .baris-filter {
+    flex-basis: 100%;
+  }
+  .tampilan-pro .table > thead > tr > th,
+  .tampilan-pro .table > tbody > tr > td {
+    padding: 8px 10px;
+  }
+  .tampilan-pro .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .tampilan-pro .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tampilan-pro .alert {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tampilan-pro .judul-halaman h4 {
+    font-size: 1.1rem;
+  }
+  .tampilan-pro .judul-halaman p {
+    font-size: 0.78rem;
+  }
+}
+
+/* jendela modal (dirender di luar halaman): hampir selebar layar di perangkat kecil */
+@media (max-width: 767.98px) {
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  .modal-dialog .modal-body {
+    padding: 0.85rem;
+    overflow-x: auto;
+  }
+  .modal-dialog .modal-footer {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+/* kolom kosong sebagai pengisi jarak (mis. pada tampilan approval) disembunyikan saat kolom sudah bertumpuk */
+@media (max-width: 991.98px) {
+  .modal-body .row > [class*='col-lg-']:empty,
+  .tampilan-pro .row > [class*='col-lg-']:empty {
+    display: none;
+  }
+}
+
+/* form panjang (Tulis Surat, Pengajuan SPPD): kurangi bantalan samping di ponsel */
+@media (max-width: 575.98px) {
+  .tampilan-pro .pe-4.ps-4 {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  .tampilan-pro .mt-5 {
+    margin-top: 1.5rem !important;
+  }
+}
+
+/* tabel yang berubah menjadi kartu per baris di ponsel (beri className="tabel-kartu" dan data-label pada td) */
+@media (max-width: 767.98px) {
+  .tampilan-pro .tabel-kartu,
+  .tampilan-pro .tabel-kartu tbody,
+  .tampilan-pro .tabel-kartu tr,
+  .tampilan-pro .tabel-kartu td {
+    display: block;
+    width: 100%;
+  }
+  .tampilan-pro .tabel-kartu thead {
+    display: none;
+  }
+  .tampilan-pro .tabel-kartu tr {
+    margin-bottom: 12px;
+    padding: 4px 12px;
+    background: var(--pro-kartu);
+    border: 1px solid var(--pro-garis);
+    border-radius: 12px;
+    box-shadow: var(--pro-bayangan);
+  }
+  .tampilan-pro .tabel-kartu td {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border: 0;
+    border-bottom: 1px dashed var(--pro-garis);
+  }
+  .tampilan-pro .tabel-kartu td:last-child {
+    border-bottom: 0;
+  }
+  .tampilan-pro .tabel-kartu td::before {
+    content: attr(data-label);
+    flex: 0 0 110px;
+    color: var(--pro-teks-redup);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .tampilan-pro .tabel-kartu td > * {
+    min-width: 0;
+  }
+  .tampilan-pro .tabel-kartu td:not([data-label])::before {
+    display: none;
+  }
+  .tampilan-pro .tabel-kartu .kolom-aksi {
+    justify-content: flex-start;
+  }
+}
+
+/* tombol tutup pada peringatan: tepat di tengah secara vertikal */
+.tampilan-pro .alert-dismissible {
+  padding-right: 2.75rem;
+}
+.tampilan-pro .alert-dismissible .btn-close {
+  top: 50%;
+  right: 0.5rem;
+  padding: 0.5rem;
+  transform: translateY(-50%);
+}
+
+/* judul jendela modal di header, bukan di isi */
+.modal-dialog .modal-header {
+  align-items: center;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid #eaecf0;
+}
+.modal-dialog .modal-header .modal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+.modal-dialog .modal-header .btn-close {
+  margin: 0;
+  padding: 0.5rem;
+}
+.modal-dialog .modal-footer {
+  border-top: 1px solid #eaecf0;
+}
+@media (max-width: 575.98px) {
+  .modal-dialog .modal-header {
+    padding: 0.75rem 1rem;
+  }
+}

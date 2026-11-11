@@ -105,7 +105,7 @@ const ModalRealisasi = ({ modalRe, toggleRe, sppdDetail }) => {
   return (
     <>
       <Modal isOpen={modalRe} toggle={toggleRe} size="lg" className="modal1" centered>
-        <ModalHeader>FORM REALISASI SPPD</ModalHeader>
+        <ModalHeader toggle={toggleRe}>Form Realisasi SPPD</ModalHeader>
         {detailSppd ? (
           <ModalBody className="p-3 ">
             <ol>

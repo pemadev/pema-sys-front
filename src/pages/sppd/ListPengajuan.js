@@ -372,12 +372,12 @@ const ListPengajuan = ({
         pagination
         subHeader
         subHeaderComponent={
-          <div className="d-flex justify-content-end align-items-center gap-2 w-100">
+          <div className="baris-filter">
             <Input
               type="text"
               value={search}
               placeholder="search . . . . "
-              className="w-25"
+              className="kolom-cari"
               onChange={(e) => setSearch(e.target.value)}
             />
             <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} />

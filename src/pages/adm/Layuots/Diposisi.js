@@ -115,7 +115,6 @@ const Disposisi = ({ data, refresh, closeModal }) => {
 
     return (
         <>
-            <h5 style={{ marginBottom: '-2px' }}>Disposisi Surat {data?.nomor}</h5>
             <span className="small fst-italic">Perihal {data?.perihal}</span>
             <hr />
 

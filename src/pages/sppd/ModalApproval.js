@@ -28,7 +28,7 @@ const ModalApproval = ({ modalA, toggleApproval, sppdDetail }) => {
   return (
     <Modal isOpen={modalA} toggle={toggleApproval} size="xl">
       <ModalHeader toggle={toggleApproval}>Status Pengajuan</ModalHeader>
-      <ModalBody className="p-5">
+      <ModalBody className="p-3 p-md-5">
         {detailSppd?.map((s) => (
           <div key={s.step}>
             {s.step % 2 !== 0 ? (

@@ -13,8 +13,6 @@ const Approval = ({ data }) => {
 
     return (
         <>
-            <h5>List Approval Dokumen</h5>
-            <hr style={{ marginTop: -2 }} />
             {data?.length > 0 ?
                 (<div className=" p-5">
                     {data?.map((s) => (

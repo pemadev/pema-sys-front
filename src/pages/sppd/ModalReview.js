@@ -71,7 +71,7 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
         <ModalHeader toggle={toggleR}>
           Lembar Persetujuan <small className="fst-italic">({detailSppd?.current_type})</small>
         </ModalHeader>
-        <ModalBody className="p-5">
+        <ModalBody className="p-3 p-md-5">
           {detailSppd ? (
             <>
               {detailSppd?.current_type === 'check_document' ? (

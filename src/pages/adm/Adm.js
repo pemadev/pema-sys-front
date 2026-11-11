@@ -350,7 +350,7 @@ const Adm = () => {
                     benar-benar terpakai.
                   </Alert>
                 )}
-                <Tabs value={subTab} onChange={(e, v) => setSubTab(v)} className="mb-3">
+                <Tabs value={subTab} onChange={(e, v) => setSubTab(v)} className="mb-3" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
                   <Tab value="belum" label={`Belum di-approve (${listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length})`} />
                   <Tab value="sudah" label={`Sudah di-approve (${listSurat.filter((s) => s.status === 'signed' && !s.void && !s.ttd_basah).length})`} />
                   <Tab value="basah" label={`TTD Manual (${listSurat.filter((s) => s.ttd_basah && !s.void).length + backdateReq.filter((r) => r.ttd_basah).length})`} />

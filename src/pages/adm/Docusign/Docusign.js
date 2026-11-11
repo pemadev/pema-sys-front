@@ -112,7 +112,7 @@ const Docusign = () => {
       {!docs.length ? (
         <p className="text-center text-muted my-4">Belum ada dokumen</p>
       ) : (
-      <Table responsive hover>
+      <Table responsive hover className="tabel-kartu">
         <thead>
           <tr>
             <th>Judul</th>
@@ -125,8 +125,8 @@ const Docusign = () => {
         <tbody>
           {docs.map((d) => (
             <tr key={d.id}>
-              <td>{d.title}</td>
-              <td>
+              <td data-label="Judul">{d.title}</td>
+              <td data-label="Penanda tangan">
                 {d.signers.map((s) => (
                   <div key={s.id}>
                     {s.status === 'signed' ? '✅' : '⏳'} {d.sign_mode === 'sequential' && <b>{s.sign_order}. </b>}
@@ -159,11 +159,11 @@ const Docusign = () => {
                   </div>
                 ))}
               </td>
-              <td>
+              <td data-label="Status">
                 <Badge color={STATUS[d.status].color}>{STATUS[d.status].label}</Badge>
               </td>
-              <td>{dayjs(d.created_at).format('DD-MM-YYYY HH:mm')}</td>
-              <td className="text-nowrap">
+              <td data-label="Dibuat">{dayjs(d.created_at).format('DD-MM-YYYY HH:mm')}</td>
+              <td className="text-nowrap kolom-aksi">
                 <Button size="sm" outline onClick={() => download(d, 'signed')}>
                   Lihat
                 </Button>{' '}

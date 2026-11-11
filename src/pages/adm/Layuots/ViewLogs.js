@@ -14,8 +14,6 @@ const ViewLogs = ({type, data , func1}) => {
 
     return (
         <>
-            <h5>Log Dokumen</h5>
-            <hr style={{ marginTop: -2 }} />
             {data?.length>0 ?
                 (<>
                     <div className="px-4">

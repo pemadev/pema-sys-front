@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Card, Col, Modal, ModalBody, Row, Alert } from 'reactstrap';
+import { Card, Col, Modal, ModalBody, ModalHeader, Row, Alert } from 'reactstrap';
 import MaterialIcon from '@material/react-material-icon';
 import pdfMake from 'pdfmake/build/pdfmake';
 import htmlToPdfmake from 'html-to-pdfmake';
@@ -1151,6 +1151,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
   return (
     <Modal isOpen={modalDoc} toggle={toggleDoc} size="xl" className="modal1" centered>
+      <ModalHeader toggle={toggleDoc}>Cetak Dokumen SPPD</ModalHeader>
       <ModalBody className="p-3 ">
         {loading ? (
           <Alert color="success">Silakan Tunggu, Dokumen sedang diproses . . . . </Alert>
@@ -1180,7 +1181,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
             fgColor="#0F52BA"
           />
         </div>
-        <Row className="mt-5 d-flex justify-content-center">
+        <Row className="mt-2 d-flex justify-content-center">
           {/* <Col md={3}>
             <Card className="  mx-sm-1 p-3 col-card border border-info" onClick={detailSppd ? printPengajuan : null}>
               <Card className=" bg-info my-card border shadow text-light p-3">
@@ -1191,7 +1192,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
               </div>
             </Card>
           </Col> */}
-          <Col md={3} className="mt-3">
+          <Col sm={6} md={3} className="mt-3">
             <Card
               className="  mx-sm-1 p-3 col-card border border-danger"
               onClick={detailSppd ? printST : null}
@@ -1204,7 +1205,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
               </div>
             </Card>
           </Col>
-          <Col md={3} className="mt-3">
+          <Col sm={6} md={3} className="mt-3">
             <Card
               className="  mx-sm-1 p-3 col-card border border-success"
               onClick={detailSppd ? printSPPD : null}
@@ -1217,7 +1218,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
               </div>
             </Card>
           </Col>
-          <Col md={3} className="mt-3">
+          <Col sm={6} md={3} className="mt-3">
             <Card
               className="  mx-sm-1 p-3 col-card border border-dark"
               onClick={detailSppd ? printBiaya : null}
@@ -1233,7 +1234,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
           {detailSppd?.realisasi ? (
             <>
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <Card
                   className="  mx-sm-1 p-3 col-card border border-dark"
                   onClick={detailSppd ? printRealisasi : null}
@@ -1247,7 +1248,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
                 </Card>
               </Col>
 
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <Card
                   className="  mx-sm-1 p-3 col-card border border-dark"
                   onClick={detailSppd ? printChecklist : null}
@@ -1261,7 +1262,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
                 </Card>
               </Col>
 
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <a
                   href={`${baseURL1}sppd/${detailSppd?.realisasi?.doc_file}`}
                   target="_blank"
@@ -1282,7 +1283,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
           {detailSppd?.proses?.filter((p) => p.as === 'umum')[0]?.file ? (
             <>
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <a
                   href={`${baseURL1}sppd/${detailSppd?.proses?.filter((p) => p.as === 'umum')[0]?.file
                     }`}
@@ -1306,7 +1307,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
           {detailSppd?.proses?.filter((p) => p.as === 'uangmuka')[0]?.file ? (
             <>
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <a
                   href={`${baseURL1}sppd/${detailSppd?.proses?.filter((p) => p.as === 'uangmuka')[0]?.file
                     }`}
@@ -1331,7 +1332,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
           {detailSppd?.proses?.filter((p) => p.as === 'keuangan')[0]?.file ? (
             <>
-              <Col md={3} className="mt-3">
+              <Col sm={6} md={3} className="mt-3">
                 <a
                   href={`${baseURL1}sppd/${detailSppd?.proses?.filter((p) => p.as === 'keuangan')[0]?.file
                     }`}
@@ -1356,7 +1357,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
           {detailSppd?.ekstend?.length > 0 ? (
             <>
               {detailSppd?.ekstend?.map((i) => (
-                <Col md={3} className="mt-3" onClick={detailSppd ? () => printekstend(i.id_tujuan) : null}>
+                <Col sm={6} md={3} className="mt-3" onClick={detailSppd ? () => printekstend(i.id_tujuan) : null}>
 
                   <Card
                     className="  mx-sm-1 p-3 col-card border border-success"
@@ -1376,7 +1377,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
 
           {detailSppd?.tigap === true ? (
             detailSppd?.tujuan_sppd?.map((i) => (
-              <Col md={3} key={i.id} className="mt-3">
+              <Col sm={6} md={3} key={i.id} className="mt-3">
                 <Card className="mx-sm-1 p-3 col-card border border-secondary" on onClick={() => printHotelTigap(i.id)}>
                   <Card className="bg-secondary my-card border shadow text-light p-3">
                     <MaterialIcon icon="room" />

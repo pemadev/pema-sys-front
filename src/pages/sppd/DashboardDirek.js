@@ -95,7 +95,7 @@ const DashboardDirek = () => {
       {status ? (
         <>
           <Row>
-            <Col md={3} className="mt-3">
+            <Col xs={12} sm={6} lg={3} className="mt-3">
               <BandwidthUsage
                 title="Perjalanan Dinas"
                 sub="aktif"
@@ -104,7 +104,7 @@ const DashboardDirek = () => {
                 color="bg-info"
               />
             </Col>
-            <Col md={3} className="mt-3">
+            <Col xs={12} sm={6} lg={3} className="mt-3">
               <BandwidthUsage
                 title="Pengajuan"
                 sub="Perjalanan Dinas"
@@ -113,7 +113,7 @@ const DashboardDirek = () => {
                 color="bg-dark"
               />
             </Col>
-            <Col md={3} className="mt-3">
+            <Col xs={12} sm={6} lg={3} className="mt-3">
               <BandwidthUsage
                 title="Perjalanan Dinas"
                 sub="selesai"
@@ -122,7 +122,7 @@ const DashboardDirek = () => {
                 color="bg-danger"
               />
             </Col>
-            <Col md={3} className="mt-3">
+            <Col xs={12} sm={6} lg={3} className="mt-3">
               <BandwidthUsage
                 title="Aktual Biaya"
                 sub={
@@ -140,7 +140,7 @@ const DashboardDirek = () => {
           </Row>
 
           <Row>
-            <Col md={7} className="mt-3">
+            <Col lg={7} className="mt-3">
               <h4 className="mb-3">
                 Aktual Penggunaan Biaya SPPD sesuai RKAP {dataDash?.data?.tahun_rkap}
               </h4>
@@ -152,7 +152,7 @@ const DashboardDirek = () => {
                 !dataDash.isLoading && 'Belum ada data RKAP'
               )}
             </Col>
-            <Col md={5} className="mt-3">
+            <Col lg={5} className="mt-3">
               <div>
                 <Table
                   className="dash-table text-nowrap mt-n3 mb-0 align-middle custom-table"

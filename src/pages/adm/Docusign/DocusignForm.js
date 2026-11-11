@@ -97,7 +97,7 @@ const DocusignForm = ({ onDone, onCancel }) => {
 
   return (
     <Row>
-      <Col md={4}>
+      <Col lg={4} className="mb-4">
         {error && <Alert color="danger">{error}</Alert>}
         <FormGroup>
           <Label>Dokumen (PDF)</Label>
@@ -176,7 +176,7 @@ const DocusignForm = ({ onDone, onCancel }) => {
           Batal
         </Button>
       </Col>
-      <Col md={8}>
+      <Col lg={8}>
         {buffer ? (
           <>
             <Alert color="info" className="py-1">
