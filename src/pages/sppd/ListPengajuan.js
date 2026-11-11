@@ -7,6 +7,7 @@ import { alert } from '../../components/atoms/Toast';
 import PilihTahun from '../../components/atoms/PilihTahun';
 import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan, tanggalValid } from '../../utils/tahun';
+import { lebarKolomTombol } from '../../utils/lebarTombol';
 import './style.scss';
 
 const ListPengajuan = ({
@@ -45,6 +46,8 @@ const ListPengajuan = ({
       .catch((err) => alert('error', err?.response?.data?.message || err.message))
       .finally(() => setProsesVoid(false));
   };
+  // realisasi sudah diverifikasi: tombol Realisasi tidak ditampilkan lagi
+  const bisaRealisasi = (row) => value === '1' && !row.void && row.realisasi_status !== 'verified';
   // tidak bisa di-void lagi setelah verifikasi realisasi selesai atau bila sudah void
   const bisaVoid = (row) => value === '1' && !row.void && row.realisasi_status !== 'verified';
 
@@ -103,10 +106,24 @@ const ListPengajuan = ({
       updateForm(row);
     }
   };
+  // label tombol aksi per baris (harus sama dengan yang dirender di kolom Actions) untuk mengukur lebar kolom
+  const labelsAksi = (row) => {
+    const l = [];
+    if (value === '1' && !row.void) l.push(row.current_status !== 'signed' ? 'Update' : 'Ekstend');
+    if (row.current_status === 'signed' && value === '1' && !row.void) l.push('Hotel 30%');
+    l.push('Detail', 'Approval', 'Logs');
+    if (value === '3') l.push('Review');
+    l.push('Docs');
+    if (value === '4') l.push('Process');
+    if (bisaVoid(row)) l.push('Void');
+    if (bisaRealisasi(row)) l.push('Realisasi');
+
+    return l;
+  };
   const columns = [
     {
       name: 'Actions',
-      width: `${value === '1' ? '565px' : '380px'}`,
+      width: lebarKolomTombol(submitted, labelsAksi),
       selector: (row) => (
         <>
           {value === '1' && !row.void ? (
@@ -221,7 +238,7 @@ const ListPengajuan = ({
             ''
           )}
 
-          {value === '1' && !row.void ? (
+          {bisaRealisasi(row) ? (
             <Button
               className="me-2"
               size="sm"

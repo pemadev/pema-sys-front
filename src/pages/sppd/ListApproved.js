@@ -6,6 +6,7 @@ import { alert } from '../../components/atoms/Toast';
 import PilihTahun from '../../components/atoms/PilihTahun';
 import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan } from '../../utils/tahun';
+import { lebarKolomTombol } from '../../utils/lebarTombol';
 import './style.scss';
 
 const ListApproved = ({
@@ -40,10 +41,14 @@ const ListApproved = ({
     console.log(search);
   }, [search, tahun]);
 
+  // label tombol aksi (harus sama dengan yang dirender di kolom Actions) untuk mengukur lebar kolom
+  // realisasi sudah diverifikasi: tombol Realisasi tidak ditampilkan lagi
+  const bisaRealisasi = (row) => value === '1' && row.realisasi_status !== 'verified';
+  const labelsAksi = (row) => ['Detail', 'Approval', 'Logs', 'Docs', ...(bisaRealisasi(row) ? ['Realisasi'] : [])];
   const columns = [
     {
       name: 'Actions',
-      width: `${value === '1' ? '455px' : '370px'}`,
+      width: lebarKolomTombol(approved, labelsAksi),
       selector: (row) => (
         <>
           <Button
@@ -89,7 +94,7 @@ const ListApproved = ({
           />
 
           
-          {value === '1' ? (
+          {bisaRealisasi(row) ? (
             <Button
               className="me-2"
               size="sm"

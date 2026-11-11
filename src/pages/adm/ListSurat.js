@@ -22,28 +22,11 @@ import TombolExcel from "../../components/atoms/TombolExcel";
 import { SEMUA_TAHUN, daftarTahun, formatTanggal, saringTahun, tahunBaris, tahunBerjalan } from "../../utils/tahun";
 import Disposisi from "./Layuots/Diposisi";
 import GenerateDispo from "./Fungsi/GenerateDispo";
+import { lebarKolomTombol, terlebar } from "../../utils/lebarTombol";
 // import { width } from "@mui/system";
 // import { set } from "react-hook-form";
 
 
-
-// Lebar kolom tombol mengikuti baris dengan tombol terbanyak pada tab atau sub-tab yang sedang tampil. Teks tombol diukur dengan canvas;
-// tiap tombol kecil Bootstrap menambah padding 2x8px + border 2px + margin kanan 8px, sel tabel menambah padding 2x16px.
-let konteksUkur;
-const ukurTeks = (teks) => {
-    if (!konteksUkur) konteksUkur = document.createElement('canvas').getContext('2d');
-    // font tombol kecil Bootstrap: 0,875rem dengan font-family turunan dari body (sama dengan yang dirender)
-    const akar = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
-    konteksUkur.font = `${akar * 0.875}px ${window.getComputedStyle(document.body).fontFamily}`;
-    return Math.ceil(konteksUkur.measureText(teks).width);
-};
-// untuk tombol yang labelnya berganti (mis. "Lihat Surat" menjadi "Loading . . ."), pakai label yang terlebar agar lebar kolom tidak bergeser
-const terlebar = (...labels) => labels.reduce((a, b) => (ukurTeks(b) > ukurTeks(a) ? b : a));
-const lebarKolomTombol = (rows, labelsOf, ekstra = 0) => {
-    const maks = Math.max(0, ...(rows || []).map((r) => labelsOf(r).reduce((s, l) => s + ukurTeks(l) + 26, 0)));
-
-    return `${Math.max(maks + ekstra + 32 + 6, 110)}px`;
-};
 
 const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
     const qrCodeRef = useRef();
