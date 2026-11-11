@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import DataTable from 'react-data-table-component';
 import { Badge, Button, Input } from 'reactstrap';
 import { alert } from '../../components/atoms/Toast';
+import PilihTahun from '../../components/atoms/PilihTahun';
+import TombolExcel from '../../components/atoms/TombolExcel';
+import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan } from '../../utils/tahun';
 import './style.scss';
 
 const ListApproved = ({
@@ -17,21 +20,25 @@ const ListApproved = ({
   const [search, setSearch] = React.useState('');
   const [listP, setListP] = React.useState([]);
   const [hCol, setHCol] = React.useState(false);
+  // filter tahun (kanan atas): tahun berjalan, tahun lain, atau semua
+  const [tahun, setTahun] = React.useState(tahunBerjalan());
+  const kolomTanggal = ['approved_at', 'created_at'];
+  const opsiTahun = daftarTahun();
 
   useEffect(() => {
-    setListP(approved);
+    setListP(saringTahun(approved, tahun, kolomTanggal));
     if (value === '3') {
       setHCol(true);
     }
-  }, [approved, value]);
+  }, [approved, value, tahun]);
 
   useEffect(() => {
-    const result = approved?.filter((p) =>
+    const result = saringTahun(approved, tahun, kolomTanggal)?.filter((p) =>
       p.nama.toLocaleLowerCase().match(search.toLocaleLowerCase()),
     );
     setListP(result);
     console.log(search);
-  }, [search]);
+  }, [search, tahun]);
 
   const columns = [
     {
@@ -121,9 +128,7 @@ const ListApproved = ({
     {
       name: 'Disetujui pada',
       selector: (row) =>
-        `${new Date(row.created_at).toLocaleDateString('en-us', 'numeric')} ${new Date(
-          row.approved_at,
-        ).toLocaleTimeString()} `,
+        formatTanggal(row.approved_at || row.created_at, 'M/D/YYYY h:mm:ss A'),
     },
     {
       name: 'Jenis Persetujuan',
@@ -145,15 +150,18 @@ const ListApproved = ({
         pagination
         subHeader
         subHeaderComponent={
-          <div className="d-flex justify-content-between w-100">
+          <div className="d-flex justify-content-between align-items-center w-100">
             <h5 className="mb-0">Pengajuan yang Telah Saya Setujui</h5>
-            <Input
-              type="text"
-              value={search}
-              placeholder="search . . . . "
-              className="w-25"
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="d-flex align-items-center gap-2 w-50 justify-content-end">
+              <Input
+                type="text"
+                value={search}
+                placeholder="search . . . . "
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} />
+            <TombolExcel kolom={columns} data={listP} namaFile={`SPPD Disetujui ${tahun === 'semua' ? 'Semua Tahun' : tahun}`} />
+            </div>
           </div>
         }
       />

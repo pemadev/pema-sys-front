@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import DataTable from "react-data-table-component";
 import { QRCode } from 'react-qrcode-logo';
 import { Input, Badge, Button, Modal, ModalBody, ModalHeader } from 'reactstrap';
-import dayjs from "dayjs";
 import 'dayjs/locale/id';
 import { useLocation } from "react-router-dom";
 import { confirmAlert } from "react-confirm-alert";
@@ -18,6 +17,9 @@ import ViewLogs from "./Layuots/ViewLogs";
 import Approval from "./Layuots/Approval";
 import Review from "./Layuots/Review";
 import useAuth from "../../hooks/useAuth";
+import PilihTahun from "../../components/atoms/PilihTahun";
+import TombolExcel from "../../components/atoms/TombolExcel";
+import { SEMUA_TAHUN, daftarTahun, formatTanggal, saringTahun, tahunBaris, tahunBerjalan } from "../../utils/tahun";
 import Disposisi from "./Layuots/Diposisi";
 import GenerateDispo from "./Fungsi/GenerateDispo";
 // import { width } from "@mui/system";
@@ -67,27 +69,35 @@ const ListSurat = ({ listSurat, valueNow, refresh, type, update, status }) => {
 
     const toggleModal = () => setModal(!modal);
 
+    // filter tahun (kanan atas): tampil tahun berjalan; bisa pilih tahun lain atau semua.
+    // Berlaku untuk surat masuk administrator, approval (review dan yang sudah disetujui), dan surat keluar.
+    const pakaiTahun = (type === 'masuk' && auth.auth.user.roles.includes('SuperAdminAdm')) || type === 'review' || type === 'approved' || (!type && valueNow === '3');
+    const kolomTanggal = ['tgl_surat', 'created_at', 'approved_at'];
+    const [tahun, setTahun] = useState(tahunBerjalan());
+    const saring = (daftar) => (pakaiTahun ? saringTahun(daftar, tahun, kolomTanggal) : daftar);
+    const opsiTahun = pakaiTahun ? daftarTahun() : [];
+
     useEffect(() => {
         setSearch('');
-        setListP(listSurat);
+        setListP(saring(listSurat));
         console.log(listSurat);
     }, [listSurat]);
 
     useEffect(() => {
 
         if (type === 'masuk') {
-            const resultsm = listSurat?.filter((p) =>
+            const resultsm = saring(listSurat)?.filter((p) =>
                 p?.pengirim?.toLocaleLowerCase().match(search?.toLocaleLowerCase()) || p?.nomor?.toLocaleLowerCase().match(search?.toLocaleLowerCase()) || p?.perihal?.toLocaleLowerCase().match(search?.toLocaleLowerCase()),
             );
             setListP(resultsm);
         } else {
-            const result = listSurat?.filter((p) =>
+            const result = saring(listSurat)?.filter((p) =>
                 p?.kepada?.toLocaleLowerCase().match(search?.toLocaleLowerCase()) || p?.nomor_surat?.toLocaleLowerCase().match(search?.toLocaleLowerCase()),
             );
             setListP(result);
         }
 
-    }, [search]);
+    }, [search, tahun]);
 
     // surat tanda tangan basah: unggah dan buka berkas surat yang sudah ditandatangani (PDF, JPG, atau PNG, maksimal 10 MB)
     const ttdFileRef = useRef();
@@ -336,6 +346,7 @@ Alasan (boleh kosong):`);
         const row = listSurat.find((p) => String(p.id_surat ?? p.id) === masukDariLink);
         if (!row) return;
         sudahDisaring.current = true;
+        if (pakaiTahun) setTahun(tahunBaris(row, kolomTanggal) || SEMUA_TAHUN);
         const kunci = row.nomor || row.perihal || row.pengirim || '';
         setSearch(String(kunci).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -525,7 +536,7 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'Pada',
-            selector: (row) => dayjs(row?.ditinjut).locale('id').format("dddd, DD/MM/YY HH:mm"),
+            selector: (row) => formatTanggal(row?.ditinjut, "dddd, DD/MM/YY HH:mm", 'id'),
             omit: status !== 'done'
         },
         {
@@ -542,7 +553,7 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'Tanggal Surat',
-            selector: (row) => dayjs(row?.tgl_surat).format("YYYY-MM-DD"),
+            selector: (row) => formatTanggal(row?.tgl_surat, "YYYY-MM-DD"),
         },
         {
             name: 'Diterima Via',
@@ -550,12 +561,12 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'Tanggal Terima',
-            selector: (row) => dayjs(row?.diterima).format("YYYY-MM-DD HH:mm:ss"),
+            selector: (row) => formatTanggal(row?.diterima, "YYYY-MM-DD HH:mm:ss"),
             omit: auth.auth.user.roles.includes('SuperAdminAdm')
         },
         {
             name: 'Masuk Sistem',
-            selector: (row) => dayjs(row?.created_at).locale('id').format("dddd, DD/MM/YY HH:mm"),
+            selector: (row) => formatTanggal(row?.created_at, "dddd, DD/MM/YY HH:mm", 'id'),
             omit: !auth.auth.user.roles.includes('SuperAdminAdm')
         },
         {
@@ -617,7 +628,7 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'Tanggal Surat',
-            selector: (row) => dayjs(row?.tgl_surat).format("YYYY-MM-DD"),
+            selector: (row) => formatTanggal(row?.tgl_surat, "YYYY-MM-DD"),
         },
         {
             name: 'dicc oleh',
@@ -625,7 +636,7 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'cc at',
-            selector: (row) => dayjs(row?.cc_at).locale('id').format("dddd, DD/MM/YY HH:mm"),
+            selector: (row) => formatTanggal(row?.cc_at, "dddd, DD/MM/YY HH:mm", 'id'),
         },
     ];
 
@@ -841,6 +852,18 @@ Alasan (boleh kosong):`);
             selector: (row) => row.nomor_surat,
         },
         {
+            // penanda jenis surat: backdate, TTD manual, atau normal; surat backdate bisa sekaligus TTD manual
+            name: 'Jenis Surat',
+            width: '170px',
+            selector: (row) => (
+                <span className="d-inline-flex flex-wrap gap-1">
+                    {row.backdate ? <Badge color="warning">Backdate</Badge> : null}
+                    {row.ttd_basah ? <Badge color="info">TTD Manual</Badge> : null}
+                    {!row.backdate && !row.ttd_basah ? <Badge color="secondary">Normal</Badge> : null}
+                </span>
+            ),
+        },
+        {
             name: 'Kepada',
             selector: (row) => row.kepada,
         },
@@ -879,11 +902,11 @@ Alasan (boleh kosong):`);
         },
         {
             name: 'Dokumen dibuat',
-            selector: (row) => dayjs(row.created_at).format('DD/MM/YYYY HH:mm'),
+            selector: (row) => formatTanggal(row?.created_at, 'DD/MM/YYYY HH:mm'),
         },
         {
             name: `${valueNow === '3' ? 'Ditandatangani' : 'Direview'}`,
-            selector: (row) => dayjs(row.updated_at).format('DD/MM/YYYY HH:mm'),
+            selector: (row) => formatTanggal(row?.updated_at, 'DD/MM/YYYY HH:mm'),
             omit: type === 'review' && true
         },
         {
@@ -918,6 +941,9 @@ Alasan (boleh kosong):`);
 
 
 
+    const kolomTabel = type === 'masuk' ? columsMasuk : type === 'cc' ? columsCC : columns;
+    const namaBerkas = `${type === 'masuk' ? 'Surat Masuk' : type === 'review' ? 'Approval Surat' : type === 'approved' ? 'Surat Disetujui' : 'Surat Keluar'} ${tahun === SEMUA_TAHUN ? 'Semua Tahun' : tahun}`;
+
     return (
         <>
             <input ref={ttdFileRef} type="file" accept="application/pdf,image/jpeg,image/png" style={{ display: 'none' }} onChange={unggahTtd} />
@@ -935,7 +961,7 @@ Alasan (boleh kosong):`);
             </div>
             <DataTable
                 keyField={type === 'approved' ? 'unique_id' : 'id'}
-                columns={type === 'masuk' ? columsMasuk : type === 'cc' ? columsCC : columns}
+                columns={kolomTabel}
                 data={listP}
                 pagination
                 onRowClicked={handleRowClick}
@@ -945,7 +971,7 @@ Alasan (boleh kosong):`);
                         (valueNow === '2' && type === 'review' ? [...pointerRowStyles, ...reviewRowStyles] : undefined)
                 }
                 subHeaderComponent={
-                    <div className="d-flex justify-content-end w-100">
+                    <div className="d-flex justify-content-end align-items-center gap-2 w-100">
                         <Input
                             type="text"
                             value={search}
@@ -953,6 +979,8 @@ Alasan (boleh kosong):`);
                             className="w-25"
                             onChange={(e) => setSearch(e.target.value)}
                         />
+                        {pakaiTahun ? <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} /> : null}
+                        {pakaiTahun ? <TombolExcel kolom={kolomTabel} data={listP} namaFile={namaBerkas} /> : null}
                     </div>
                 }
             />

@@ -227,6 +227,9 @@ const Sppd = () => {
     getData(value);
   }, [value]);
 
+  // muat ulang daftar tab yang sedang aktif (dipakai setelah void SPPD)
+  const refresh = () => getData(value);
+
   useEffect(() => {
     if (hash === '#1') {
       setValue('1');
@@ -634,6 +637,7 @@ const Sppd = () => {
               <ListPengajuan
                 {...{
                   submitted,
+                  refresh,
                   updateForm,
                   toggleDetail,
                   toggleApproval,
@@ -656,6 +660,7 @@ const Sppd = () => {
               <ListPengajuan
                 {...{
                   submitted,
+                  refresh,
                   updateForm,
                   toggleDetail,
                   toggleApproval,
@@ -677,6 +682,7 @@ const Sppd = () => {
               <ListPengajuan
                 {...{
                   submitted,
+                  refresh,
                   updateForm,
                   toggleDetail,
                   toggleApproval,
@@ -716,6 +722,7 @@ const Sppd = () => {
               <ListPengajuan
                 {...{
                   submitted,
+                  refresh,
                   updateForm,
                   toggleDetail,
                   toggleApproval,

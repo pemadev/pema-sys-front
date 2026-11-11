@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import DataTable from 'react-data-table-component';
-import { Badge, Button, Input } from 'reactstrap';
+import { Alert, Badge, Button, Input, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
+import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
+import PilihTahun from '../../components/atoms/PilihTahun';
+import TombolExcel from '../../components/atoms/TombolExcel';
+import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan, tanggalValid } from '../../utils/tahun';
 import './style.scss';
 
 const ListPengajuan = ({
@@ -17,30 +21,78 @@ const ListPengajuan = ({
   toggleRe,
   done,
   extend,
-  toggle3 // Tambahkan prop extend
+  toggle3, // Tambahkan prop extend
+  refresh,
 }) => {
+  const api = useAxios();
+  // void SPPD: tandai SPPD yang tidak jadi berangkat (sudah atau belum di-approve) beserta alasannya
+  const [voidRow, setVoidRow] = useState(null);
+  const [alasanVoid, setAlasanVoid] = useState('');
+  const [prosesVoid, setProsesVoid] = useState(false);
+  const bukaVoid = (row) => {
+    setAlasanVoid('');
+    setVoidRow(row);
+  };
+  const kirimVoid = () => {
+    setProsesVoid(true);
+    api
+      .post(`dapi/sppd/pengajuan/${voidRow.id}/void`, { alasan: alasanVoid })
+      .then((res) => {
+        alert('success', res.data?.message || 'SPPD ditandai void.');
+        setVoidRow(null);
+        if (refresh) refresh();
+      })
+      .catch((err) => alert('error', err?.response?.data?.message || err.message))
+      .finally(() => setProsesVoid(false));
+  };
+  // tidak bisa di-void lagi setelah verifikasi realisasi selesai atau bila sudah void
+  const bisaVoid = (row) => value === '1' && !row.void && row.realisasi_status !== 'verified';
+
   const [search, setSearch] = React.useState('');
   const [listP, setListP] = React.useState([]);
   const [hCol, setHCol] = React.useState(false);
   const [hPro, setHPro] = React.useState(false);
+  // filter tahun (kanan atas): tahun berjalan, tahun lain, atau semua
+  const [tahun, setTahun] = React.useState(tahunBerjalan());
+  const opsiTahun = daftarTahun();
+
+  // pengingat void: SPPD yang sudah lewat tanggal kembali (lebih dari 2 hari) tetapi belum ada realisasi, kemungkinan tidak jadi berangkat
+  const [hanyaPerluVoid, setHanyaPerluVoid] = React.useState(false);
+  const perluVoid = (row) => {
+    const kembali = tanggalValid(row.selesai_tugas);
+
+    return (
+      !row.void &&
+      !row.realisasi_status &&
+      ['signed', 'under_review'].includes(row.current_status) &&
+      !!kembali &&
+      kembali.isBefore(new Date(Date.now() - 2 * 24 * 3600 * 1000))
+    );
+  };
+  const daftarPerluVoid = value === '1' ? (submitted || []).filter(perluVoid) : [];
+  const saring = (daftar) => {
+    const hasil = saringTahun(daftar, tahun, ['created_at']);
+
+    return hanyaPerluVoid && daftarPerluVoid.length > 0 ? (hasil || []).filter(perluVoid) : hasil;
+  };
 
   useEffect(() => {
-    setListP(submitted);
+    setListP(saring(submitted));
     if (value === '3') {
       setHCol(true);
     }
     if (value === '4') {
       setHPro(true);
     }
-  }, [submitted, value]);
+  }, [submitted, value, tahun, hanyaPerluVoid]);
 
   useEffect(() => {
-    const result = submitted?.filter((p) =>
+    const result = saring(submitted)?.filter((p) =>
       p.nama.toLocaleLowerCase().match(search.toLocaleLowerCase()),
     );
     setListP(result);
     console.log(search);
-  }, [search]);
+  }, [search, tahun, hanyaPerluVoid]);
 
 
 
@@ -57,7 +109,7 @@ const ListPengajuan = ({
       width: `${value === '1' ? '565px' : '380px'}`,
       selector: (row) => (
         <>
-          {value === '1' ? (
+          {value === '1' && !row.void ? (
             <Button
               className="me-2"
               size="sm"
@@ -72,7 +124,7 @@ const ListPengajuan = ({
             ''
           )}
 
-          {row.current_status === 'signed' && value === '1' ? ( <Button
+          {row.current_status === 'signed' && value === '1' && !row.void ? ( <Button
             size="sm"
             className="me-2"
             outline
@@ -154,7 +206,22 @@ const ListPengajuan = ({
             ''
           )}
 
-          {value === '1' ? (
+          {bisaVoid(row) ? (
+            <Button
+              className="me-2"
+              size="sm"
+              outline
+              color="secondary"
+              tag="input"
+              type="reset"
+              value="Void"
+              onClick={() => bukaVoid(row)}
+            />
+          ) : (
+            ''
+          )}
+
+          {value === '1' && !row.void ? (
             <Button
               className="me-2"
               size="sm"
@@ -193,9 +260,7 @@ const ListPengajuan = ({
     {
       name: 'Diajukan sejak',
       selector: (row) =>
-        `${new Date(row.created_at).toLocaleDateString('en-us', 'numeric')} ${new Date(
-          row.created_at,
-        ).toLocaleTimeString()} `,
+        formatTanggal(row.created_at, 'M/D/YYYY h:mm:ss A'),
     },
     {
       name: 'Jenis Proses',
@@ -219,7 +284,11 @@ const ListPengajuan = ({
     {
       name: 'Status Pengajuan',
       selector: (row) =>
-        row.current_status === 'signed' ? (
+        row.void ? (
+          <Badge color="dark" style={{ width: '100px' }} title={row.alasan_void || ''}>
+            Void
+          </Badge>
+        ) : row.current_status === 'signed' ? (
           <Badge color="success" style={{ width: '100px' }}>
             Approved
           </Badge>
@@ -233,6 +302,11 @@ const ListPengajuan = ({
           </Badge>
         ),
       omit: hCol,
+    },
+    {
+      name: 'Alasan Void',
+      selector: (row) => row.alasan_void || '',
+      omit: !(listP || []).some((r) => r.void),
     },
 
     {
@@ -250,8 +324,30 @@ const ListPengajuan = ({
     },
   ];
 
+  const tampilkanPerluVoid = () => {
+    setTahun('semua');
+    setHanyaPerluVoid(true);
+  };
+
   return (
     <>
+      {daftarPerluVoid.length > 0 ? (
+        <Alert color="warning" className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <b>{daftarPerluVoid.length} SPPD</b> sudah lewat tanggal kembali tetapi belum ada realisasi. Jika perjalanan dinas tidak jadi berangkat,
+            segera lakukan <b>Void</b> beserta alasannya.
+          </div>
+          <Button
+            size="sm"
+            color="warning"
+            outline
+            className="text-nowrap"
+            onClick={() => (hanyaPerluVoid ? setHanyaPerluVoid(false) : tampilkanPerluVoid())}
+          >
+            {hanyaPerluVoid ? 'Tampilkan semua SPPD' : 'Tampilkan yang perlu di-void'}
+          </Button>
+        </Alert>
+      ) : null}
       <DataTable
         keyField={value === '4' ? 'id_unique' : 'id'}
         columns={columns}
@@ -259,7 +355,7 @@ const ListPengajuan = ({
         pagination
         subHeader
         subHeaderComponent={
-          <div className="d-flex justify-content-end w-100">
+          <div className="d-flex justify-content-end align-items-center gap-2 w-100">
             <Input
               type="text"
               value={search}
@@ -267,9 +363,36 @@ const ListPengajuan = ({
               className="w-25"
               onChange={(e) => setSearch(e.target.value)}
             />
+            <PilihTahun tahun={tahun} onChange={setTahun} daftar={opsiTahun} />
+            <TombolExcel kolom={columns} data={listP} namaFile={`SPPD ${tahun === 'semua' ? 'Semua Tahun' : tahun}`} />
           </div>
         }
       />
+
+      <Modal isOpen={!!voidRow} toggle={() => setVoidRow(null)}>
+        <ModalHeader toggle={() => setVoidRow(null)}>Void SPPD</ModalHeader>
+        <ModalBody>
+          <p className="mb-2">
+            SPPD <b>{voidRow?.nomor_sppd}</b> a.n. {voidRow?.nama} akan ditandai void. SPPD void tidak bisa diproses lagi dan tidak bisa dibatalkan.
+            Tombol void tidak tersedia setelah verifikasi realisasi selesai.
+          </p>
+          <Input
+            type="textarea"
+            rows={3}
+            placeholder="Alasan void (wajib), misalnya: perjalanan dinas tidak jadi berangkat"
+            value={alasanVoid}
+            onChange={(e) => setAlasanVoid(e.target.value)}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" outline onClick={() => setVoidRow(null)} disabled={prosesVoid}>
+            Batal
+          </Button>
+          <Button color="danger" onClick={kirimVoid} disabled={prosesVoid || alasanVoid.trim().length < 5}>
+            {prosesVoid ? 'Memproses...' : 'Void SPPD'}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </>
   );
 };
@@ -286,6 +409,7 @@ ListPengajuan.propTypes = {
   done: PropTypes.func,
   extend: PropTypes.func, 
   toggle3:PropTypes.func,// Tambahkan propTypes extend
+  refresh: PropTypes.func,
 };
 
 export default ListPengajuan;
