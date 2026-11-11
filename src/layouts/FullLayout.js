@@ -10,6 +10,7 @@ import Sidebar from './sidebars/vertical/Sidebar';
 import HorizontalHeader from './header/HorizontalHeader';
 import HorizontalSidebar from './sidebars/horizontal/HorizontalSidebar';
 import NotificationP from './notification/NotificationP';
+import PengingatKeamanan from '../components/PengingatKeamanan';
 
 const FullLayout = () => {
   // const customizerToggle = useSelector((state) => state.customizer.customizerSidebar);
@@ -42,6 +43,7 @@ const FullLayout = () => {
             {LayoutHorizontal ? <HorizontalSidebar /> : ''}
             {/********Middle Content**********/}
             <NotificationP />
+            <PengingatKeamanan />
             <Container fluid className="p-4 boxContainer">
               <div className={isFixedSidebar && LayoutHorizontal ? 'HsidebarFixed' : ''}>
                 <Outlet />
