@@ -185,6 +185,15 @@ const SidebarData = [
     ],
   },
 
+  {
+    title: 'Setting',
+    href: '/setting',
+    id: 13,
+    icon: <MaterialIcon icon="settings" />,
+    collapisble: false,
+    allowedRoles: ['SuperAdmin'],
+  },
+
   // { caption: 'Manual Book' },
   // {
   //   title: 'Manual Book',

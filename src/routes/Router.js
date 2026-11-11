@@ -20,6 +20,7 @@ const ProfilePage = Loadable(lazy(() => import('../pages/profile')));
 
 /***** Notification ****/
 const NotificationPage = Loadable(lazy(() => import('../pages/notification')));
+const SettingPage = Loadable(lazy(() => import('../pages/setting')));
 /***** Notification ****/
 
 /***** Daily ****/
@@ -154,6 +155,7 @@ const inProgressTaskAllowedRoles = ['Director'];
 const ApprovalTenderAllowedRoles = ['Manager'];
 const PengajuanAllowedRoles = ['AdminPengajuan', 'ManagerUmum', 'DirekturUmumKeuangan', 'Presdir'];
 const LayarRoles = ['AdminLayar'];
+const SuperAdminRoles = ['SuperAdmin'];
 const DashboardTvRoles = ['PICDashboard'];
 
 /*****Routes******/
@@ -186,6 +188,17 @@ const ThemeRoutes = [
             path: 'all-notifications',
             name: 'Notifications',
             element: <NotificationPage />,
+          },
+          {
+            path: 'setting',
+            element: <RequireAuth allowedRoles={SuperAdminRoles} />,
+            children: [
+              {
+                path: '',
+                name: 'Setting',
+                element: <SettingPage />,
+              },
+            ],
           },
           {
             path: 'director',
