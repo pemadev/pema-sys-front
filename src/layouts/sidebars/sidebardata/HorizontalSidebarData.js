@@ -167,15 +167,9 @@ const SidebarData = [
     title: 'Report',
     id: 10,
     icon: <MaterialIcon icon="assignment" />,
-    allowedRoles: ['AdminLayar', 'PICDashboard'],
+    allowedRoles: ['PICDashboard'],
     collapisble: true,
     children: [
-      {
-        title: 'Insert Image',
-        href: '/insert-image',
-        allowedRoles: ['AdminLayar'],
-        icon: <MaterialIcon icon="image" />,
-      },
       {
         title: 'Atur Dashboard TV',
         href: '/pengaturan-dashboard-tv',

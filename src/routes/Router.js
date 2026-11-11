@@ -2,16 +2,12 @@ import { lazy } from 'react';
 import Loadable from '../layouts/loader/Loadable';
 import RequireAuth from '../components/RequireAuth';
 import Login from '../pages/auth/Login';
-import PemaReport from '../pages/PemaReport';
-import Lalin from '../pages/layar/Lalin';
-import MasuinPage from '../pages/layar/Masuin';
 /****Layouts*****/
 
 const FullLayout = Loadable(lazy(() => import('../layouts/FullLayout')));
 const BlankLayout = Loadable(lazy(() => import('../layouts/BlankLayout')));
 const StarterKit = Loadable(lazy(() => import('../pages/Starterkit')));
 
-const Saham = Loadable(lazy(() => import('../pages/Saham')));
 const PublicRoomSchedule = Loadable(lazy(() => import('../pages/meeting/PublicRoomSchedule')));
 
 /***** Profile ****/
@@ -122,7 +118,6 @@ const NewPassword = Loadable(lazy(() => import('../pages/auth/NewPassword')));
 
 // Report
 
-// const PemaReport= Loadable(lazy(() => import('../pages/PemaReport')));
 
 // const CASL = Loadable(lazy(() => import('../views/apps/accessControlCASL/AccessControl')));
 
@@ -154,7 +149,6 @@ const assetAllowedRoles = ['Employee'];
 const inProgressTaskAllowedRoles = ['Director'];
 const ApprovalTenderAllowedRoles = ['Manager'];
 const PengajuanAllowedRoles = ['AdminPengajuan', 'ManagerUmum', 'DirekturUmumKeuangan', 'Presdir'];
-const LayarRoles = ['AdminLayar'];
 const SuperAdminRoles = ['SuperAdmin'];
 const DashboardTvRoles = ['PICDashboard'];
 
@@ -394,11 +388,6 @@ const ThemeRoutes = [
             name: 'Pengajuan',
             element: <Pengajuan allowedRoles={PengajuanAllowedRoles} />,
           },
-          {
-            path: 'insert-image',
-            name: 'Masuin',
-            element: <MasuinPage allowedRoles={LayarRoles} />,
-          },
         ],
       },
       {
@@ -470,20 +459,8 @@ const ThemeRoutes = [
   // report
 
   {
-    path: '/saham',
-    element: <Saham />,
-  },
-  {
     path: '/jadwal-rapat',
     element: <PublicRoomSchedule />,
-  },
-  {
-    path: '/pema-report',
-    element: <PemaReport />,
-  },
-  {
-    path: '/abs',
-    element: <Lalin />,
   },
   // dgdsgsdg
   // gdlkj
