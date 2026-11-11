@@ -1,5 +1,5 @@
 // Lebar kolom tombol mengikuti baris dengan tombol terbanyak pada tab atau sub-tab yang sedang tampil. Teks tombol diukur dengan canvas;
-// tiap tombol kecil Bootstrap menambah padding 2x8px + border 2px + margin kanan 8px, sel tabel menambah padding 2x16px.
+// tiap tombol kecil Bootstrap menambah padding 2x8px + border 2px + margin kanan 8px (+2px cadangan), sel tabel menambah padding 2x16px.
 let konteksUkur;
 export const ukurTeks = (teks) => {
   if (!konteksUkur) konteksUkur = document.createElement('canvas').getContext('2d');
@@ -14,7 +14,7 @@ export const ukurTeks = (teks) => {
 export const terlebar = (...labels) => labels.reduce((a, b) => (ukurTeks(b) > ukurTeks(a) ? b : a));
 
 export const lebarKolomTombol = (rows, labelsOf, ekstra = 0) => {
-  const maks = Math.max(0, ...(rows || []).map((r) => labelsOf(r).reduce((s, l) => s + ukurTeks(l) + 26, 0)));
+  const maks = Math.max(0, ...(rows || []).map((r) => labelsOf(r).reduce((s, l) => s + ukurTeks(l) + 28, 0)));
 
-  return `${Math.max(maks + ekstra + 32 + 6, 110)}px`;
+  return `${Math.max(maks + ekstra + 32 + 12, 110)}px`;
 };

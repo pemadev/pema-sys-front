@@ -7,6 +7,7 @@ import PilihTahun from '../../components/atoms/PilihTahun';
 import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan } from '../../utils/tahun';
 import { lebarKolomTombol } from '../../utils/lebarTombol';
+import { pasKolom } from '../../utils/lebarKolom';
 import './style.scss';
 
 const ListApproved = ({
@@ -150,7 +151,7 @@ const ListApproved = ({
     <>
       <DataTable
         keyField="id_unique"
-        columns={columns}
+        columns={pasKolom(columns, listP)}
         data={listP}
         pagination
         subHeader

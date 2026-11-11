@@ -23,6 +23,7 @@ import { SEMUA_TAHUN, daftarTahun, formatTanggal, saringTahun, tahunBaris, tahun
 import Disposisi from "./Layuots/Diposisi";
 import GenerateDispo from "./Fungsi/GenerateDispo";
 import { lebarKolomTombol, terlebar } from "../../utils/lebarTombol";
+import { pasKolom } from "../../utils/lebarKolom";
 // import { width } from "@mui/system";
 // import { set } from "react-hook-form";
 
@@ -954,7 +955,7 @@ Alasan (boleh kosong):`);
             </div>
             <DataTable
                 keyField={type === 'approved' ? 'unique_id' : 'id'}
-                columns={kolomTabel}
+                columns={pasKolom(kolomTabel, listP)}
                 data={listP}
                 pagination
                 onRowClicked={handleRowClick}

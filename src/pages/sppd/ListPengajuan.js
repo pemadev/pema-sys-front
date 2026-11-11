@@ -8,6 +8,7 @@ import PilihTahun from '../../components/atoms/PilihTahun';
 import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan, tanggalValid } from '../../utils/tahun';
 import { lebarKolomTombol } from '../../utils/lebarTombol';
+import { pasKolom } from '../../utils/lebarKolom';
 import './style.scss';
 
 const ListPengajuan = ({
@@ -367,7 +368,7 @@ const ListPengajuan = ({
       ) : null}
       <DataTable
         keyField={value === '4' ? 'id_unique' : 'id'}
-        columns={columns}
+        columns={pasKolom(columns, listP)}
         data={listP}
         pagination
         subHeader

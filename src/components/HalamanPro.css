@@ -544,3 +544,21 @@
     padding: 0.75rem 1rem;
   }
 }
+
+/* tombol di dalam sel tabel: ukuran sama dengan asumsi perhitungan lebar kolom Action (utils/lebarTombol.js);
+   bila tetap kurang, tombol turun ke baris berikutnya dan tidak terpotong */
+.tampilan-pro .rdt_TableCell .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.tampilan-pro .rdt_TableCell {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.tampilan-pro .rdt_TableCell > div,
+.tampilan-pro .rdt_TableCell > span {
+  max-width: 100%;
+}
