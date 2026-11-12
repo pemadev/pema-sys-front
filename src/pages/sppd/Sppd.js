@@ -198,6 +198,10 @@ const Sppd = () => {
       api.get(`dapi/sppd/pengajuan`).then((res) => {
         setSubmitted(res.data.data);
       });
+    } else if (val === '5') {
+      api.get(`dapi/sppd/pengajuan?ref=divisi`).then((res) => {
+        setSubmitted(res.data.data);
+      });
     } else if (val === '2') {
       api.get(`dapi/sppd/pengajuan?ref=mine`).then((res) => {
         setSubmitted(res.data.data);
@@ -239,6 +243,8 @@ const Sppd = () => {
       setValue('3');
     } else if (hash === '#4') {
       setValue('4');
+    } else if (hash === '#5') {
+      setValue('5');
     }
   }, [hash]);
 
@@ -481,10 +487,23 @@ const Sppd = () => {
                     }}
                     color="primary"
                   >
-                    <strong>PENGAJUAN</strong> &nbsp;&nbsp;
+                    <strong>SPPD YANG SAYA AJUKAN</strong> &nbsp;&nbsp;
                   </Badge>
                 }
                 value="1"
+              />
+            ) : (
+              ''
+            )}
+
+            {auth?.user.roles.includes('AdminSPPD') ? (
+              <Tab
+                label={
+                  <Badge badgeContent={0} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
+                    <strong>SPPD DIAJUKAN TIM</strong> &nbsp;&nbsp;
+                  </Badge>
+                }
+                value="5"
               />
             ) : (
               ''
@@ -734,6 +753,31 @@ const Sppd = () => {
                   extend,
                   toggle3
                 }}
+              ></ListPengajuan>
+            </CardBody>
+          </Card>
+        </TabPanel>
+
+        <TabPanel value="5" className="ps-0 pe-0">
+          <Card>
+            <CardBody>
+              <p className="text-muted mb-2">
+                SPPD yang diajukan tim satu divisi dengan Anda, termasuk pengaju yang sudah resign atau pindah divisi (mengikuti divisi terakhirnya).
+              </p>
+              <ListPengajuan
+                {...{
+                  submitted,
+                  refresh,
+                  updateForm,
+                  toggleDetail,
+                  toggleApproval,
+                  toggleLog,
+                  toggleR,
+                  toggleDoc,
+                  extend,
+                  toggle3,
+                }}
+                value="1"
               ></ListPengajuan>
             </CardBody>
           </Card>
