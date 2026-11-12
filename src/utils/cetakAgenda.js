@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import dayjs from 'dayjs';
+import logoPema from '../assets/images/qrcode/qr-code-logo.png';
 
 const esc = (v) =>
   String(v ?? '-').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -7,9 +8,41 @@ const esc = (v) =>
 // Tautan publik status surat masuk (dibuka dari QR tanpa login)
 export const tautanAgenda = (token) => `${window.location.origin}/adm/agenda/${token}`;
 
+const muatGambar = (src) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+
+// QR dengan logo PEMA di tengah; koreksi galat tinggi (H) supaya tetap terbaca meski bagian tengah tertutup logo
+export const buatQrBerlogo = async (url, ukuran = 480) => {
+  const dasar = await QRCode.toDataURL(url, { margin: 1, width: ukuran, errorCorrectionLevel: 'H' });
+  try {
+    const [qr, logo] = await Promise.all([muatGambar(dasar), muatGambar(logoPema)]);
+    const canvas = document.createElement('canvas');
+    canvas.width = ukuran;
+    canvas.height = ukuran;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(qr, 0, 0, ukuran, ukuran);
+    const kotak = Math.round(ukuran * 0.24); // sekitar 6% luas QR, aman bagi koreksi galat H
+    const x = (ukuran - kotak) / 2;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x - 4, x - 4, kotak + 8, kotak + 8, 10);
+    else ctx.rect(x - 4, x - 4, kotak + 8, kotak + 8);
+    ctx.fill();
+    ctx.drawImage(logo, x, x, kotak, kotak);
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    return dasar; // logo gagal dimuat: tetap cetak QR polos
+  }
+};
+
 // Cetak lembar nomor agenda surat masuk + QR status (diproses/selesai) pada jendela cetak
 const cetakAgenda = async (row) => {
-  const qr = await QRCode.toDataURL(tautanAgenda(row.agenda_token), { margin: 1, width: 240, errorCorrectionLevel: 'M' });
+  const qr = await buatQrBerlogo(tautanAgenda(row.agenda_token));
   const w = window.open('', '_blank', 'width=720,height=800');
   if (!w) return false;
   const baris = [
