@@ -9,12 +9,14 @@ import Badge from '@mui/material/Badge';
 import { useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import useAxios from '../../hooks/useAxios';
+import { alert } from '../../components/atoms/Toast';
 import TulisSurat from './TulisSurat';
 import ListSurat from './ListSurat';
 import AddSuratMasuk from './AddSuratMasuk';
 import DashboardAdm from './DashboardAdm';
 import Docusign from './Docusign/Docusign';
 import BackdateSurat from './BackdateSurat';
+import DraftSurat from './DraftSurat';
 
 
 
@@ -30,6 +32,7 @@ const Adm = () => {
   // ?sub=backdate dari tautan notifikasi membuka sub-tab Backdate pada tab Surat Saya
   const [subTab, setSubTab] = useState(new URLSearchParams(search).get('sub') || 'belum');
   const [backdateReq, setBackdateReq] = useState([]);
+  const [drafts, setDrafts] = useState([]);
   const [divisis, setDivisis] = useState([]);
   const [mydivisi, setMyDivisi] = useState('');
   const [listSurat, setListSurat] = useState([]);
@@ -103,6 +106,10 @@ const Adm = () => {
       api.get(`dapi/adm/backdate/daftar`).then((res) => {
         setBackdateReq(res.data.data.filter((r) => r.status !== 'selesai'));
       }).catch(() => setBackdateReq([]));
+      // draft: belum bernomor, tidak ada di daftar surat
+      api.get(`dapi/adm/draft/daftar`).then((res) => {
+        setDrafts(res.data.data);
+      }).catch(() => setDrafts([]));
     } else if (val === '2') {
       api.get(`dapi/adm/surat/review`).then((res) => {
         setListSurat(res.data.data);
@@ -149,6 +156,23 @@ const Adm = () => {
     console.log(listSurat);
   }, [listSurat]);
 
+
+  // lanjutkan draft: isi form dari draft; surat tetap belum bernomor sampai di-submit
+  const lanjutDraft = async (id) => {
+    try {
+      const res = await api.get(`dapi/adm/draft/${id}`);
+      const { fileLampiran, ...isi } = res.data.data;
+      const { id: draftId, ...form } = isi;
+      localStorage.setItem('dataSurat', JSON.stringify({ ...form, draftId, tembusans: form.tembusans || [] }));
+      setDivisis(dataStatic[0].data?.other_divisis);
+      if (form.divisi) setMyDivisi(String(form.divisi));
+      setDetailSurat({ fileLampiran: fileLampiran || '', isiSurat: form.isiSurat });
+      setUpdateForm(false);
+      setTulisForm(true);
+    } catch (err) {
+      alert('error', err?.response?.data?.message || err.message);
+    }
+  };
 
   const updateSurat = async (id) => {
     localStorage.removeItem('dataSurat');
@@ -339,7 +363,7 @@ const Adm = () => {
             </CardBody>
           </Card>
 
-          {tulisForm === false && (listSurat?.length > 0 || backdateReq.length > 0) && (
+          {tulisForm === false && (listSurat?.length > 0 || backdateReq.length > 0 || drafts.length > 0) && (
             <Card>
               <CardBody>
                 {listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length > 0 && (
@@ -352,6 +376,7 @@ const Adm = () => {
                 )}
                 <Tabs value={subTab} onChange={(e, v) => setSubTab(v)} className="mb-3" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
                   <Tab value="belum" label={`Belum di-approve (${listSurat.filter((s) => s.status !== 'signed' && !s.void && !s.ttd_basah).length})`} />
+                  <Tab value="draft" label={`Draft (${drafts.length})`} />
                   <Tab value="sudah" label={`Sudah di-approve (${listSurat.filter((s) => s.status === 'signed' && !s.void && !s.ttd_basah).length})`} />
                   <Tab value="basah" label={`TTD Manual (${listSurat.filter((s) => s.ttd_basah && !s.void).length + backdateReq.filter((r) => r.ttd_basah).length})`} />
                   <Tab value="void" label={`Void (${listSurat.filter((s) => s.void).length})`} />
@@ -359,6 +384,8 @@ const Adm = () => {
                 </Tabs>
                 {subTab === 'backdate' ? (
                   <BackdateSurat hideDone refresh={refreshData} />
+                ) : subTab === 'draft' ? (
+                  <DraftSurat drafts={drafts} onLanjut={lanjutDraft} refresh={refreshData} />
                 ) : (
                   <>
                     {/* permintaan backdate yang sekaligus TTD manual juga tampil di sini selama belum bernomor */}

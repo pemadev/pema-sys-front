@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import PropTypes from 'prop-types';
 import TextField from '@mui/material/TextField';
 import { MenuItem } from '@mui/material';
-import { Alert, Button, InputGroup, Badge, ButtonGroup } from 'reactstrap';
+import { Alert, Button, InputGroup, Badge } from 'reactstrap';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import { QRCode } from 'react-qrcode-logo';
@@ -66,12 +66,16 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
   const [tanggal, setTanggal] = useState(dataSurat?.tanggal || '');
   // surat tanda tangan basah: tanpa paraf/tanda tangan di sistem; PDF langsung diunduh admin
   const [ttdBasah, setTtdBasah] = useState(!id && !!dataSurat?.ttdBasah);
+  // draft: tersimpan tanpa nomor surat; nomor baru didapat saat Submit
+  const draftId = dataSurat?.draftId || '';
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const saveDataLocal = () => {
     localStorage.setItem(
       'dataSurat',
       JSON.stringify({
         id,
+        draftId,
         kepada,
         perihal,
         ttdBy,
@@ -183,6 +187,42 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
 
   }
 
+  const simpanDraft = async () => {
+    if (kepada === '' && perihal === '') {
+      alert('error', 'Isi minimal "Kepada" atau "Perihal" sebelum menyimpan draft.');
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      await api.post('dapi/adm/draft/simpan', {
+        id: draftId,
+        kepada,
+        perihal,
+        lampiran,
+        jenislampiran,
+        isiSurat,
+        tembusans,
+        divisi,
+        ttdBy,
+        bhs,
+        ttdBasah,
+        fileLampiran,
+      });
+      alert('success', 'Draft tersimpan. Surat belum mendapat nomor; nomor didapat saat Submit.');
+      if (onSubmitted) onSubmitted('draft');
+      afterSubmit();
+    } catch (err) {
+      alert('error', `${err?.response?.data?.message || err.message}`);
+    }
+    setSavingDraft(false);
+  };
+
+  const tombolDraft = !id && !updateForm && (
+    <Button color="secondary" outline onClick={simpanDraft} disabled={savingDraft || loading}>
+      {savingDraft ? 'Menyimpan...' : 'Simpan Draft'}
+    </Button>
+  );
+
   const submit = async () => {
     if (modeBackdate && !tanggal) {
       alert('error', 'Pilih tanggal surat untuk mode backdate.');
@@ -198,6 +238,10 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
       console.log(res?.data);
       if (res.status === 200) {
         alert('success', modeBackdate ? 'Permintaan backdate dikirim ke PICAdm. Nomor surat dipilih PICAdm.' : 'Dokumen Berhasil submit !');
+        // surat sudah terkirim: draft asalnya tidak diperlukan lagi
+        if (draftId) {
+          api.post(`dapi/adm/draft/${draftId}/hapus`).catch(() => {});
+        }
         if (ttdBasah && !modeBackdate && res.data?.data?.id) {
           // PDF dibuat sebelum form ditutup (pembuatnya memakai elemen QR di form ini)
           try {
@@ -482,13 +526,15 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
 
 
           <Box className="mb-3 mt-5" style={{ display: 'flex' }}>
-            <Button
-              style={{ marginLeft: 'auto' }}
-              color="success"
-              onClick={() => setBerang('form2')}
-            >
-              Selanjutnya
-            </Button>
+            <div className="d-flex flex-wrap justify-content-end gap-2" style={{ marginLeft: 'auto' }}>
+              {tombolDraft}
+              <Button
+                color="success"
+                onClick={() => setBerang('form2')}
+              >
+                Selanjutnya
+              </Button>
+            </div>
           </Box>
         </Box>
       ) : (
@@ -507,14 +553,15 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
             />
           )}
           <Box className="mb-3 mt-5" style={{ display: 'flex' }}>
-            <ButtonGroup style={{ marginLeft: 'auto' }}>
+            <div className="d-flex flex-wrap justify-content-end gap-2" style={{ marginLeft: 'auto' }}>
+              {tombolDraft}
               <Button color="warning" onClick={() => setBerang('form1')}>
                 Sebelumnya
               </Button>
               <Button color="success" onClick={() => setBerang('form3')}>
                 Selanjutnya
               </Button>
-            </ButtonGroup>
+            </div>
           </Box>
         </Box>
       ) : (
@@ -537,7 +584,8 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
           )}
 
           <Box className="mb-3 mt-5" style={{ display: 'flex' }}>
-            <ButtonGroup style={{ marginLeft: 'auto' }}>
+            <div className="d-flex flex-wrap justify-content-end gap-2" style={{ marginLeft: 'auto' }}>
+              {tombolDraft}
               <Button color="warning" onClick={() => setBerang('form2')}>
                 Sebelumnya
               </Button>
@@ -549,7 +597,7 @@ const TulisSurat = ({ divisis, mydivisi, refresh, func1, detailSurat, updateForm
                 <Button color="success" onClick={() => submit()} disabled={loading}>
                   {loading ? 'Loading...' : 'Submit'}
                 </Button>}
-            </ButtonGroup>
+            </div>
           </Box>
         </Box>
       ) : (
