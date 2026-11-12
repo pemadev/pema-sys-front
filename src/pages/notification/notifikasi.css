@@ -1,0 +1,213 @@
+.tampilan-pro .nt-kartu {
+  background: var(--pro-kartu);
+  border: 1px solid var(--pro-garis);
+  border-radius: 14px;
+  box-shadow: var(--pro-bayangan);
+  overflow: hidden;
+}
+.tampilan-pro .nt-alat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pro-garis);
+}
+.tampilan-pro .nt-alat .nt-kiri {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.tampilan-pro .nt-modul {
+  width: auto;
+  min-width: 11rem;
+  max-width: 100%;
+}
+.tampilan-pro .nt-baca-semua {
+  background: transparent;
+  border: 1px solid var(--pro-garis-input);
+  color: var(--pro-aksen);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tampilan-pro .nt-baca-semua:hover:not(:disabled) {
+  background: var(--pro-aksen-lembut);
+}
+.tampilan-pro .nt-baca-semua:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tampilan-pro .nt-item {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px 14px 20px;
+  border-bottom: 1px solid var(--pro-garis);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tampilan-pro .nt-item:last-child {
+  border-bottom: 0;
+}
+.tampilan-pro .nt-item:hover,
+.tampilan-pro .nt-item:focus-visible {
+  background: var(--pro-latar-hover);
+  outline: none;
+}
+.tampilan-pro .nt-item.baru {
+  background: var(--pro-aksen-lembut);
+}
+.tampilan-pro .nt-item.baru:hover {
+  filter: brightness(0.98);
+}
+.tampilan-pro .nt-item.baru::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--pro-aksen);
+}
+.tampilan-pro .nt-foto {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--pro-latar-lembut);
+}
+.tampilan-pro .nt-sistem {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--pro-aksen);
+  color: #fff;
+  font-size: 1.1rem;
+}
+.tampilan-pro .nt-isi {
+  flex: 1;
+  min-width: 0;
+}
+.tampilan-pro .nt-baris {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tampilan-pro .nt-judul {
+  font-size: 0.95rem;
+  color: var(--pro-teks);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.tampilan-pro .nt-item.baru .nt-judul {
+  font-weight: 700;
+}
+.tampilan-pro .nt-waktu {
+  font-size: 0.78rem;
+  color: var(--pro-teks-redup);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tampilan-pro .nt-pesan {
+  margin: 3px 0 0;
+  font-size: 0.88rem;
+  color: var(--pro-teks-lembut);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.tampilan-pro .nt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: var(--pro-teks-redup);
+}
+.tampilan-pro .nt-tag {
+  background: var(--pro-latar-lembut);
+  border: 1px solid var(--pro-garis);
+  color: var(--pro-teks-lembut);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.tampilan-pro .nt-kosong,
+.tampilan-pro .nt-muat {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--pro-teks-redup);
+}
+.tampilan-pro .nt-kosong i {
+  display: block;
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+.tampilan-pro .nt-halaman {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--pro-garis);
+  font-size: 0.82rem;
+  color: var(--pro-teks-redup);
+}
+.tampilan-pro .nt-halaman button {
+  background: transparent;
+  border: 1px solid var(--pro-garis-input);
+  color: var(--pro-teks);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.tampilan-pro .nt-halaman button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tampilan-pro .nt-skel {
+  height: 74px;
+  margin: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--pro-latar-lembut), var(--pro-latar-hover), var(--pro-latar-lembut));
+  background-size: 200% 100%;
+  animation: ntShim 1.3s infinite;
+}
+@keyframes ntShim {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 575.98px) {
+  .tampilan-pro .nt-alat { padding: 12px; }
+  .tampilan-pro .nt-alat .nt-kiri,
+  .tampilan-pro .nt-modul,
+  .tampilan-pro .nt-baca-semua { width: 100%; }
+  .tampilan-pro .nt-alat .segmen-pilihan { width: 100%; }
+  .tampilan-pro .nt-alat .segmen-pilihan button { flex: 1; padding-left: 6px; padding-right: 6px; }
+  .tampilan-pro .nt-item { padding: 12px 12px 12px 16px; gap: 10px; }
+  .tampilan-pro .nt-foto, .tampilan-pro .nt-sistem { width: 36px; height: 36px; }
+  .tampilan-pro .nt-baris { flex-direction: column; gap: 2px; }
+  .tampilan-pro .nt-halaman { flex-wrap: wrap; justify-content: center; }
+  .tampilan-pro .nt-halaman span { order: -1; width: 100%; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tampilan-pro .nt-skel { animation: none; }
+}
