@@ -8,6 +8,10 @@ import user1 from '../../assets/images/users/user1.jpg';
 import relax from '../../assets/images/icons/nonotif.png';
 import useAxios from '../../hooks/useAxios';
 import { aktifkanPush, pushDidukung } from '../../utils/pushNotif';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
+
+// notifikasi tanpa pelaku (dikirim otomatis oleh sistem)
+const adaSistem = (n) => !n.actor_id && (!n.actor || n.actor === '-');
 
 const NotificationList = ({ setOpenNotif, setShowTask, setTaskId, data, refetch }) => {
   const navigate = useNavigate();
@@ -108,14 +112,31 @@ const NotificationList = ({ setOpenNotif, setShowTask, setTaskId, data, refetch 
                 <div className="not-header">
                   <div className="not-header-info">
                     <h6 className="text-primary fw-bold">
-                      {not.actor}
+                      {adaSistem(not) ? 'Sistem' : not.actor}
                       {not.entity === 'COMMENT' && (
                         <span className="text-muted">Memberikan komentar</span>
                       )}
                     </h6>
                     {not.entity === 'VENDOR' ? <span>Vendor</span> : <span>{not.position}</span>}
                   </div>
-                  <img src={user1} className="rounded-circle" alt="avatar" width="28" height="28" />
+                  {adaSistem(not) ? (
+                    <span
+                      className="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary text-white"
+                      style={{ width: 28, height: 28, flexShrink: 0 }}
+                      title="Sistem"
+                    >
+                      <i className="bi bi-gear-fill" style={{ fontSize: 14 }} />
+                    </span>
+                  ) : (
+                    <img
+                      src={not.actor_id ? fotoKaryawan(not.actor_id) : user1}
+                      onError={onAvatarError}
+                      className="rounded-circle"
+                      alt="avatar"
+                      width="28"
+                      height="28"
+                    />
+                  )}
                 </div>
                 <div className="not-body">
                   <div className="not-content">

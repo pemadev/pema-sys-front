@@ -7,12 +7,12 @@ import { Link } from 'react-router-dom';
 import TaskPopup from './TaskPopup';
 import PDFFile from './PDFFile';
 import useAxios from '../../hooks/useAxios';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAuth from '../../hooks/useAuth';
 import { alert } from '../../components/atoms/Toast';
 import TooltipHover from '../../components/atoms/TooltipHover';
 import './ProjectTable.scss';
 import './ProjectDetail.scss';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 // import TooltipHover from '../../components/atoms/TooltipHover';
 
 // const result = (emId) =>
@@ -245,7 +245,8 @@ const InprogressTaskList = () => {
                                           <Fragment key={pic.id}>
                                             <img
                                               id={`tooltip-${pic.id}`}
-                                              src={user1}
+                                              src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                               className="ava-pic rounded-circle"
                                               alt="avatar"
                                               width="35"
@@ -333,7 +334,8 @@ const InprogressTaskList = () => {
                                                 <img
                                                   key={pic.id}
                                                   id={`tooltip-${pic.id}`}
-                                                  src={user1}
+                                                  src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                                   className="ava-pic rounded-circle"
                                                   alt="avatar"
                                                   width="35"

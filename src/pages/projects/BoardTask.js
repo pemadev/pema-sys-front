@@ -2,7 +2,6 @@ import MaterialIcon from '@material/react-material-icon';
 import React, { Fragment, useEffect, useState } from 'react';
 import { Badge, Spinner } from 'reactstrap';
 import PropTypes from 'prop-types';
-import user1 from '../../assets/images/users/user1.jpg';
 import TaskPopup from './TaskPopup';
 import TaskForm from './TaskForm';
 import ActionMenu from '../../components/actionMenu/ActionMenu';
@@ -14,6 +13,7 @@ import TooltipHover from '../../components/atoms/TooltipHover';
 import IndoDate from '../../utils/IndoDate';
 import isExpired from '../../utils/isExpired';
 import TaskFormAddSub from './TaskFormAddSub';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 // const result = (emId) =>
 //   emId.filter(
@@ -610,7 +610,8 @@ const BoardTask = ({ directSupervisor, data, projectId, refetch, isMemberActive 
                             <Fragment key={pic.id}>
                               <img
                                 id={`tooltip-${pic.id}`}
-                                src={user1}
+                                src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                 className="ava-pic rounded-circle"
                                 alt="avatar"
                                 width="35"

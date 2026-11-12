@@ -21,9 +21,9 @@ import MaterialIcon from '@material/react-material-icon';
 import PropTypes from 'prop-types';
 import useAuth from '../../hooks/useAuth';
 import useAxios from '../../hooks/useAxios';
-import user1 from '../../assets/images/users/user1.jpg';
 import newDate from '../../utils/formatDate';
 import { alert } from '../../components/atoms/Toast';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const ReviewBastTab = ({ setTotalBastReview }) => {
   const { auth } = useAuth();
@@ -125,7 +125,8 @@ const ReviewBastTab = ({ setTotalBastReview }) => {
                   <div className="d-flex gap-4">
                     <div className="d-flex gap-3 align-items-center">
                       <img
-                        src={user1}
+                        src={fotoKaryawan(data.old_pic_id)}
+                        onError={onAvatarError}
                         className="rounded-circle"
                         alt="avatar"
                         width="45"

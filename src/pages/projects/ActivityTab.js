@@ -8,7 +8,6 @@ import Popover from '@mui/material/Popover';
 import Typography from '@mui/material/Typography';
 import useAxios from '../../hooks/useAxios';
 import TaskPopup from './TaskPopup';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAuth from '../../hooks/useAuth';
 import { alert } from '../../components/atoms/Toast';
 import PDFFile from './PDFFile';
@@ -17,6 +16,7 @@ import './ProjectTable.scss';
 import { level1Progress, level2Progress } from '../../utils/countTaskProgress';
 import IndoDate from '../../utils/IndoDate';
 import isExpired from '../../utils/isExpired';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 // import TooltipHover from '../../components/atoms/TooltipHover';
 
 // const result = (emId) =>
@@ -335,7 +335,8 @@ const ActivityTab = () => {
                                           <Fragment key={pic.id}>
                                             <img
                                               id={`tooltip-${pic.id}`}
-                                              src={user1}
+                                              src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                               className="ava-pic rounded-circle"
                                               alt="avatar"
                                               width="35"
@@ -426,7 +427,8 @@ const ActivityTab = () => {
                                                 <Fragment key={pic.id}>
                                                   <img
                                                     id={`tooltip-${pic.id}`}
-                                                    src={user1}
+                                                    src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                                     className="ava-pic rounded-circle"
                                                     alt="avatar"
                                                     width="35"
@@ -516,7 +518,8 @@ const ActivityTab = () => {
                                                     <Fragment key={pic.id}>
                                                       <img
                                                         id={`tooltip-${pic.id}`}
-                                                        src={user1}
+                                                        src={fotoKaryawan(pic.employe_id)}
+ onError={onAvatarError}
                                                         className="ava-pic rounded-circle"
                                                         alt="avatar"
                                                         width="35"

@@ -17,12 +17,12 @@ import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { Link, useParams } from 'react-router-dom';
 import ActionMenu from '../../components/actionMenu/ActionMenu';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 import newDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
 import TooltipHover from '../../components/atoms/TooltipHover';
 import { alert } from '../../components/atoms/Toast';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 // const result = (emId) =>
 //   emId.filter(
@@ -695,7 +695,8 @@ const TaskPopup = ({ modal, setModal, toggle, task, refetch, mode, name }) => {
                           <div key={h?.comment_id} className="comment-item">
                             <div className="comment-user">
                               <img
-                                src={user1}
+                                src={fotoKaryawan(h?.employe_id)}
+                                onError={onAvatarError}
                                 className="rounded-circle"
                                 alt="avatar"
                                 width="35"

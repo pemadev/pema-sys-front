@@ -4,9 +4,9 @@ import Chart from 'react-apexcharts';
 import { useQuery } from '@tanstack/react-query';
 import useAxios from '../../hooks/useAxios';
 import BandwidthUsage from './components/BandwidthUsage';
-import user1 from '../../assets/images/users/user1.jpg';
 import rupiah from '../../utils/rupiah';
 import './Dasboard.scss';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 // import { set } from 'react-hook-form';
 
 const DashboardDirek = () => {
@@ -171,7 +171,8 @@ const DashboardDirek = () => {
                         <td width="60%" style={{ overflow: 'elipsis' }}>
                           <div className="d-flex align-items-center">
                             <img
-                              src={user1}
+                              src={fotoKaryawan(tdata.employe_id)}
+                              onError={onAvatarError}
                               className="rounded-circle"
                               alt="avatar"
                               width="45"

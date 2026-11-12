@@ -18,12 +18,14 @@ import { ReactComponent as LogoWhite } from '../../assets/images/logos/white-log
 import MessageDD from './MessageDD';
 import NotificationDD from './NotificationDD';
 import MegaDD from './MegaDD';
-import user1 from '../../assets/images/users/user4.jpg';
 import Logo from '../logo/Logo';
 import { ToggleMiniSidebar, ToggleMobileSidebar } from '../../store/customizer/CustomizerSlice';
 import ProfileDD from './ProfileDD';
+import useAuth from '../../hooks/useAuth';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const Header = () => {
+  const { auth } = useAuth();
   const isDarkMode = useSelector((state) => state.customizer.isDark);
   const topbarColor = useSelector((state) => state.customizer.topbarBg);
   const dispatch = useDispatch();
@@ -147,7 +149,7 @@ const Header = () => {
           {/******************************/}
           <UncontrolledDropdown>
             <DropdownToggle color="transparent">
-              <img src={user1} alt="profile" className="rounded-circle" width="30" />
+              <img src={fotoKaryawan(auth?.user?.employe_id)} onError={onAvatarError} alt="profile" className="rounded-circle" width="30" />
             </DropdownToggle>
             <DropdownMenu className="ddWidth profile-dd">
               <ProfileDD />

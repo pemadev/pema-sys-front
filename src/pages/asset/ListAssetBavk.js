@@ -6,10 +6,10 @@ import './Asset.scss';
 import { useNavigate } from 'react-router-dom';
 import MaterialIcon from '@material/react-material-icon';
 // import { PDFDownloadLink } from '@react-pdf/renderer';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 // import PrintNumber from './PrintNumber';
 import { alert } from '../../components/atoms/Toast';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const baseURL = process.env.REACT_APP_BASEURL;
 
@@ -59,7 +59,8 @@ const ListAsset = ({ listAsset, refetch }) => {
             r < 3 ? (
               <img
                 key={m?.employe_id}
-                src={m?.img ? m?.img : user1}
+                src={fotoKaryawan(m?.employe_id)}
+                onError={onAvatarError}
                 className="rounded-circle"
                 alt="avatar"
                 width="35"

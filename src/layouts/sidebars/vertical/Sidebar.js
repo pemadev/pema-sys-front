@@ -6,10 +6,12 @@ import SimpleBar from 'simplebar-react';
 import SidebarData from '../sidebardata/SidebarData';
 import NavItemContainer from './NavItemContainer';
 import NavSubMenu from './NavSubMenu';
-import user1 from '../../../assets/images/users/user4.jpg';
 import probg from '../../../assets/images/bg/download.jpg';
+import useAuth from '../../../hooks/useAuth';
+import { fotoKaryawan, onAvatarError } from '../../../utils/defaultAvatar';
 
 const Sidebar = () => {
+  const { auth } = useAuth();
   const location = useLocation();
   const currentURL = location.pathname.split('/').slice(0, -1).join('/');
 
@@ -27,9 +29,9 @@ const Sidebar = () => {
       <SimpleBar style={{ height: '100%' }}>
         <div className="profilebg" style={{ background: `url(${probg}) no-repeat` }}>
           <div className="p-3 d-flex">
-            <img src={user1} alt="user" width="50" className="rounded-circle" />
+            <img src={fotoKaryawan(auth?.user?.employe_id)} onError={onAvatarError} alt="user" width="50" className="rounded-circle" />
           </div>
-          <div className="bg-dark text-dark-white p-2 opacity-75 text-truncate">Steave Rojer</div>
+          <div className="bg-dark text-dark-white p-2 opacity-75 text-truncate">{auth?.user?.first_name}</div>
         </div>
         {/********Sidebar Content*******/}
         <div className="p-3 pt-1 mt-2">

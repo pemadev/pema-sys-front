@@ -7,7 +7,6 @@ import SkeletonProjectList from '../../components/skeleton/projectList/SkeletonP
 import NoDataYet from '../../components/noDataYet/NoDataYet';
 import FailedInformation from '../../components/failedInformation/FailedInformation';
 import FilterYear from '../../components/filterYear/FilterYear';
-import user1 from '../../assets/images/users/user1.jpg';
 import { onAvatarError } from '../../utils/defaultAvatar';
 
 
@@ -75,11 +74,7 @@ const DailyDashboard = () => {
                         <div className="d-flex flex-column col-md-12">
                           <div className="d-flex align-items-center gap-2 mb-1">
                             <img
-                              src={
-                                e?.image
-                                  ? `${profileFile}employee/file?f=photo-profil&id=${e.employe_id}`
-                                  : user1
-                              }
+                              src={`${profileFile}employee/file?f=photo-profil&id=${e.employe_id}`}
                               alt={e.name}
                               onError={onAvatarError}
                               style={{

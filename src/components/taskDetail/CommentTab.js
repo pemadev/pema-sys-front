@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../atoms/Toast';
 import newDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const CommentTab = ({ data }) => {
   const { auth } = useAuth();
@@ -68,7 +68,7 @@ const CommentTab = ({ data }) => {
           {comments?.length > 0 ? (
             comments?.map((item) => (
               <div key={item.comment_id} className="item">
-                <img src={user1} className="rounded-circle" alt="avatar" width="35" height="35" />
+                <img src={fotoKaryawan(item.employe_id)} onError={onAvatarError} className="rounded-circle" alt="avatar" width="35" height="35" />
                 <div className="text">
                   <div className="user">
                     <h6>{item.first_name}</h6>

@@ -4,10 +4,9 @@ import DataTable from 'react-data-table-component';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import './Asset.scss';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
-import { onAvatarError } from '../../utils/defaultAvatar';
+import { onAvatarError, fotoKaryawan } from '../../utils/defaultAvatar';
 
 
 const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
@@ -69,7 +68,7 @@ const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
             r < 3 ? (
               <img
                 key={m?.employe_id}
-                src={m?.img ? m?.img : user1}
+                src={fotoKaryawan(m?.employe_id)}
                 className="rounded-circle"
                 alt="avatar"
                 width="35"

@@ -11,7 +11,6 @@ import FilterYear from '../../components/filterYear/FilterYear';
 import SkeletonProjectList from '../../components/skeleton/projectList/SkeletonProjectList';
 import NoDataYet from '../../components/noDataYet/NoDataYet';
 import FailedInformation from '../../components/failedInformation/FailedInformation';
-import user1 from '../../assets/images/users/user1.jpg';
 import { onAvatarError } from '../../utils/defaultAvatar';
 
 
@@ -263,11 +262,7 @@ const ProjectList = () => {
                           <Col lg="1" className="my-auto d-flex justify-content-start px-2">
                             <div className="p-2">
                               <img
-                                src={
-                                  p.pic_active?.employe_id
-                                    ? `${HCIS_URL}employee/file?f=photo-profil&id=${p.pic_active?.employe_id}`
-                                    : user1
-                                }
+                                src={`${HCIS_URL}employee/file?f=photo-profil&id=${p.pic_active?.employe_id}`}
                                 className="rounded-circle"
                                 alt="avatar"
                                 width="40"

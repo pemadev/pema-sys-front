@@ -5,11 +5,11 @@ import { Button, Card, CardBody, Col, Input, Row, Spinner } from 'reactstrap';
 import MaterialIcon from '@material/react-material-icon';
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
-import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 import useAuth from '../../hooks/useAuth';
 import IndoDate from '../../utils/IndoDate';
 import { alert } from '../../components/atoms/Toast';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const TicketPopup = ({ ticket, isOpen, setIsOpen, refetch }) => {
   const { auth } = useAuth();
@@ -147,7 +147,8 @@ const TicketPopup = ({ ticket, isOpen, setIsOpen, refetch }) => {
                       <small>Requester</small>
                       <div className="d-flex gap-3 align-items-center">
                         <img
-                          src={user1}
+                          src={fotoKaryawan(ticket?.requester_id)}
+                          onError={onAvatarError}
                           className="rounded-circle"
                           alt="avatar"
                           width="40"
@@ -163,7 +164,8 @@ const TicketPopup = ({ ticket, isOpen, setIsOpen, refetch }) => {
                       <small>PIC</small>
                       <div className="d-flex gap-3 align-items-center">
                         <img
-                          src={user1}
+                          src={fotoKaryawan(ticket?.pic_id)}
+                          onError={onAvatarError}
                           className="rounded-circle"
                           alt="avatar"
                           width="40"

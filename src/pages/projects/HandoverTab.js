@@ -21,8 +21,8 @@ import { Link, useParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import useAxios from '../../hooks/useAxios';
 import newDate from '../../utils/formatDate';
-import user1 from '../../assets/images/users/user1.jpg';
 import { alert } from '../../components/atoms/Toast';
+import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 
 const HandoverTab = () => {
   const [modal, setModal] = useState(false);
@@ -117,7 +117,8 @@ const HandoverTab = () => {
                   <div className="d-flex gap-4">
                     <div className="d-flex gap-3 align-items-center">
                       <img
-                        src={user1}
+                        src={fotoKaryawan(data.old_pic_id)}
+                        onError={onAvatarError}
                         className="rounded-circle"
                         alt="avatar"
                         width="45"

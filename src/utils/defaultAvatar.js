@@ -11,3 +11,7 @@ export const onAvatarError = (e) => {
   e.currentTarget.onerror = null;
   e.currentTarget.src = DEFAULT_AVATAR;
 };
+
+// Foto asli karyawan dari HR; bila belum ada foto, onAvatarError menggantinya dengan siluet default
+export const fotoKaryawan = (employeId) =>
+  `${process.env.REACT_APP_HCIS_BE}employee/file?f=photo-profil&id=${employeId}`;

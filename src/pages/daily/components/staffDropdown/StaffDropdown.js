@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useQuery } from '@tanstack/react-query';
 import useAxios from '../../../../hooks/useAxios';
-import user1 from '../../../../assets/images/users/user1.jpg';
 import './StaffDropdown.scss';
 import { onAvatarError } from '../../../../utils/defaultAvatar';
 
@@ -74,11 +73,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
           onClick={() => (staffList.length > 0 ? setIsDropdownOpen(!isDropdownOpen) : null)}
         >
           <img
-            src={
-              currentStaff?.image
-                ? `${profileFile}employee/file?f=photo-profil&id=${currentStaff?.employe_id}`
-                : user1
-            }
+            src={`${profileFile}employee/file?f=photo-profil&id=${currentStaff?.employe_id}`}
             className="rounded-circle"
             alt="avatar"
             width="38"
@@ -122,11 +117,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
                   onClick={() => handleStaffSelect(myStaff)}
                 >
                   <img
-                    src={
-                      myStaff?.image
-                        ? `${profileFile}employee/file?f=photo-profil&id=${myStaff?.employe_id}`
-                        : user1
-                    }
+                    src={`${profileFile}employee/file?f=photo-profil&id=${myStaff?.employe_id}`}
                     className="rounded-circle"
                     alt="avatar"
                     width="32"
@@ -153,11 +144,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
                     onClick={() => handleStaffSelect(staff)}
                   >
                     <img
-                      src={
-                        staff?.image
-                          ? `${profileFile}employee/file?f=photo-profil&id=${staff?.employe_id}`
-                          : user1
-                      }
+                      src={`${profileFile}employee/file?f=photo-profil&id=${staff?.employe_id}`}
                       className="rounded-circle"
                       alt="avatar"
                       width="32"
