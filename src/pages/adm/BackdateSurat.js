@@ -46,7 +46,7 @@ const PanelPilih = ({ item, onDone }) => {
 
   return (
     <div className="border rounded p-3 mt-2 bg-light">
-      <div className="d-flex align-items-center gap-2 mb-2">
+      <div className="d-flex align-items-center flex-wrap gap-2 mb-2">
         <span className="fw-semibold">Tanggal surat</span>
         <Input
           type="date"
@@ -54,24 +54,24 @@ const PanelPilih = ({ item, onDone }) => {
           value={tanggal}
           min={`${new Date().getFullYear()}-01-01`}
           onChange={(e) => e.target.value && setTanggal(e.target.value)}
-          style={{ width: '11rem' }}
+          style={{ width: '11rem', maxWidth: '100%' }}
         />
       </div>
       {galat ? <Alert color="danger">{galat}</Alert> : null}
       {saran.length > 0 ? <div className="fw-semibold mb-1">Saran nomor dari sistem</div> : null}
       {saran.map((s) => (
-        <label key={s.nomor} htmlFor={`nomor-${item.id}-${s.nomor}`} className="d-flex align-items-center gap-2 mb-1" style={{ cursor: 'pointer' }}>
+        <label key={s.nomor} htmlFor={`nomor-${item.id}-${s.nomor}`} className="d-flex align-items-center flex-wrap gap-2 mb-1" style={{ cursor: 'pointer' }}>
           <input id={`nomor-${item.id}-${s.nomor}`} type="radio" name={`nomor-${item.id}`} checked={nomor === s.nomor} onChange={() => setNomor(s.nomor)} />
           <span className="fw-bold">{s.nomor_surat}</span>
           <Badge color={s.mode === 'kosong' ? 'success' : 'info'}>{s.mode === 'kosong' ? 'nomor kosong' : 'sisipan'}</Badge>
           <small className="text-muted">{s.keterangan}</small>
         </label>
       ))}
-      <div className="d-flex gap-2 mt-3 flex-wrap">
+      <div className="d-flex gap-2 mt-3 flex-wrap align-items-stretch">
         <Button color="primary" size="sm" disabled={!nomor || proses} onClick={() => kirim(`dapi/adm/backdate/${item.id}/setujui`, { nomor, tanggal }, 'Surat dibuat.')}>
           {proses ? 'Memproses...' : 'Setujui dengan nomor ini'}
         </Button>
-        <Input bsSize="sm" placeholder="Alasan jika ditolak" value={alasan} onChange={(e) => setAlasan(e.target.value)} style={{ maxWidth: '20rem' }} />
+        <Input bsSize="sm" placeholder="Alasan jika ditolak" value={alasan} onChange={(e) => setAlasan(e.target.value)} style={{ maxWidth: '20rem', flex: '1 1 12rem' }} />
         <Button color="danger" outline size="sm" disabled={proses} onClick={() => kirim(`dapi/adm/backdate/${item.id}/tolak`, { alasan }, 'Permintaan ditolak.')}>
           Tolak
         </Button>
@@ -140,7 +140,7 @@ const BackdateSurat = ({ pic, refresh, hideDone, hanyaTtdManual }) => {
         {tampil.map((it) => (
           <div key={it.id} className="border rounded p-3 mb-2">
             <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-              <div>
+              <div style={{ minWidth: 0, flex: '1 1 16rem', overflowWrap: 'anywhere' }}>
                 <div className="fw-semibold">
                   {it.perihal} {it.ttd_basah ? <Badge color="info">TTD manual</Badge> : null}
                 </div>
@@ -151,7 +151,7 @@ const BackdateSurat = ({ pic, refresh, hideDone, hanyaTtdManual }) => {
                 {it.nomor_surat ? <div className="fw-bold">Nomor: {it.nomor_surat}</div> : null}
                 {it.alasan_tolak ? <div className="text-danger">Alasan: {it.alasan_tolak}</div> : null}
               </div>
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center flex-wrap gap-2">
                 <Badge color={WARNA[it.status]}>{LABEL[it.status]}</Badge>
                 {pic && it.status === 'menunggu' ? (
                   <Button size="sm" color="primary" outline onClick={() => setBuka(buka === it.id ? null : it.id)}>

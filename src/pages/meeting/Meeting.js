@@ -979,7 +979,7 @@ const Meeting = () => {
                           className="d-flex justify-content-between align-items-start gap-3 p-3"
                           style={{ borderBottom: index === detailRows.length - 1 ? 'none' : '1px solid #e2e8f0' }}
                         >
-                          <div style={{ minWidth: '160px', color: '#475569', fontWeight: 600 }}>{row.label}</div>
+                          <div style={{ minWidth: '110px', flexShrink: 0, color: '#475569', fontWeight: 600 }}>{row.label}</div>
                           <div style={{ textAlign: 'right', color: '#0f172a', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{row.value}</div>
                         </div>
                       ))}
@@ -1240,7 +1240,7 @@ const Meeting = () => {
             type="select"
             value={scheduleFilter}
             onChange={(event) => setScheduleFilter(event.target.value)}
-            style={{ minWidth: '280px', borderRadius: '999px', fontWeight: 600 }}
+            style={{ minWidth: 'min(280px, 100%)', borderRadius: '999px', fontWeight: 600 }}
           >
             <option value={SCHEDULE_FILTER.UPCOMING}>Upcoming</option>
             <option value={SCHEDULE_FILTER.LIVE_TODAY}>Live Today</option>
