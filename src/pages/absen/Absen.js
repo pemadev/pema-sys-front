@@ -8,6 +8,7 @@ import "./Absen.css";
 import { useAlert } from 'react-alert'
 import useAxios from "../../hooks/useAxios";
 import useAuth from '../../hooks/useAuth';
+import { onAvatarError } from '../../utils/defaultAvatar';
 
 
 const Absen = () => {
@@ -169,6 +170,7 @@ const Absen = () => {
                             src={profil !== '' ? profil : 'https://cdn.idntimes.com/content-images/post/20230515/gambar-profil-wa-keren-41d3732660868cf4a36d801d1301f672.jpg'}
                             alt="Profile"
                             className="profile-img"
+                            onError={onAvatarError}
                         />
                     </Col>
                 </Row>

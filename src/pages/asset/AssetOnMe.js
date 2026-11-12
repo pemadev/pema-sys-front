@@ -7,6 +7,7 @@ import './Asset.scss';
 import user1 from '../../assets/images/users/user1.jpg';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
+import { onAvatarError } from '../../utils/defaultAvatar';
 
 
 const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
@@ -73,6 +74,7 @@ const AssetOnMe = ({ onMe, handleChange, refetch1, refetch2 }) => {
                 alt="avatar"
                 width="35"
                 height="35"
+                onError={onAvatarError}
               />
             ) : (
               <img

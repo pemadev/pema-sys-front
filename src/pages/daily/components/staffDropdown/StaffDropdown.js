@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import useAxios from '../../../../hooks/useAxios';
 import user1 from '../../../../assets/images/users/user1.jpg';
 import './StaffDropdown.scss';
+import { onAvatarError } from '../../../../utils/defaultAvatar';
 
 const profileFile = process.env.REACT_APP_HCIS_BE;
 
@@ -82,6 +83,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
             alt="avatar"
             width="38"
             height="38"
+            onError={onAvatarError}
           />
 
           <div className="person-info ms-2 text-start">
@@ -129,6 +131,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
                     alt="avatar"
                     width="32"
                     height="32"
+                    onError={onAvatarError}
                   />
 
                   <div className="person-info ms-2 text-start">
@@ -159,6 +162,7 @@ const StaffDropdown = ({ handleFilterChange, onSelectedStaffLoaded }) => {
                       alt="avatar"
                       width="32"
                       height="32"
+                      onError={onAvatarError}
                     />
 
                     <div className="person-info ms-2 text-start">

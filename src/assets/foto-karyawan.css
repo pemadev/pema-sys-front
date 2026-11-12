@@ -1,0 +1,26 @@
+/* Foto karyawan/profil: selalu bulat, terpotong rapi (tidak gepeng/melar), latar abu saat memuat */
+img.rounded-circle,
+img.foto-karyawan {
+  object-fit: cover;
+  object-position: center top;
+  background-color: #dfe3e8;
+  flex-shrink: 0;
+}
+img.rounded-circle:not([height]),
+img.foto-karyawan:not([height]) {
+  aspect-ratio: 1 / 1;
+  height: auto;
+}
+img.foto-karyawan {
+  border-radius: 50%;
+}
+/* tumpukan foto (anggota) tetap rapi dengan cincin putih */
+.member img.rounded-circle {
+  border: 2px solid #fff;
+}
+.profile-img,
+.members-avatar img,
+.ava-pic img {
+  object-fit: cover;
+  object-position: center top;
+}

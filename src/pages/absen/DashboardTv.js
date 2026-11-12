@@ -95,11 +95,15 @@ const photoUrl = (id) => `${HCIS_URL}employee/file?f=photo-profil&id=${id}`;
 // Foto diunduh sekali, dikecilkan menjadi 160 px (sekitar 6-10 KB), lalu disimpan di localStorage per karyawan. Kunjungan berikutnya langsung
 // memakai miniatur dari localStorage tanpa mengunduh foto asli; miniatur diperbarui di latar belakang bila sudah lebih dari 24 jam.
 const THUMB_KEY = 'abs-foto:';
-const THUMB_TTL = 24 * 3600 * 1000;
+const THUMB_TTL = 3600 * 1000; // 1 jam: foto yang diganti di HR terlihat paling lambat 1 jam kemudian
+// miniatur yang disimpan sebelum tanggal ini dianggap kedaluwarsa (memaksa pembaruan satu kali setelah perbaikan cache)
+const THUMB_MIN_VALID = Date.parse('2026-11-12T00:00:00Z');
+// parameter v berganti tiap TTL supaya cache HTTP browser tidak menyajikan foto lama saat pembaruan
+const photoUrlFresh = (id) => `${photoUrl(id)}&v=${Math.floor(Date.now() / THUMB_TTL)}`;
 const THUMB_SIZE = 160;
 const THUMB_FAIL = 'fail'; // miniatur tidak bisa dibuat (mis. CORS): pakai foto asli
 const thumbMem = new Map(); // id -> dataURL | '' (tidak punya foto) | THUMB_FAIL
-const thumbChecked = new Set();
+const thumbChecked = new Map(); // id -> waktu terakhir dicek (TV yang menyala terus tetap memeriksa ulang tiap TTL)
 const thumbQueue = [];
 const thumbListeners = new Set();
 let thumbActive = 0;
@@ -176,9 +180,9 @@ const makeThumb = (id) => new Promise((resolveRaw) => {
     const probe = new Image();
     probe.onload = () => resolve(THUMB_FAIL);
     probe.onerror = () => resolve('');
-    probe.src = photoUrl(id);
+    probe.src = photoUrlFresh(id);
   };
-  img.src = photoUrl(id);
+  img.src = photoUrlFresh(id);
 });
 
 // beberapa foto sekaligus dengan jeda, supaya foto muncul cepat tetapi decode foto besar tidak mengganggu gulir
@@ -205,13 +209,15 @@ pumpThumbs = () => {
 
 const ensureThumbs = (ids) => {
   ids.forEach((id) => {
-    if (thumbChecked.has(id)) return;
-    thumbChecked.add(id);
+    const dicek = thumbChecked.get(id);
+    if (dicek && Date.now() - dicek < THUMB_TTL) return;
+    thumbChecked.set(id, Date.now());
     const raw = lsGet(THUMB_KEY + id);
     if (raw) {
       const i = raw.indexOf('|');
       thumbMem.set(id, raw.slice(i + 1));
-      if (Date.now() - parseInt(raw.slice(0, i), 10) < THUMB_TTL) return;
+      const savedAt = parseInt(raw.slice(0, i), 10);
+      if (savedAt >= THUMB_MIN_VALID && Date.now() - savedAt < THUMB_TTL) return;
     }
     thumbQueue.push(id);
   });
@@ -359,7 +365,7 @@ const PhotoBase = ({ id, color, size, name }) => {
   // miniatur siap -> pakai; belum siap atau tidak punya foto -> avatar inisial; miniatur tidak bisa dibuat -> foto asli (gagal -> avatar inisial)
   const fallback = initialsAvatar(name);
   let src = fallback;
-  if (thumb === THUMB_FAIL) src = photoUrl(id);
+  if (thumb === THUMB_FAIL) src = photoUrlFresh(id);
   else if (thumb) src = thumb;
   const onError = (e) => {
     e.currentTarget.onerror = null;

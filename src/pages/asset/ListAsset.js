@@ -11,6 +11,8 @@ import { alert } from '../../components/atoms/Toast';
 // import user1 from '../../assets/images/users/user1.jpg';
 import PrintNumber from './PrintNumber';
 import useAxios from '../../hooks/useAxios';
+import { onAvatarError } from '../../utils/defaultAvatar';
+
 
 
 const ListAsset = ({ listAsset, loading, refetch }) => {
@@ -136,6 +138,7 @@ const ListAsset = ({ listAsset, loading, refetch }) => {
                 alt="avatar"
                 width="35"
                 height="35"
+                onError={onAvatarError}
               />
             ) : (
               <img
@@ -144,6 +147,7 @@ const ListAsset = ({ listAsset, loading, refetch }) => {
                 alt="avatar"
                 width="20"
                 height="20"
+                onError={onAvatarError}
               />
             ),
           )}

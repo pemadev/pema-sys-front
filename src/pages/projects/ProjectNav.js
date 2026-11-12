@@ -19,6 +19,8 @@ import useAuth from '../../hooks/useAuth';
 import './Project.scss';
 import EditProjectModal from './EditProjectModal';
 import { alert } from '../../components/atoms/Toast';
+import { onAvatarError } from '../../utils/defaultAvatar';
+
 
 const allowedRolesForReview = ['Manager', 'Director'];
 const allowedRolesForBastReview = ['Director'];
@@ -356,6 +358,7 @@ const ProjectNav = ({ navActive, setNavActive, totalReview, totalBastReview }) =
                     alt="avatar"
                     width="35"
                     height="35"
+                    onError={onAvatarError}
                   />
                   {auth?.user.first_name === data?.created_by ? (
                     <div className="action-table">

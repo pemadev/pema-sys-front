@@ -8,6 +8,8 @@ import NoDataYet from '../../components/noDataYet/NoDataYet';
 import FailedInformation from '../../components/failedInformation/FailedInformation';
 import FilterYear from '../../components/filterYear/FilterYear';
 import user1 from '../../assets/images/users/user1.jpg';
+import { onAvatarError } from '../../utils/defaultAvatar';
+
 
 const profileFile = process.env.REACT_APP_HCIS_BE;
 
@@ -79,6 +81,7 @@ const DailyDashboard = () => {
                                   : user1
                               }
                               alt={e.name}
+                              onError={onAvatarError}
                               style={{
                                 width: '32px',
                                 height: '32px',

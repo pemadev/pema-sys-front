@@ -10,6 +10,7 @@ import reportWebVitals from './reportWebVitals';
 import { store } from './store/Store';
 import App from './App';
 import './data';
+import './assets/foto-karyawan.css';
 
 const container = document.getElementById('root');
 const root = ReactDOMClient.createRoot(container);

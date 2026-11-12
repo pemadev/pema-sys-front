@@ -12,6 +12,8 @@ import SkeletonProjectList from '../../components/skeleton/projectList/SkeletonP
 import NoDataYet from '../../components/noDataYet/NoDataYet';
 import FailedInformation from '../../components/failedInformation/FailedInformation';
 import user1 from '../../assets/images/users/user1.jpg';
+import { onAvatarError } from '../../utils/defaultAvatar';
+
 
 const HCIS_URL = process.env.REACT_APP_HCIS_BE;
 
@@ -270,6 +272,7 @@ const ProjectList = () => {
                                 alt="avatar"
                                 width="40"
                                 height="40"
+                                onError={onAvatarError}
                               />
                             </div>
                           </Col>

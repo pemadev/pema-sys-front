@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Members.scss';
 import PropTypes from 'prop-types';
+import { onAvatarError } from '../../../../utils/defaultAvatar';
+
 
 const profileFile = process.env.REACT_APP_HCIS_BE;
 
@@ -26,6 +28,7 @@ const Members = ({ data }) => {
                           <img
                             src={`${profileFile}employee/file?f=photo-profil&id=${member.employe_id}`}
                             alt={member.name}
+                            onError={onAvatarError}
                           />
                         </div>
                         <div className="members-info">
@@ -53,6 +56,7 @@ const Members = ({ data }) => {
             <img
               src={`${profileFile}employee/file?f=photo-profil&id=${member.employe_id}`}
               alt={member.name}
+              onError={onAvatarError}
             />
           </div>
         ))}

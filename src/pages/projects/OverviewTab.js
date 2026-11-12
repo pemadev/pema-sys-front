@@ -28,6 +28,8 @@ import { alert } from '../../components/atoms/Toast';
 import TooltipHover from '../../components/atoms/TooltipHover';
 import IndoDate from '../../utils/IndoDate';
 import rupiah from '../../utils/rupiah';
+import { onAvatarError } from '../../utils/defaultAvatar';
+
 
 const animatedComponents = makeAnimated();
 
@@ -270,6 +272,7 @@ const OverviewTab = () => {
                       alt="avatar"
                       width="45"
                       height="45"
+                      onError={onAvatarError}
                     />
                     <div className="d-flex flex-column">
                       <small className="text-muted">PIC</small>
@@ -346,6 +349,7 @@ const OverviewTab = () => {
                               alt="avatar"
                               width="35"
                               height="35"
+                              onError={onAvatarError}
                             />
                             <TooltipHover title={h.first_name} id={h.history_id.toString()} />
                           </div>
