@@ -20,7 +20,6 @@ const SettingPage = Loadable(lazy(() => import('../pages/setting')));
 /***** Notification ****/
 
 /***** Daily ****/
-// const DailyPageOld = Loadable(lazy(() => import('../pages/daily_old/Daily')));
 const DailyPage = Loadable(lazy(() => import('../pages/daily/Daily')));
 /***** Daily ****/
 
@@ -35,6 +34,7 @@ const SAsset = Loadable(lazy(() => import('../pages/asset/Scan')));
 const Verification = Loadable(lazy(() => import('../pages/Verif/Verification')));
 const SignDocument = Loadable(lazy(() => import('../pages/docusign/SignDocument')));
 const VerifyDocument = Loadable(lazy(() => import('../pages/docusign/VerifyDocument')));
+const StatusAgenda = Loadable(lazy(() => import('../pages/adm/StatusAgenda')));
 /***** Verification****/
 
 /***** SPPD****/
@@ -230,11 +230,6 @@ const ThemeRoutes = [
             name: 'Rapat',
             element: <MeetingPage />,
           },
-          // {
-          //   path: 'daily-old',
-          //   name: 'Daily Old',
-          //   element: <DailyPageOld />,
-          // },
           {
             path: 'daily',
             name: 'Daily',
@@ -483,6 +478,11 @@ const ThemeRoutes = [
     path: '/docusign/verify/:uuid',
     name: 'Docusign Verify',
     element: <VerifyDocument />,
+  },
+  {
+    path: '/adm/agenda/:token',
+    name: 'Status Agenda Surat Masuk',
+    element: <StatusAgenda />,
   },
   // Unauthorized
 ];

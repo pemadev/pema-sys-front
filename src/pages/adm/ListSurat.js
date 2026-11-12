@@ -24,6 +24,7 @@ import Disposisi from "./Layuots/Diposisi";
 import GenerateDispo from "./Fungsi/GenerateDispo";
 import { lebarKolomTombol, terlebar } from "../../utils/lebarTombol";
 import { pasKolom } from "../../utils/lebarKolom";
+import cetakAgenda from "../../utils/cetakAgenda";
 // import { width } from "@mui/system";
 // import { set } from "react-hook-form";
 
@@ -436,6 +437,7 @@ Alasan (boleh kosong):`);
             l.push('Tinjut');
         }
         l.push('Riwayat');
+        l.push('Cetak Agenda');
         if (roles.includes('SuperAdminAdm')) l.push('Delete');
         return l;
     };
@@ -496,6 +498,19 @@ Alasan (boleh kosong):`);
                         onClick={() => openRiwayat(auth.auth.user.roles.includes('SuperAdminAdm') ? row.id : row.id_surat)}
                     />
 
+                    {row.nomor_agenda ? (
+                        <Button
+                            className="me-2"
+                            size="sm"
+                            outline
+                            color="secondary"
+                            tag="input"
+                            type="button"
+                            value="Cetak Agenda"
+                            onClick={() => cetakAgenda(row).then((ok) => ok === false && alert('error', 'Jendela cetak diblokir browser. Izinkan pop-up lalu coba lagi.'))}
+                        />
+                    ) : null}
+
                     {auth.auth.user.roles.includes('SuperAdminAdm') && <Button
                         className="me-2"
                         size="sm"
@@ -522,6 +537,10 @@ Alasan (boleh kosong):`);
             name: 'Pada',
             selector: (row) => formatTanggal(row?.ditinjut, "dddd, DD/MM/YY HH:mm", 'id'),
             omit: status !== 'done'
+        },
+        {
+            name: 'No. Agenda',
+            selector: (row) => row?.nomor_agenda || '-',
         },
         {
             name: 'Nomor',
