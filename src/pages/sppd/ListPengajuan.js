@@ -29,6 +29,8 @@ const ListPengajuan = ({
   const api = useAxios();
   // void SPPD: tandai SPPD yang tidak jadi berangkat (sudah atau belum di-approve) beserta alasannya
   const [voidRow, setVoidRow] = useState(null);
+  // jumlah SPPD perlu void yang peringatannya sudah ditutup; muncul lagi bila jumlahnya bertambah
+  const [peringatanDitutup, setPeringatanDitutup] = useState(0);
   const [alasanVoid, setAlasanVoid] = useState('');
   const [prosesVoid, setProsesVoid] = useState(false);
   const bukaVoid = (row) => {
@@ -270,6 +272,14 @@ const ListPengajuan = ({
       name: 'Nama',
       selector: (row) => row.nama,
     },
+    ...(value === '1'
+      ? [
+          {
+            name: 'Diajukan oleh',
+            selector: (row) => row.first_name,
+          },
+        ]
+      : []),
     {
       name: 'Jabatan',
       selector: (row) => row.jabatan,
@@ -349,8 +359,15 @@ const ListPengajuan = ({
 
   return (
     <>
-      {daftarPerluVoid.length > 0 ? (
-        <Alert color="warning" className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      {daftarPerluVoid.length > 0 && (daftarPerluVoid.length > peringatanDitutup || hanyaPerluVoid) ? (
+        <Alert
+          color="warning"
+          toggle={() => {
+            setPeringatanDitutup(daftarPerluVoid.length);
+            setHanyaPerluVoid(false);
+          }}
+          className="d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
           <div>
             <b>{daftarPerluVoid.length} SPPD</b> sudah lewat tanggal kembali tetapi belum ada realisasi. Jika perjalanan dinas tidak jadi berangkat,
             segera lakukan <b>Void</b> beserta alasannya.

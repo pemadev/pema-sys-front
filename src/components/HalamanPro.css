@@ -562,3 +562,55 @@
 .tampilan-pro .rdt_TableCell > span {
   max-width: 100%;
 }
+
+/* pilihan daftar (segmented control), mis. SPPD yang saya ajukan / yang tim ajukan */
+.tampilan-pro .segmen-pilihan {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px;
+  gap: 4px;
+  background: var(--pro-latar-hover);
+  border: 1px solid var(--pro-garis);
+  border-radius: 12px;
+}
+.tampilan-pro .segmen-pilihan button {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--pro-teks-lembut);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.tampilan-pro .segmen-pilihan button:hover:not(.aktif) {
+  color: var(--pro-teks);
+  background: var(--pro-kartu);
+}
+.tampilan-pro .segmen-pilihan button.aktif {
+  background: var(--pro-kartu);
+  color: var(--pro-aksen);
+  font-weight: 600;
+  box-shadow: var(--pro-bayangan);
+}
+.tampilan-pro .segmen-pilihan button:focus-visible {
+  outline: 2px solid var(--pro-aksen);
+  outline-offset: 1px;
+}
+@media (max-width: 575.98px) {
+  .tampilan-pro .segmen-pilihan {
+    display: flex;
+    width: 100%;
+  }
+  .tampilan-pro .segmen-pilihan button {
+    flex: 1 1 0;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+}

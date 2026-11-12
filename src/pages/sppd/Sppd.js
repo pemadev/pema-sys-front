@@ -53,6 +53,8 @@ const Sppd = () => {
   const [approved, setApproved] = useState();
 
   const [value, setValue] = useState('1');
+  // sub-daftar pada tab PENGAJUAN: 'saya' (yang saya ajukan, default) atau 'tim' (diajukan tim satu divisi)
+  const [subPengajuan, setSubPengajuan] = useState('saya');
   const [editForm, setEditForm] = useState(false);
   const [sppdForm, setSppdForm] = useState(false);
   const [wannaEdit, setWannaEdit] = useState(false);
@@ -195,11 +197,7 @@ const Sppd = () => {
 
   const getData = (val) => {
     if (val === '1') {
-      api.get(`dapi/sppd/pengajuan`).then((res) => {
-        setSubmitted(res.data.data);
-      });
-    } else if (val === '5') {
-      api.get(`dapi/sppd/pengajuan?ref=divisi`).then((res) => {
+      api.get(subPengajuan === 'tim' ? `dapi/sppd/pengajuan?ref=divisi` : `dapi/sppd/pengajuan`).then((res) => {
         setSubmitted(res.data.data);
       });
     } else if (val === '2') {
@@ -229,7 +227,7 @@ const Sppd = () => {
 
   useEffect(() => {
     getData(value);
-  }, [value]);
+  }, [value, subPengajuan]);
 
   // muat ulang daftar tab yang sedang aktif (dipakai setelah void SPPD)
   const refresh = () => getData(value);
@@ -243,8 +241,7 @@ const Sppd = () => {
       setValue('3');
     } else if (hash === '#4') {
       setValue('4');
-    } else if (hash === '#5') {
-      setValue('5');
+
     }
   }, [hash]);
 
@@ -487,23 +484,10 @@ const Sppd = () => {
                     }}
                     color="primary"
                   >
-                    <strong>SPPD YANG SAYA AJUKAN</strong> &nbsp;&nbsp;
+                    <strong>PENGAJUAN</strong> &nbsp;&nbsp;
                   </Badge>
                 }
                 value="1"
-              />
-            ) : (
-              ''
-            )}
-
-            {auth?.user.roles.includes('AdminSPPD') ? (
-              <Tab
-                label={
-                  <Badge badgeContent={0} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} color="primary">
-                    <strong>SPPD DIAJUKAN TIM</strong> &nbsp;&nbsp;
-                  </Badge>
-                }
-                value="5"
               />
             ) : (
               ''
@@ -653,6 +637,28 @@ const Sppd = () => {
           )}
           <Card>
             <CardBody>
+              <div className="segmen-pilihan mb-3" role="tablist" aria-label="Daftar pengajuan SPPD">
+                {[
+                  ['saya', 'SPPD yang saya ajukan'],
+                  ['tim', 'SPPD yang tim ajukan'],
+                ].map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="tab"
+                    aria-selected={subPengajuan === k}
+                    className={subPengajuan === k ? 'aktif' : ''}
+                    onClick={() => {
+                      if (subPengajuan !== k) {
+                        setSubmitted([]);
+                        setSubPengajuan(k);
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <ListPengajuan
                 {...{
                   submitted,
@@ -753,31 +759,6 @@ const Sppd = () => {
                   extend,
                   toggle3
                 }}
-              ></ListPengajuan>
-            </CardBody>
-          </Card>
-        </TabPanel>
-
-        <TabPanel value="5" className="ps-0 pe-0">
-          <Card>
-            <CardBody>
-              <p className="text-muted mb-2">
-                SPPD yang diajukan tim satu divisi dengan Anda, termasuk pengaju yang sudah resign atau pindah divisi (mengikuti divisi terakhirnya).
-              </p>
-              <ListPengajuan
-                {...{
-                  submitted,
-                  refresh,
-                  updateForm,
-                  toggleDetail,
-                  toggleApproval,
-                  toggleLog,
-                  toggleR,
-                  toggleDoc,
-                  extend,
-                  toggle3,
-                }}
-                value="1"
               ></ListPengajuan>
             </CardBody>
           </Card>
