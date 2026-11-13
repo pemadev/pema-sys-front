@@ -7,6 +7,7 @@ import SidebarData from '../sidebardata/HorizontalSidebarData';
 import NavSubItem from './NavSubItem';
 import NavSingleItem from './NavSingleItem';
 import useAuth from '../../../hooks/useAuth';
+import useAxios from '../../../hooks/useAxios';
 
 const HorizontalSidebar = () => {
   const { auth } = useAuth();
@@ -16,6 +17,16 @@ const HorizontalSidebar = () => {
   const isFixed = useSelector((state) => state.customizer.isSidebarFixed);
   const isMobileSidebar = useSelector((state) => state.customizer.isMobileSidebar);
   const [sidebarData, setSidebarData] = useState();
+  const api = useAxios();
+  // menu Atur Renbis hanya untuk PUK divisi Keuangan; server yang menentukan
+  const [aksesRenbis, setAksesRenbis] = useState(false);
+
+  useEffect(() => {
+    api
+      .get('dapi/renbis/akses')
+      .then((res) => setAksesRenbis(!!res.data?.data?.akses))
+      .catch(() => setAksesRenbis(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setSidebarData(SidebarData);
@@ -31,6 +42,8 @@ const HorizontalSidebar = () => {
       <Container>
         <Nav className={activeBg === 'white' ? '' : 'lightText'}>
           {sidebarData?.map((navi) => {
+            if (navi.perluAksesRenbis && !aksesRenbis) return null;
+            if (navi.caption === 'Keuangan' && !aksesRenbis) return null;
             if (navi.caption) {
               return (
                 <div

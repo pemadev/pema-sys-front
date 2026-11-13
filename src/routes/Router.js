@@ -39,6 +39,7 @@ const StatusAgenda = Loadable(lazy(() => import('../pages/adm/StatusAgenda')));
 
 /***** SPPD****/
 const SppdPage = Loadable(lazy(() => import('../pages/sppd')));
+const AturRenbis = Loadable(lazy(() => import('../pages/sppd/AturRenbis')));
 
 /***** Adm****/
 const AdmPage = Loadable(lazy(() => import('../pages/adm')));
@@ -360,6 +361,12 @@ const ThemeRoutes = [
                 element: <AtkReportPage />,
               },
             ],
+          },
+          {
+            // akses dibatasi di server: hanya PUK divisi Keuangan (halaman menampilkan pesan bila ditolak)
+            path: 'atur-renbis',
+            name: 'Atur Renbis',
+            element: <AturRenbis />,
           },
           {
             path: 'pengaturan-dashboard-tv',

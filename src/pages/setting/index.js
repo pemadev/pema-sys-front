@@ -4,11 +4,13 @@ import HalamanPro from '../../components/HalamanPro';
 import RoleUser from './RoleUser';
 import Whatsapp from './Whatsapp';
 import Pengiriman from './Pengiriman';
+import AlurApproval from './AlurApproval';
 
 const TAB = [
   ['role', 'Role & User'],
   ['wa', 'WhatsApp'],
   ['kirim', 'Daftar Notifikasi'],
+  ['alur', 'Alur Approval'],
 ];
 
 // Halaman Setting, hanya untuk role SuperAdmin (dijaga di Router dan di API)
@@ -38,6 +40,7 @@ const Setting = () => {
           {tab === 'role' && <RoleUser />}
           {tab === 'wa' && <Whatsapp />}
           {tab === 'kirim' && <Pengiriman />}
+          {tab === 'alur' && <AlurApproval />}
         </CardBody>
       </Card>
     </HalamanPro>

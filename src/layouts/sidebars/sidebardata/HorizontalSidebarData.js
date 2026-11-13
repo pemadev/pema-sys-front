@@ -65,15 +65,28 @@ const SidebarData = [
   //   allowedRoles: ['Employee'],
   // },
 
-  { caption: 'Asset' },
+  { caption: 'Operasional' },
   {
-    title: 'Asset',
-    href: '/asset ',
+    title: 'Operasional',
     id: 4,
     icon: <MaterialIcon icon="grid_view" />,
-    ddType: 'two-column',
+    // ddType: 'two-column',
     allowedRoles: ['Employee'],
     collapisble: true,
+    children: [
+      {
+        title: 'Kendaraan',
+        href: '/mobil-operational',
+        allowedRoles: ['Employee'],
+        icon: <MaterialIcon icon="directions_car" />,
+      },
+      {
+        title: 'Asset',
+        href: '/asset',
+        allowedRoles: ['Employee'],
+        icon: <MaterialIcon icon="inventory_2" />,
+      },
+    ],
   },
   { caption: 'Vendor' },
   {
@@ -134,16 +147,7 @@ const SidebarData = [
     // ddType: '-column',
     allowedRoles: ['Employee'],
   },
-  { caption: 'Kendaraan' },
   {
-    title: 'Kendaraan',
-    href: '/mobil-operational',
-    id: 8,
-    icon: <MaterialIcon icon="directions_car" />,
-    // ddType: '-column',
-    allowedRoles: ['Employee'],
-  },
-{
     title: 'Kontrak',
     href: '/kontrak',
     id: 12,
@@ -160,6 +164,17 @@ const SidebarData = [
     id: 9,
     icon: <MaterialIcon icon="assignment" />,
     allowedRoles: ['AdminPengajuan', 'ManagerUmum', 'DirekturUmumKeuangan', 'Presdir'],
+  },
+
+  { caption: 'Keuangan' },
+  {
+    // tampil hanya bila server mengizinkan (PUK divisi Keuangan); lihat HorizontalSidebar
+    title: 'Atur Renbis',
+    href: '/atur-renbis',
+    id: 14,
+    icon: <MaterialIcon icon="account_balance_wallet" />,
+    allowedRoles: ['Employee'],
+    perluAksesRenbis: true,
   },
 
   { caption: 'Report' },
