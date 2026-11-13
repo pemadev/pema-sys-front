@@ -6,6 +6,7 @@ import RoleUser from './RoleUser';
 import Whatsapp from './Whatsapp';
 import Pengiriman from './Pengiriman';
 import AlurApproval from './AlurApproval';
+import BiayaSppd from './BiayaSppd';
 
 // Halaman yang dipilih dari menu dropdown Setting di sidebar (/setting/:tab)
 const HALAMAN = {
@@ -13,6 +14,7 @@ const HALAMAN = {
   wa: { judul: 'WhatsApp', Komponen: Whatsapp },
   kirim: { judul: 'Daftar Notifikasi', Komponen: Pengiriman },
   alur: { judul: 'Alur Approval', Komponen: AlurApproval },
+  biaya: { judul: 'Biaya & Ketetapan SPPD', Komponen: BiayaSppd },
 };
 
 // Halaman Setting, hanya untuk role SuperAdmin (dijaga di Router dan di API)

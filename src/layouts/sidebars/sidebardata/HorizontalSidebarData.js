@@ -205,6 +205,7 @@ const SidebarData = [
       { title: 'WhatsApp', href: '/setting/wa', icon: <MaterialIcon icon="chat" />, allowedRoles: ['SuperAdmin'] },
       { title: 'Daftar Notifikasi', href: '/setting/kirim', icon: <MaterialIcon icon="notifications" />, allowedRoles: ['SuperAdmin'] },
       { title: 'Alur Approval', href: '/setting/alur', icon: <MaterialIcon icon="account_tree" />, allowedRoles: ['SuperAdmin'] },
+      { title: 'Biaya & Ketetapan SPPD', href: '/setting/biaya', icon: <MaterialIcon icon="payments" />, allowedRoles: ['SuperAdmin'] },
     ],
   },
 
