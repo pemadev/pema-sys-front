@@ -3,14 +3,25 @@
 // file tersimpan langsung dipakai tanpa membuat ulang PDF di browser.
 const SILENT_REASONS = ['step_not_approved', 'no_signature'];
 
-const openSignedPdf = (api, pdfMake, docDefinition, sppdId, type, kind = '') => {
-  const win = window.open('', '_blank');
+// opsi.namaFile: unduh langsung sebagai file dengan nama itu (tanpa membuka tab); opsi.selesai: dipanggil setelah selesai atau gagal
+const openSignedPdf = (api, pdfMake, docDefinition, sppdId, type, kind = '', opsi = {}) => {
+  const unduh = !!opsi.namaFile;
+  const win = unduh ? null : window.open('', '_blank');
   const url = `dapi/sppd/pengajuan/sign-pdf/${sppdId}`;
 
   const show = (base64) => {
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     const blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    if (win) {
+    if (unduh) {
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = opsi.namaFile;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      if (opsi.selesai) opsi.selesai();
+    } else if (win) {
       win.location.href = blobUrl;
     } else {
       window.open(blobUrl);

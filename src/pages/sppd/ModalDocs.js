@@ -28,7 +28,8 @@ pdfMake.fonts = {
   },
 };
 
-const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
+// namaUnduh: bila diisi, surat tugas (ST) langsung dibuat dan diunduh dengan nama file itu, lalu selesaiUnduh dipanggil (dipakai Rekap SPPD)
+const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh }) => {
   const baseURL = process.env.REACT_APP_FRONTEND;
 
   const baseURL1 = process.env.REACT_APP_BASEURL;
@@ -44,6 +45,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
   const qrCodeRef = useRef();
   const qrCodeRef2 = useRef();
   const kindRef = useRef('');
+  const unduhJalan = useRef(false);
 
   useEffect(() => {
     if (modalDoc && sppdDetail) {
@@ -170,7 +172,8 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         },
       },
     };
-    openSignedPdf(api, pdfMake, docDefinition, sppdDetail?.id, ts, kindRef.current);
+    const unduhST = kindRef.current === 'ST' && namaUnduh;
+    openSignedPdf(api, pdfMake, docDefinition, sppdDetail?.id, ts, kindRef.current, unduhST ? { namaFile: namaUnduh, selesai: selesaiUnduh } : {});
   };
 
   const print2 = (html, orientationPage, head, foot, lebar, l, t, r, b, ts, ts2) => {
@@ -1149,6 +1152,54 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
     }, 2000);
   };
 
+  // mode unduh ST (Rekap SPPD): begitu detail SPPD termuat, ST dibuat dan diunduh otomatis satu kali
+  useEffect(() => {
+    if (!modalDoc || !namaUnduh) {
+      unduhJalan.current = false;
+      return;
+    }
+    if (detailSppd && !unduhJalan.current) {
+      unduhJalan.current = true;
+      printST();
+    }
+  }, [modalDoc, namaUnduh, detailSppd]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // kode QR dipakai saat membuat PDF; dirender tersembunyi
+  const qrBlok = (
+    <>
+        <div ref={qrCodeRef} style={{ display: 'none' }}>
+            <QRCode
+              value={`${baseURL}verification/${detailSppd?.nomor_dokumen}?type=${typeSign}`}
+              size={400}
+              qrStyle="dots"
+              logoImage={logo} // Ganti dengan URL logo kamu
+              logoWidth={100}
+              logoHeight={100}
+              eyeRadius={20}
+              fgColor="#0F52BA"
+            />
+          </div>
+  
+          <div ref={qrCodeRef2} style={{ display: 'none' }}>
+            <QRCode
+              value={`${baseURL}verification/${detailSppd?.nomor_dokumen}?type=${typeSign2}`}
+              size={400}
+              qrStyle="dots"
+              logoImage={logo} // Ganti dengan URL logo kamu
+              logoWidth={100}
+              logoHeight={100}
+              eyeRadius={20}
+              fgColor="#0F52BA"
+            />
+          </div>
+      </>
+  );
+
+  // mode unduh ST: tanpa membuka jendela modal, hanya kode QR tersembunyi yang dibutuhkan pembuat PDF
+  if (namaUnduh) {
+    return modalDoc ? qrBlok : null;
+  }
+
   return (
     <Modal isOpen={modalDoc} toggle={toggleDoc} size="xl" className="modal1" centered>
       <ModalHeader toggle={toggleDoc}>Cetak Dokumen SPPD</ModalHeader>
@@ -1156,31 +1207,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail }) => {
         {loading ? (
           <Alert color="success">Silakan Tunggu, Dokumen sedang diproses . . . . </Alert>
         ) : null}
-        <div ref={qrCodeRef} style={{ display: 'none' }}>
-          <QRCode
-            value={`${baseURL}verification/${detailSppd?.nomor_dokumen}?type=${typeSign}`}
-            size={400}
-            qrStyle="dots"
-            logoImage={logo} // Ganti dengan URL logo kamu
-            logoWidth={100}
-            logoHeight={100}
-            eyeRadius={20}
-            fgColor="#0F52BA"
-          />
-        </div>
-
-        <div ref={qrCodeRef2} style={{ display: 'none' }}>
-          <QRCode
-            value={`${baseURL}verification/${detailSppd?.nomor_dokumen}?type=${typeSign2}`}
-            size={400}
-            qrStyle="dots"
-            logoImage={logo} // Ganti dengan URL logo kamu
-            logoWidth={100}
-            logoHeight={100}
-            eyeRadius={20}
-            fgColor="#0F52BA"
-          />
-        </div>
+        {qrBlok}
         <Row className="mt-2 d-flex justify-content-center">
           {/* <Col md={3}>
             <Card className="  mx-sm-1 p-3 col-card border border-info" onClick={detailSppd ? printPengajuan : null}>
@@ -1401,6 +1428,13 @@ ModalDocs.propTypes = {
   modalDoc: PropTypes.bool,
   toggleDoc: PropTypes.func,
   sppdDetail: PropTypes.object,
+  namaUnduh: PropTypes.string,
+  selesaiUnduh: PropTypes.func,
+};
+
+ModalDocs.defaultProps = {
+  namaUnduh: '',
+  selesaiUnduh: undefined,
 };
 
 export default ModalDocs;

@@ -29,6 +29,7 @@ import ModalDocs from './ModalDocs';
 import ModalRealisasi from './ModalRealisasi';
 import ListApproved from './ListApproved';
 import DashboardDirek from './DashboardDirek';
+import RekapSppd from './RekapSppd';
 import ModalExtend from './ModalExtend';
 import Modal30 from './Modal30';
 
@@ -559,6 +560,11 @@ const Sppd = () => {
             ) : (
               ''
             )}
+            {['AdminSPPD', 'UmumSppd', 'KeuanganSppd', 'Director'].some((r) => auth?.user.roles.includes(r)) ? (
+              <Tab label={<strong>REKAP SPPD</strong>} value="5" />
+            ) : (
+              ''
+            )}
           </TabList>
         </Card>
 
@@ -760,6 +766,14 @@ const Sppd = () => {
                   toggle3
                 }}
               ></ListPengajuan>
+            </CardBody>
+          </Card>
+        </TabPanel>
+
+        <TabPanel value="5" className="ps-0 pe-0">
+          <Card>
+            <CardBody>
+              <RekapSppd />
             </CardBody>
           </Card>
         </TabPanel>
