@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { Modal, ModalHeader, ModalBody, FormGroup, Label, Row, Col, Input } from 'reactstrap';
+import { Modal, ModalHeader, ModalBody, FormGroup, Label, Row, Col, Input, Alert, Button } from 'reactstrap';
 import { useEffect, useState } from 'react';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -32,6 +32,9 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
   const [submitting, setSubmitting] = useState(false);
   const [mulai, setMulai] = useState(null);
   const [hingga, setHingga] = useState(null);
+  const [pelaksana, setPelaksana] = useState(null); // info pelaksana tujuan terpilih (bukan karyawan => approval lewat email)
+  const [email, setEmail] = useState('');
+  const [tertunda, setTertunda] = useState([]); // klaim pelaksana non-karyawan yang masih menunggu persetujuan
 
   const handleSubmitAction = async () => {
     if (!sppdDetail?.id) {
@@ -50,6 +53,13 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
     // include tanggal mulai dan berakhir
     payload.start_date = mulai.format('YYYY-MM-DD');
     payload.end_date = hingga.format('YYYY-MM-DD');
+    if (pelaksana?.tamu) {
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        alert('error', 'Isi email pelaksana yang valid untuk permintaan persetujuan');
+        return;
+      }
+      payload.email = email.trim();
+    }
     setSubmitting(true);
     console.log('payload 30%', payload);
     try {
@@ -80,16 +90,52 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
   // };
 
   // single select change handler
-  const handleSelectChange = (e) => setTujuan(e.target.value);
+  const handleSelectChange = (e) => {
+    setTujuan(e.target.value);
+    setPelaksana(null);
+    if (e.target.value) {
+      api.get(`dapi/sppd/tiga-puluh/${e.target.value}/pelaksana`).then((res) => setPelaksana(res.data.data)).catch(() => setPelaksana(null));
+    }
+  };
+
+  const kirimUlang = async (id, emailTujuan) => {
+    // eslint-disable-next-line no-alert
+    const alamat = window.prompt('Kirim permintaan persetujuan ke email:', emailTujuan || '');
+    if (!alamat) return;
+    try {
+      const res = await api.post(`dapi/sppd/tiga-puluh/${id}/kirim`, { email: alamat.trim() });
+      alert('success', res?.data?.message || 'Terkirim');
+    } catch (err) {
+      alert('error', err?.response?.data?.message || 'Gagal mengirim');
+    }
+  };
+
+  const tandaiManual = async (id) => {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm('Catat bahwa pelaksana sudah menandatangani secara manual?')) return;
+    try {
+      const res = await api.post(`dapi/sppd/tiga-puluh/${id}/manual`);
+      alert('success', res?.data?.message || 'Tercatat');
+      setTertunda((prev) => prev.filter((x) => x.id !== id));
+    } catch (err) {
+      alert('error', err?.response?.data?.message || 'Gagal mencatat');
+    }
+  };
 
   useEffect(() => {
     if (modal3 && sppdDetail?.id) {
       api.get(`dapi/sppd/tujuan/${sppdDetail.id}`).then((res) => {
-        setDetailSppd(res.data.data || []);
-        console.log('detail tujuan sppd modal 30%', res.data.data || []);
+        const daftar = res.data.data || [];
+        setDetailSppd(daftar);
+        // klaim yang sudah diajukan: tampilkan yang pelaksananya bukan karyawan dan belum menjawab
+        Promise.all(daftar.filter((d) => d?.tigapuluh != null).map((d) => api.get(`dapi/sppd/tiga-puluh/${d.id}/pelaksana`).then((r) => ({ id: d.id, nama: d.detail_tujuan, ...r.data.data })).catch(() => null)))
+          .then((hasil) => setTertunda(hasil.filter((x) => x && x.tamu && !x.dipakai_at)));
       });
     } else {
       setDetailSppd([]);
+      setTertunda([]);
+      setPelaksana(null);
+      setEmail('');
     }
   }, [modal3, sppdDetail]);
   //  console.log('sppdDetail modal 30%', sppdDetail);
@@ -167,6 +213,31 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
               </LocalizationProvider>
             </div>
         </FormGroup>
+        {pelaksana?.tamu && (
+          <Alert color="info" className="mt-2">
+            <div>
+              Pelaksana bukan karyawan: <b>{pelaksana.nama}</b>{pelaksana.jabatan ? `, ${pelaksana.jabatan}` : ''}. Persetujuannya dikirim lewat email.
+            </div>
+            <Input className="mt-2" type="email" placeholder="Email pelaksana" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Alert>
+        )}
+        {tertunda.length > 0 && (
+          <div className="mt-3">
+            <Label>Menunggu persetujuan pelaksana</Label>
+            {tertunda.map((x) => (
+              <div key={x.id} className="d-flex justify-content-between align-items-center border rounded p-2 mb-1 flex-wrap gap-2">
+                <small>
+                  <b>{x.nama}</b> — {x.jabatan || ''}
+                  {x.email ? ` (${x.email})` : ' (email belum dikirim)'}
+                </small>
+                <span className="d-flex gap-1">
+                  <Button size="sm" outline color="primary" onClick={() => kirimUlang(x.id, x.email)}>Kirim ulang email</Button>
+                  <Button size="sm" outline color="secondary" onClick={() => tandaiManual(x.id)}>Tanda tangan manual</Button>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="d-flex justify-content-end mt-3">
           <button
             type="button"

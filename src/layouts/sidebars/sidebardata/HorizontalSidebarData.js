@@ -196,11 +196,16 @@ const SidebarData = [
 
   {
     title: 'Setting',
-    href: '/setting',
     id: 13,
     icon: <MaterialIcon icon="settings" />,
-    collapisble: false,
+    collapisble: true,
     allowedRoles: ['SuperAdmin'],
+    children: [
+      { title: 'Role & User', href: '/setting/role', icon: <MaterialIcon icon="manage_accounts" />, allowedRoles: ['SuperAdmin'] },
+      { title: 'WhatsApp', href: '/setting/wa', icon: <MaterialIcon icon="chat" />, allowedRoles: ['SuperAdmin'] },
+      { title: 'Daftar Notifikasi', href: '/setting/kirim', icon: <MaterialIcon icon="notifications" />, allowedRoles: ['SuperAdmin'] },
+      { title: 'Alur Approval', href: '/setting/alur', icon: <MaterialIcon icon="account_tree" />, allowedRoles: ['SuperAdmin'] },
+    ],
   },
 
   // { caption: 'Manual Book' },

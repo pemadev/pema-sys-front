@@ -63,8 +63,7 @@ const MODUL = {
 
 // alur tambahan SPPD (diatur di AlurTambahan): realisasi, klaim hotel 30% dan penambahan hari
 const TAMBAHAN = {
-  real_baru: { judul: 'Realisasi (baru)' },
-  real_ubah: { judul: 'Realisasi (diubah)' },
+  real_baru: { judul: 'Realisasi' },
   hotel30: { judul: 'Hotel 30%' },
   tambah_hari: { judul: 'Tambah hari' },
 };

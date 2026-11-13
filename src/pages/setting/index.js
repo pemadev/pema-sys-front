@@ -1,46 +1,33 @@
-import React, { useState } from 'react';
-import { Card, CardBody, Nav, NavItem, NavLink } from 'reactstrap';
+import React from 'react';
+import { Navigate, useParams } from 'react-router-dom';
+import { Card, CardBody } from 'reactstrap';
 import HalamanPro from '../../components/HalamanPro';
 import RoleUser from './RoleUser';
 import Whatsapp from './Whatsapp';
 import Pengiriman from './Pengiriman';
 import AlurApproval from './AlurApproval';
 
-const TAB = [
-  ['role', 'Role & User'],
-  ['wa', 'WhatsApp'],
-  ['kirim', 'Daftar Notifikasi'],
-  ['alur', 'Alur Approval'],
-];
+// Halaman yang dipilih dari menu dropdown Setting di sidebar (/setting/:tab)
+const HALAMAN = {
+  role: { judul: 'Role & User', Komponen: RoleUser },
+  wa: { judul: 'WhatsApp', Komponen: Whatsapp },
+  kirim: { judul: 'Daftar Notifikasi', Komponen: Pengiriman },
+  alur: { judul: 'Alur Approval', Komponen: AlurApproval },
+};
 
 // Halaman Setting, hanya untuk role SuperAdmin (dijaga di Router dan di API)
 const Setting = () => {
-  const [tab, setTab] = useState('role');
+  const { tab } = useParams();
+  if (!tab) return <Navigate to="/setting/role" replace />;
+  const h = HALAMAN[tab];
+  if (!h) return <Navigate to="/setting/role" replace />;
+  const { Komponen } = h;
 
   return (
-    <HalamanPro judul="Setting" keterangan="Kelola role pengguna, status WhatsApp dan pengiriman notifikasi">
+    <HalamanPro judul={`Setting: ${h.judul}`} keterangan="Kelola role pengguna, status WhatsApp, pengiriman notifikasi dan alur approval">
       <Card>
         <CardBody>
-          <Nav tabs className="mb-4">
-            {TAB.map(([kode, label]) => (
-              <NavItem key={kode}>
-                <NavLink
-                  href="#"
-                  active={tab === kode}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setTab(kode);
-                  }}
-                >
-                  {label}
-                </NavLink>
-              </NavItem>
-            ))}
-          </Nav>
-          {tab === 'role' && <RoleUser />}
-          {tab === 'wa' && <Whatsapp />}
-          {tab === 'kirim' && <Pengiriman />}
-          {tab === 'alur' && <AlurApproval />}
+          <Komponen />
         </CardBody>
       </Card>
     </HalamanPro>

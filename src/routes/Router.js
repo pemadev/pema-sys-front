@@ -33,6 +33,7 @@ const SAsset = Loadable(lazy(() => import('../pages/asset/Scan')));
 
 const Verification = Loadable(lazy(() => import('../pages/Verif/Verification')));
 const SignDocument = Loadable(lazy(() => import('../pages/docusign/SignDocument')));
+const PersetujuanHotel30 = Loadable(lazy(() => import('../pages/sppd/PersetujuanHotel30')));
 const VerifyDocument = Loadable(lazy(() => import('../pages/docusign/VerifyDocument')));
 const StatusAgenda = Loadable(lazy(() => import('../pages/adm/StatusAgenda')));
 /***** Verification****/
@@ -190,6 +191,11 @@ const ThemeRoutes = [
             children: [
               {
                 path: '',
+                name: 'Setting',
+                element: <SettingPage />,
+              },
+              {
+                path: ':tab',
                 name: 'Setting',
                 element: <SettingPage />,
               },
@@ -480,6 +486,11 @@ const ThemeRoutes = [
     path: '/docusign/sign/:token',
     name: 'Docusign Sign',
     element: <SignDocument />,
+  },
+  {
+    path: '/sppd/hotel30/:token',
+    name: 'Persetujuan Hotel 30%',
+    element: <PersetujuanHotel30 />,
   },
   {
     path: '/docusign/verify/:uuid',

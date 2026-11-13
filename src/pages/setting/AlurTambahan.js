@@ -23,8 +23,7 @@ const SUMBER = [
 ];
 
 const KET = {
-  real_baru: 'Dipakai saat pegawai mengajukan laporan realisasi SPPD yang baru. Langkah realisasi lama dihapus, lalu langkah di bawah ditambahkan setelah langkah terakhir dokumen.',
-  real_ubah: 'Dipakai saat laporan realisasi SPPD diperbarui. Langkah realisasi lama dihapus, lalu langkah di bawah ditambahkan setelah langkah terakhir dokumen.',
+  real_baru: 'Dipakai saat laporan realisasi SPPD diajukan dan saat diperbarui (satu aturan untuk keduanya). Langkah realisasi lama dihapus, lalu langkah di bawah ditambahkan setelah langkah terakhir dokumen.',
   hotel30: 'Dipakai saat pegawai mengajukan klaim biaya hotel 30%. Langkah di bawah ditambahkan setelah langkah terakhir dokumen SPPD.',
   tambah_hari: 'Dipakai saat pegawai mengajukan penambahan hari SPPD. Langkah lama dihapus, lalu langkah di bawah ditambahkan setelah langkah terakhir dokumen.',
 };
