@@ -1,0 +1,346 @@
+// Widget pesan: tombol melayang tepat di atas tombol notifikasi (bell-container, bawah-kanan)
+.cw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.096);
+  backdrop-filter: blur(1px);
+}
+
+.cw {
+  --cw-border: rgba(128, 138, 155, 0.22);
+  --cw-soft: rgba(128, 138, 155, 0.1);
+  --cw-muted: #8a93a2;
+  --cw-hijau: #2ea043;
+  --cw-biru: #1976d2;
+
+  position: fixed;
+  bottom: 92px; // 20px (jarak bell) + 60px (tinggi bell) + 12px (celah)
+  right: 30px;
+  z-index: 10;
+
+  &-tombol {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border: 0;
+    padding: 0;
+    border-radius: 50%;
+    background-color: #b9e8c469;
+    cursor: pointer;
+    transition: all 300ms ease;
+    &:hover {
+      background-color: #8fd9a269;
+    }
+    i {
+      font-size: 30px;
+      color: var(--cw-hijau);
+      user-select: none;
+    }
+    .total {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 20px;
+      min-height: 20px;
+      padding: 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 99px;
+      border: 1px solid #fff;
+      background: var(--cw-hijau);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      &.belum {
+        background: #fc4b6c;
+      }
+    }
+  }
+
+  &-panel {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 390px;
+    max-width: calc(100vw - 32px);
+    height: min(560px, 72vh);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    color: #333;
+    border-radius: 14px;
+    box-shadow: 1px 5px 15px -1px rgba(120, 120, 120, 0.4);
+    overflow: hidden;
+    animation: cw-muncul 250ms ease;
+  }
+
+  &-kepala {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--cw-border);
+    h6 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    small {
+      color: var(--cw-muted);
+      font-size: 12px;
+    }
+    &__isi {
+      flex: 1;
+      min-width: 0;
+    }
+    button {
+      border: 0;
+      background: transparent;
+      color: var(--cw-muted);
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 8px;
+      &:hover {
+        color: #333;
+        background: var(--cw-soft);
+      }
+    }
+  }
+
+  &-cari {
+    padding: 10px 14px;
+    input {
+      width: 100%;
+      border: 1px solid rgba(128, 138, 155, 0.3);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      &:focus {
+        border-color: var(--cw-hijau);
+      }
+    }
+  }
+
+  &-daftar {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 10px;
+  }
+
+  &-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    &:hover {
+      background: var(--cw-soft);
+    }
+    &__isi {
+      flex: 1;
+      min-width: 0;
+      strong {
+        display: block;
+        font-size: 13.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      span {
+        display: block;
+        font-size: 12px;
+        color: var(--cw-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .online {
+        color: var(--cw-hijau);
+        font-weight: 600;
+      }
+    }
+    &__aksi {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
+      .belum {
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 99px;
+        background: #fc4b6c;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+      button {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(46, 160, 67, 0.12);
+        color: var(--cw-hijau);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        &:hover {
+          background: rgba(46, 160, 67, 0.22);
+        }
+        i {
+          font-size: 18px;
+        }
+      }
+    }
+  }
+
+  &-foto {
+    position: relative;
+    flex: none;
+    img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    &.kecil img {
+      width: 34px;
+      height: 34px;
+    }
+    .titik {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--cw-hijau);
+      border: 2px solid #fff;
+    }
+  }
+
+  &-kosong {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--cw-muted);
+    font-size: 13px;
+  }
+
+  // percakapan
+  &-pesan {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(128, 138, 155, 0.06);
+  }
+  &-gelembung {
+    max-width: 78%;
+    padding: 8px 12px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #fff;
+    border: 1px solid var(--cw-border);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    small {
+      display: block;
+      margin-top: 2px;
+      font-size: 10.5px;
+      opacity: 0.65;
+      text-align: right;
+    }
+    &.saya {
+      align-self: flex-end;
+      background: var(--cw-biru);
+      border-color: var(--cw-biru);
+      color: #fff;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 4px;
+    }
+  }
+  &-hari {
+    align-self: center;
+    font-size: 11px;
+    color: var(--cw-muted);
+    background: var(--cw-soft);
+    padding: 2px 10px;
+    border-radius: 99px;
+    margin: 6px 0 2px;
+  }
+  &-tulis {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    padding: 10px 12px;
+    border-top: 1px solid var(--cw-border);
+    textarea {
+      flex: 1;
+      resize: none;
+      max-height: 110px;
+      border: 1px solid rgba(128, 138, 155, 0.3);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 13.5px;
+      outline: none;
+      &:focus {
+        border-color: var(--cw-hijau);
+      }
+    }
+    button {
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border: 0;
+      border-radius: 50%;
+      background: var(--cw-hijau);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      i {
+        font-size: 20px;
+      }
+    }
+  }
+
+  @keyframes cw-muncul {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media screen and (max-width: 768px) {
+    right: 16px;
+    &-panel {
+      width: calc(100vw - 32px);
+      height: min(560px, 75vh);
+    }
+  }
+}

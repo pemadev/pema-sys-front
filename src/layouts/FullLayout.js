@@ -10,6 +10,7 @@ import Sidebar from './sidebars/vertical/Sidebar';
 import HorizontalHeader from './header/HorizontalHeader';
 import HorizontalSidebar from './sidebars/horizontal/HorizontalSidebar';
 import NotificationP from './notification/NotificationP';
+import ChatWidget from '../components/chat/ChatWidget';
 import PengingatKeamanan from '../components/PengingatKeamanan';
 
 const FullLayout = () => {
@@ -43,6 +44,7 @@ const FullLayout = () => {
             {LayoutHorizontal ? <HorizontalSidebar /> : ''}
             {/********Middle Content**********/}
             <NotificationP />
+            <ChatWidget />
             <PengingatKeamanan />
             <Container fluid className="p-4 boxContainer">
               <div className={isFixedSidebar && LayoutHorizontal ? 'HsidebarFixed' : ''}>
