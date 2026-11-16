@@ -40,6 +40,13 @@
       color: var(--cw-hijau);
       user-select: none;
     }
+    &.ada-pesan {
+      background-color: #ffd3dc99;
+      animation: cw-denyut 1.8s ease-in-out infinite;
+      i {
+        color: #fc4b6c;
+      }
+    }
     .total {
       position: absolute;
       top: 2px;
@@ -135,6 +142,16 @@
     padding: 0 8px 10px;
   }
 
+  &-user.belum-dibaca {
+    background: rgba(252, 75, 108, 0.07);
+    strong {
+      font-weight: 800;
+    }
+    &:hover {
+      background: rgba(252, 75, 108, 0.12);
+    }
+  }
+
   &-user {
     display: flex;
     align-items: center;
@@ -174,16 +191,19 @@
       gap: 6px;
       flex: none;
       .belum {
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        height: 22px;
+        padding: 0 8px 0 6px;
         border-radius: 99px;
         background: #fc4b6c;
         color: #fff;
         font-size: 11px;
         font-weight: 700;
-        display: grid;
-        place-items: center;
+        i {
+          font-size: 14px;
+        }
       }
       button {
         width: 34px;
@@ -322,6 +342,141 @@
       i {
         font-size: 20px;
       }
+    }
+  }
+
+  // aktivasi / buka kunci
+  &-kunci {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px;
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+    }
+    &__ikon {
+      align-self: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(46, 160, 67, 0.14);
+      color: var(--cw-hijau);
+      i {
+        font-size: 28px;
+      }
+    }
+    &__peringatan {
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(240, 160, 32, 0.14);
+      color: #8a5a00;
+    }
+    &__isi {
+      position: relative;
+      input {
+        width: 100%;
+        border: 1px solid rgba(128, 138, 155, 0.3);
+        border-radius: 10px;
+        padding: 9px 40px 9px 12px;
+        font-size: 13.5px;
+        outline: none;
+        &:focus {
+          border-color: var(--cw-hijau);
+        }
+      }
+      button {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        color: var(--cw-muted);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        i {
+          font-size: 20px;
+        }
+      }
+    }
+    &__galat {
+      font-size: 12.5px;
+      color: #dc3545;
+    }
+    &__tombol {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--cw-hijau);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      &:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+    }
+    &__tautan {
+      border: 0;
+      background: transparent;
+      color: var(--cw-muted);
+      font-size: 12.5px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+
+  // nomor keamanan dan galat kirim
+  &-nomor {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: rgba(25, 118, 210, 0.07);
+    border-bottom: 1px solid var(--cw-border);
+    font-size: 12px;
+    code {
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      word-spacing: 6px;
+      color: #1976d2;
+    }
+    span {
+      color: var(--cw-muted);
+    }
+  }
+  &-galat {
+    padding: 6px 14px;
+    font-size: 12.5px;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.07);
+  }
+
+  &-user__aksi button.nonaktif {
+    background: var(--cw-soft);
+    color: var(--cw-muted);
+  }
+  &-gelembung.rusak {
+    font-style: italic;
+    opacity: 0.75;
+  }
+
+  @keyframes cw-denyut {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(252, 75, 108, 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 9px rgba(252, 75, 108, 0);
     }
   }
 

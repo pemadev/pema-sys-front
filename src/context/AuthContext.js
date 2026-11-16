@@ -1,5 +1,6 @@
 import React, { createContext, useReducer, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { hapusSemuaKunciLokal } from '../utils/chatCrypto';
 
 const INITIAL_STATE = {
   auth: JSON.parse(localStorage.getItem('auth')) || null,
@@ -53,6 +54,8 @@ export const AuthContextProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('auth', JSON.stringify(state.auth));
+    // logout: kunci pesan di browser ini ikut dihapus (aman untuk komputer bersama)
+    if (!state.auth) hapusSemuaKunciLokal();
   }, [state.auth]);
 
   return (
