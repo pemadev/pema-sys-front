@@ -17,6 +17,11 @@ const bacaAuth = () => {
 // perpanjang token secepatnya sebelum habis (batas 60 detik)
 const BATAS_PERPANJANG_MS = 60 * 1000;
 
+// 401 karena sesi sudah tidak sah (token lama, perangkat dikeluarkan, password diganti, akun nonaktif);
+// 401 "Unauthorized!" artinya hanya tidak punya hak akses, bukan sesi habis
+const SESI_TIDAK_SAH = /Sesi|Unauthenticated|deactivated/i;
+let sedangKeluar = false;
+
 // satu permintaan refresh dipakai bersama oleh semua request yang berjalan bersamaan
 let sedangRefresh = null;
 
@@ -84,6 +89,27 @@ const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
     },
     (error) => {
       Promise.reject(error);
+    },
+  );
+
+  // server menolak token (mis. sesi dikeluarkan dari Kelola Akses atau token lama): langsung ke halaman login
+  newRequest.interceptors.response.use(
+    (res) => res,
+    (error) => {
+      const pesan = error?.response?.data?.message;
+      if (error?.response?.status === 401 && typeof pesan === 'string' && SESI_TIDAK_SAH.test(pesan) && !sedangKeluar) {
+        sedangKeluar = true;
+        setTimeout(() => {
+          sedangKeluar = false;
+        }, 3000);
+        dispatch({ type: 'LOGOUT' });
+        const { pathname, search, hash } = window.location;
+        navigate(
+          '/auth/login',
+          pathname.startsWith('/auth') ? undefined : { state: { from: `${pathname}${search}${hash}` } },
+        );
+      }
+      return Promise.reject(error);
     },
   );
 

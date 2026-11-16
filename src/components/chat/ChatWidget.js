@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import MaterialIcon from '@material/react-material-icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import toast from 'react-hot-toast';
 import useAxios from '../../hooks/useAxios';
 import { fotoKaryawan, onAvatarError } from '../../utils/defaultAvatar';
 import './ChatWidget.scss';
@@ -169,6 +170,71 @@ const ChatWidget = () => {
     queryFn: () => api.get('api/chat/users').then((res) => res.data),
   });
 
+  // ringkasan pesan belum dibaca: lebih ringan dari daftar user, jadi dicek lebih sering untuk lencana dan notifikasi
+  const { data: unread } = useQuery({
+    queryKey: ['chat-unread'],
+    refetchInterval: 8000,
+    queryFn: () => api.get('api/chat/unread').then((res) => res.data),
+  });
+  const qc = useQueryClient();
+  const sudahTahu = useRef(null); // user_id -> id pesan terakhir yang sudah dinotifikasikan
+  const bukaRef = useRef({ buka: false, tujuanId: null });
+  bukaRef.current = { buka, tujuanId };
+
+  // notifikasi pesan baru per pengirim; pesan yang sudah ada saat pertama dimuat hanya diringkas satu kali
+  useEffect(() => {
+    if (!unread) return;
+    const baris = unread.data || [];
+    if (sudahTahu.current === null) {
+      sudahTahu.current = {};
+      baris.forEach((b) => {
+        sudahTahu.current[b.user_id] = b.terakhir_id;
+      });
+      if (unread.total > 0) {
+        toast(`Anda punya ${unread.total} pesan belum dibaca`, { icon: '💬', duration: 5000 });
+      }
+      return;
+    }
+    let berubah = false;
+    baris.forEach((b) => {
+      if ((sudahTahu.current[b.user_id] || 0) < b.terakhir_id) {
+        sudahTahu.current[b.user_id] = b.terakhir_id;
+        berubah = true;
+        const { buka: terbuka, tujuanId: aktifId } = bukaRef.current;
+        // percakapan dengan pengirim ini sedang terbuka: tidak perlu notifikasi
+        if (terbuka && aktifId === b.user_id) return;
+        toast.custom(
+          (t) => (
+            <div
+              className="cw-toast"
+              role="button"
+              tabIndex={0}
+              style={{ opacity: t.visible ? 1 : 0 }}
+              onClick={() => {
+                toast.dismiss(t.id);
+                setBuka(true);
+                setTujuanId(b.user_id);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+            >
+              <img src={fotoKaryawan(b.employe_id)} alt={b.nama} onError={onAvatarError} />
+              <div>
+                <strong>{b.nama}</strong>
+                <span>{b.pesan_terakhir}</span>
+              </div>
+            </div>
+          ),
+          { duration: 6000 },
+        );
+      }
+    });
+    // pesan yang sudah dibaca dikeluarkan dari catatan agar pesan baru berikutnya tetap memicu notifikasi
+    Object.keys(sudahTahu.current).forEach((k) => {
+      if (!baris.some((b) => String(b.user_id) === k)) delete sudahTahu.current[k];
+    });
+    if (berubah) qc.invalidateQueries({ queryKey: ['chat-users'] });
+  }, [unread]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const semua = data?.data || [];
   const daftar = semua.filter((u) =>
     `${u.nama} ${u.divisi || ''} ${u.jabatan || ''}`.toLowerCase().includes(cari.toLowerCase()),
@@ -181,7 +247,7 @@ const ChatWidget = () => {
     setTujuanId(null);
   };
 
-  const belum = data?.belum_dibaca || 0;
+  const belum = unread?.total ?? data?.belum_dibaca ?? 0;
 
   return (
     <>
@@ -252,7 +318,7 @@ const ChatWidget = () => {
         )}
         <button type="button" className="cw-tombol" onClick={() => (buka ? tutup() : setBuka(true))} aria-label="Pesan">
           <MaterialIcon icon="chat" />
-          <span className={`total${belum > 0 ? ' belum' : ''}`}>{belum > 0 ? belum : data?.jumlah_online ?? 0}</span>
+          {belum > 0 && <span className="total belum">{belum > 99 ? '99+' : belum}</span>}
         </button>
       </div>
     </>

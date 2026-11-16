@@ -344,3 +344,39 @@
     }
   }
 }
+
+// notifikasi pesan masuk (toast)
+.cw-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 340px;
+  padding: 10px 14px;
+  background: #fff;
+  color: #333;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  border-left: 4px solid #2ea043;
+  cursor: pointer;
+  transition: opacity 0.3s;
+  img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+  }
+  strong {
+    display: block;
+    font-size: 13.5px;
+  }
+  span {
+    display: block;
+    font-size: 12.5px;
+    color: #6b7280;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
