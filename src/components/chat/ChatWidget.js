@@ -15,6 +15,7 @@ import {
   simpanKunciLokal,
 } from '../../utils/chatCrypto';
 import ChatGanti from './ChatGanti';
+import ChatGrup from './ChatGrup';
 import ChatKunci from './ChatKunci';
 import ChatPercakapan from './ChatPercakapan';
 import { Foto, Status } from './ChatShared';
@@ -27,6 +28,7 @@ const ChatWidget = () => {
   const [buka, setBuka] = useState(false);
   const [cari, setCari] = useState('');
   const [tujuanId, setTujuanId] = useState(null);
+  const [grupId, setGrupId] = useState(null);
   const [privat, setPrivat] = useState(null);
   const [lokalSiap, setLokalSiap] = useState(false);
   const [gantiBuka, setGantiBuka] = useState(false);
@@ -117,9 +119,16 @@ const ChatWidget = () => {
     refetchInterval: 8000,
     queryFn: () => api.get('api/chat/unread').then((res) => res.data),
   });
+  // grup divisi saya (jumlah pesan belum dibaca per grup)
+  const { data: grupData } = useQuery({
+    queryKey: ['chat-grup-daftar'],
+    enabled: aktif,
+    refetchInterval: 20000,
+    queryFn: () => api.get('api/chat/groups').then((res) => res.data.data),
+  });
   const sudahTahu = useRef(null); // user_id -> id pesan terakhir yang sudah dinotifikasikan
   const keadaan = useRef({});
-  keadaan.current = { buka, tujuanId, privat, idSaya };
+  keadaan.current = { buka, tujuanId, grupId, privat, idSaya };
 
   // pratinjau notifikasi: didekripsi di browser bila kunci sudah terbuka
   const pratinjau = async (b) => {
@@ -142,6 +151,9 @@ const ChatWidget = () => {
       sudahTahu.current = {};
       baris.forEach((b) => {
         sudahTahu.current[b.user_id] = b.terakhir_id;
+      });
+      (unread.grup || []).forEach((g) => {
+        sudahTahu.current[`g${g.org_id}`] = g.terakhir_id;
       });
       if (unread.total > 0) {
         toast(`Anda punya ${unread.total} pesan belum dibaca`, { icon: '💬', duration: 5000 });
@@ -183,9 +195,48 @@ const ChatWidget = () => {
         });
       }
     });
+    // pesan baru di grup divisi (isinya tetap terenkripsi, jadi notifikasi tidak menampilkan isi)
+    (unread.grup || []).forEach((g) => {
+      const kunciGrup = `g${g.org_id}`;
+      if ((sudahTahu.current[kunciGrup] || 0) < g.terakhir_id) {
+        sudahTahu.current[kunciGrup] = g.terakhir_id;
+        berubah = true;
+        const { buka: terbuka, grupId: grupAktif } = keadaan.current;
+        if (terbuka && grupAktif === g.org_id) return;
+        toast.custom(
+          (t) => (
+            <div
+              className="cw-toast"
+              role="button"
+              tabIndex={0}
+              style={{ opacity: t.visible ? 1 : 0 }}
+              onClick={() => {
+                toast.dismiss(t.id);
+                setBuka(true);
+                setTujuanId(null);
+                setGrupId(g.org_id);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+            >
+              <div className="cw-grup-ikon">
+                <MaterialIcon icon="groups" />
+              </div>
+              <div>
+                <strong>Grup {g.nama}</strong>
+                <span>{g.belum_dibaca} pesan baru</span>
+              </div>
+            </div>
+          ),
+          { duration: 6000 },
+        );
+      }
+    });
     // pesan yang sudah dibaca dikeluarkan dari catatan agar pesan baru berikutnya tetap memicu notifikasi
     Object.keys(sudahTahu.current).forEach((k) => {
-      if (!baris.some((b) => String(b.user_id) === k)) delete sudahTahu.current[k];
+      const ada = k.startsWith('g')
+        ? (unread.grup || []).some((g) => `g${g.org_id}` === k)
+        : baris.some((b) => String(b.user_id) === k);
+      if (!ada) delete sudahTahu.current[k];
     });
     if (berubah) qc.invalidateQueries({ queryKey: ['chat-users'] });
   }, [unread]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -200,6 +251,7 @@ const ChatWidget = () => {
   const tutup = () => {
     setBuka(false);
     setTujuanId(null);
+    setGrupId(null);
     setGantiBuka(false);
   };
 
@@ -227,6 +279,10 @@ const ChatWidget = () => {
           onTutup={tutup}
         />
       );
+    }
+    const grupAktif = grupId ? (grupData || []).find((g) => g.org_id === grupId) : null;
+    if (grupAktif) {
+      return <ChatGrup grup={grupAktif} privat={privat} onKembali={() => setGrupId(null)} onTutup={tutup} />;
     }
     if (tujuan) {
       return (
@@ -271,6 +327,32 @@ const ChatWidget = () => {
           />
         </div>
         <div className="cw-daftar">
+          {(grupData || []).map((g) => (
+            <div
+              key={`grup-${g.org_id}`}
+              className={`cw-user cw-user--grup${g.belum_dibaca > 0 ? ' belum-dibaca' : ''}`}
+              onClick={() => setGrupId(g.org_id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setGrupId(g.org_id)}
+            >
+              <div className="cw-grup-ikon">
+                <MaterialIcon icon="groups" />
+              </div>
+              <div className="cw-user__isi">
+                <strong>Grup {g.nama}</strong>
+                <span>{g.jumlah_anggota} anggota · terenkripsi end-to-end</span>
+              </div>
+              <div className="cw-user__aksi">
+                {g.belum_dibaca > 0 && (
+                  <span className="belum" title={`${g.belum_dibaca} pesan belum dibaca`}>
+                    <MaterialIcon icon="mark_email_unread" />
+                    {g.belum_dibaca}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
           {daftar.length === 0 ? (
             <div className="cw-kosong">Tidak ada user ditemukan.</div>
           ) : (

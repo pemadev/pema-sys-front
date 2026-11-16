@@ -166,3 +166,53 @@ export const gantiPassphrase = async (paket, lama, baru) => {
   const terbungkus = await subtle().encrypt({ name: 'AES-GCM', iv }, pembungkusBaru, pkcs8);
   return { wrapped_private: b64e(terbungkus), salt: b64e(salt), iv: b64e(iv), iterasi: ITERASI };
 };
+
+// ---- grup chat (kunci grup AES-256 per versi, dibungkus untuk tiap anggota lewat ECDH) -----------------
+
+export const buatKunciGrupMentah = () => crypto.getRandomValues(new Uint8Array(32));
+
+const aadBungkus = (org, versi) => enc.encode(`grup-kunci:${org}:${versi}`);
+const aadPesanGrup = (org, versi, pengirim) => enc.encode(`grup:${org}:${versi}:${pengirim}`);
+
+// bungkus kunci grup untuk satu anggota (juga untuk diri sendiri: ECDH(saya, saya) tetap sah)
+export const bungkusKunciGrup = async (privat, publikPenerima, mentah, org, versi) => {
+  const kunci = await kunciBersama(privat, publikPenerima);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const hasil = await subtle().encrypt({ name: 'AES-GCM', iv, additionalData: aadBungkus(org, versi) }, kunci, mentah);
+  return { wrapped_key: b64e(hasil), iv: b64e(iv) };
+};
+
+// buka kunci grup; bisa diekspor lagi (hanya di memori) supaya anggota ini dapat membagikannya ke anggota baru
+export const bukaKunciGrup = async (privat, publikPembungkus, wrapped, iv, org, versi) => {
+  const kunci = await kunciBersama(privat, publikPembungkus);
+  const mentah = await subtle().decrypt(
+    { name: 'AES-GCM', iv: b64d(iv), additionalData: aadBungkus(org, versi) },
+    kunci,
+    b64d(wrapped),
+  );
+  return subtle().importKey('raw', mentah, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+};
+
+export const jadikanKunciGrup = (mentah) => subtle().importKey('raw', mentah, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+
+export const eksporKunciGrup = async (kunci) => new Uint8Array(await subtle().exportKey('raw', kunci));
+
+// pengirim ikut diikat ke ciphertext: server tidak bisa mengganti nama pengirim tanpa merusak pesan
+export const enkripsiGrup = async (kunci, teks, org, versi, pengirim) => {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const hasil = await subtle().encrypt(
+    { name: 'AES-GCM', iv, additionalData: aadPesanGrup(org, versi, pengirim) },
+    kunci,
+    enc.encode(teks),
+  );
+  return { ciphertext: b64e(hasil), iv: b64e(iv) };
+};
+
+export const dekripsiGrup = async (kunci, ciphertext, iv, org, versi, pengirim) => {
+  const hasil = await subtle().decrypt(
+    { name: 'AES-GCM', iv: b64d(iv), additionalData: aadPesanGrup(org, versi, pengirim) },
+    kunci,
+    b64d(ciphertext),
+  );
+  return dec.decode(hasil);
+};

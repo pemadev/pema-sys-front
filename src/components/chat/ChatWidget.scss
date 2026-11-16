@@ -456,6 +456,53 @@
     }
   }
 
+  // grup divisi
+  &-grup-ikon {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(25, 118, 210, 0.14);
+    color: var(--cw-biru);
+    i {
+      font-size: 22px;
+    }
+  }
+  &-user--grup {
+    border-bottom: 1px solid var(--cw-border);
+    border-radius: 10px 10px 0 0;
+    margin-bottom: 6px;
+  }
+  &-anggota {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 8px 14px;
+    max-height: 96px;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--cw-border);
+    background: rgba(25, 118, 210, 0.05);
+    span {
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #fff;
+      border: 1px solid var(--cw-border);
+      &.belum {
+        color: var(--cw-muted);
+        font-style: italic;
+      }
+    }
+  }
+  &-pengirim {
+    display: block;
+    font-size: 11.5px;
+    color: var(--cw-biru);
+    margin-bottom: 1px;
+  }
+
   // nomor keamanan dan galat kirim
   &-nomor {
     display: flex;
