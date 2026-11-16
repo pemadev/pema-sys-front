@@ -40,6 +40,8 @@ const ChatWidget = () => {
   });
   const paket = kunciData ? kunciData.data : null;
   const idSaya = kunciData ? kunciData.user_id : null;
+  // akun yang dikecualikan (mis. Tenaga Pendukung): tidak ada tombol pesan dan tidak memanggil API pesan lain
+  const aktif = Boolean(kunciData) && kunciData.aktif !== false;
 
   useEffect(() => {
     if (!kunciData) return undefined;
@@ -103,6 +105,7 @@ const ChatWidget = () => {
 
   const { data } = useQuery({
     queryKey: ['chat-users'],
+    enabled: aktif,
     refetchInterval: 20000,
     queryFn: () => api.get('api/chat/users').then((res) => res.data),
   });
@@ -110,6 +113,7 @@ const ChatWidget = () => {
   // ringkasan pesan belum dibaca: lebih ringan dari daftar user, jadi dicek lebih sering untuk lencana dan notifikasi
   const { data: unread } = useQuery({
     queryKey: ['chat-unread'],
+    enabled: aktif,
     refetchInterval: 8000,
     queryFn: () => api.get('api/chat/unread').then((res) => res.data),
   });
@@ -312,6 +316,9 @@ const ChatWidget = () => {
       </>
     );
   };
+
+  // belum tahu / tidak berhak: tidak menampilkan tombol apa pun
+  if (!aktif) return null;
 
   return (
     <>
