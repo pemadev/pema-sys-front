@@ -49,7 +49,7 @@ const PengingatKeamanan = () => {
   const tutup = () => setBuka(false);
   const ubahPassword = () => {
     tutup();
-    navigate('/auth/change-password');
+    navigate('/auth/setting?tab=password');
   };
 
   return (

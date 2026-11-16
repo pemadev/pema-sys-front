@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 import Loadable from '../layouts/loader/Loadable';
 import RequireAuth from '../components/RequireAuth';
 import Login from '../pages/auth/Login';
@@ -113,7 +114,7 @@ const QrCodeGenerator = Loadable(lazy(() => import('../pages/qrcode/QrCodeGenera
 
 const Dashboard2 = Loadable(lazy(() => import('../views/dashboards/Dashboard2')));
 const Unauthorized = Loadable(lazy(() => import('../pages/auth/Unauthorized')));
-const ChangePassword = Loadable(lazy(() => import('../pages/auth/ChangePassword')));
+const AkunSetting = Loadable(lazy(() => import('../pages/auth/AkunSetting')));
 const ForgotPassword = Loadable(lazy(() => import('../pages/auth/ForgotPassword')));
 const NewPassword = Loadable(lazy(() => import('../pages/auth/NewPassword')));
 /***** CASL Access Control ****/
@@ -387,9 +388,14 @@ const ThemeRoutes = [
             ],
           },
           {
+            path: 'auth/setting',
+            name: 'Setting',
+            element: <AkunSetting />,
+          },
+          {
             path: 'auth/change-password',
             name: 'Change Password',
-            element: <ChangePassword />,
+            element: <Navigate to="/auth/setting?tab=password" replace />,
           },
           {
             path: 'pengajuan',

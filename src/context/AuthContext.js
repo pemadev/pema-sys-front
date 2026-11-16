@@ -29,6 +29,13 @@ const AuthReducer = (state, action) => {
         loading: false,
         error: action.payload,
       };
+    case 'REFRESH_TOKEN':
+      // token diperpanjang otomatis: hanya token yang diganti, data pengguna tetap
+      if (!state.auth) return state;
+      return {
+        ...state,
+        auth: { ...state.auth, token: action.payload },
+      };
     case 'LOGOUT':
       return {
         auth: null,

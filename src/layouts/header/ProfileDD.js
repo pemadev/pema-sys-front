@@ -26,10 +26,10 @@ const ProfileDD = () => {
         </span>
       </div>
       <DropdownItem divider />
-      <Link to="auth/change-password" className="text-decoration-none text-dark">
+      <Link to="auth/setting" className="text-decoration-none text-dark">
         <DropdownItem className="px-4 py-3">
           <Settings size={20} />
-          &nbsp; Change Password
+          &nbsp; Setting
         </DropdownItem>
       </Link>
       <DropdownItem divider />

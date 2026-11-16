@@ -5,6 +5,41 @@ import dayjs from 'dayjs';
 import jwtDecode from 'jwt-decode';
 import { AuthContext } from '../context/AuthContext';
 
+// token terbaru selalu dibaca dari localStorage agar tab lain yang sudah memperpanjang token ikut terpakai
+const bacaAuth = () => {
+  try {
+    return JSON.parse(localStorage.getItem('auth'));
+  } catch (e) {
+    return null;
+  }
+};
+
+// perpanjang token secepatnya sebelum habis (batas 60 detik)
+const BATAS_PERPANJANG_MS = 60 * 1000;
+
+// satu permintaan refresh dipakai bersama oleh semua request yang berjalan bersamaan
+let sedangRefresh = null;
+
+const perbaruiToken = (tokenLama) => {
+  if (!sedangRefresh) {
+    sedangRefresh = axios
+      .get(`${process.env.REACT_APP_BASEURL}api/auth/refresh`, {
+        headers: { Authorization: `Bearer ${tokenLama}` },
+      })
+      .then((res) => {
+        const tokenBaru = res.data?.auth?.token;
+        if (!tokenBaru) throw new Error('Token tidak diterima');
+        const tersimpan = bacaAuth();
+        if (tersimpan) localStorage.setItem('auth', JSON.stringify({ ...tersimpan, token: tokenBaru }));
+        return tokenBaru;
+      })
+      .finally(() => {
+        sedangRefresh = null;
+      });
+  }
+  return sedangRefresh;
+};
+
 const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
   const { auth, dispatch } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -18,12 +53,22 @@ const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
 
   newRequest.interceptors.request.use(
     async (req) => {
-      if (auth?.token) {
-        const tokenDecode = jwtDecode(auth?.token);
-        const tokenExp = dayjs.unix(tokenDecode.exp);
-        const isExpired = tokenExp.diff(dayjs()) < 1;
+      const tokenSaatIni = bacaAuth()?.token || auth?.token;
+      if (tokenSaatIni) {
+        let tokenPakai = tokenSaatIni;
+        let gagal = false;
+        try {
+          const sisa = dayjs.unix(jwtDecode(tokenSaatIni).exp).diff(dayjs());
+          if (sisa < BATAS_PERPANJANG_MS) {
+            tokenPakai = await perbaruiToken(tokenSaatIni);
+            dispatch({ type: 'REFRESH_TOKEN', payload: tokenPakai });
+          }
+        } catch (e) {
+          gagal = true;
+        }
 
-        if (isExpired) {
+        if (gagal) {
+          // token tidak bisa diperpanjang (sesi habis, password diganti, atau akun nonaktif): login ulang
           dispatch({ type: 'LOGOUT' });
           // halaman yang sedang dibuka (termasuk query dan hash dari tautan notifikasi) dibuka lagi setelah login
           const { pathname, search, hash } = window.location;
@@ -31,33 +76,8 @@ const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
             '/auth/login',
             pathname.startsWith('/auth') ? undefined : { state: { from: `${pathname}${search}${hash}` } },
           );
-
-          // let hours = tokenExp.diff(dayjs(), 'hours');
-          // const days = Math.floor(hours / 24);
-          // // eslint-disable-next-line operator-assignment
-          // hours = hours - days * 24;
-
-          // // user inactive after 12 hours
-          // if (hours >= 12) {
-          //   dispatch({ type: 'LOGOUT' });
-          //   // navigate('/auth/lockscreen');
-          //   navigate('/auth/login');
-          // }
-
-          // const response = await axios.post(
-          //   `${baseURL}api/auth/refresh`,
-          //   {},
-          //   { withCredentials: true },
-          // );
-
-          // const data = {
-          //   userInfo: auth.userInfo,
-          //   accessToken: response.data.accessToken,
-          // };
-
-          // dispatch({ type: 'REFRESH_TOKEN', payload: data });
-
-          // req.headers.Authorization = `Bearer ${response.data.accessToken}`;
+        } else {
+          req.headers.Authorization = `Bearer ${tokenPakai}`;
         }
       }
       return req;
