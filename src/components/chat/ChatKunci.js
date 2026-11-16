@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import MaterialIcon from '@material/react-material-icon';
+import { PASSPHRASE_BAWAAN } from '../../utils/chatCrypto';
 
 // layar aktivasi (pertama kali / reset) dan layar buka kunci (perangkat atau sesi baru)
 const ChatKunci = ({ mode, onAktifkan, onBuka, onTutup }) => {
@@ -65,7 +66,13 @@ const ChatKunci = ({ mode, onAktifkan, onBuka, onTutup }) => {
             </div>
           </>
         ) : (
-          <p>Masukkan passphrase pesan untuk membuka pesan terenkripsi di browser ini.</p>
+          <>
+            <p>Masukkan passphrase pesan untuk membuka pesan terenkripsi di browser ini.</p>
+            <div className="cw-kunci__peringatan">
+              Belum pernah mengganti passphrase? Passphrase bawaan adalah <strong>{PASSPHRASE_BAWAAN}</strong>. Setelah masuk, segera
+              ganti lewat ikon kunci di header pesan.
+            </div>
+          </>
         )}
         <div className="cw-kunci__isi">
           <input

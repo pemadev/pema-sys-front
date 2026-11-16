@@ -435,6 +435,27 @@
     }
   }
 
+  &-bawaan {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 0;
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(240, 160, 32, 0.16);
+    color: #8a5a00;
+    font-size: 12px;
+    cursor: pointer;
+    i {
+      font-size: 18px;
+      flex: none;
+    }
+    &:hover {
+      background: rgba(240, 160, 32, 0.25);
+    }
+  }
+
   // nomor keamanan dan galat kirim
   &-nomor {
     display: flex;

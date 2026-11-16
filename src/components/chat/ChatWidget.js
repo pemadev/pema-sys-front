@@ -9,9 +9,12 @@ import {
   bukaPaketKunci,
   buatPaketKunci,
   dekripsi,
+  gantiPassphrase,
   kunciBersama,
+  PASSPHRASE_BAWAAN,
   simpanKunciLokal,
 } from '../../utils/chatCrypto';
+import ChatGanti from './ChatGanti';
 import ChatKunci from './ChatKunci';
 import ChatPercakapan from './ChatPercakapan';
 import { Foto, Status } from './ChatShared';
@@ -26,6 +29,9 @@ const ChatWidget = () => {
   const [tujuanId, setTujuanId] = useState(null);
   const [privat, setPrivat] = useState(null);
   const [lokalSiap, setLokalSiap] = useState(false);
+  const [gantiBuka, setGantiBuka] = useState(false);
+  const sudahCobaBawaan = useRef(false);
+  const [bawaanGagal, setBawaanGagal] = useState(false);
 
   // paket kunci milik saya di server; kunci privat yang sudah dibuka disimpan di IndexedDB browser ini
   const { data: kunciData } = useQuery({
@@ -61,6 +67,18 @@ const ChatWidget = () => {
     else tahap = 'siap';
   }
 
+  // kunci bawaan (dibuat massal oleh admin) dibuka otomatis; pengguna diingatkan untuk menggantinya
+  useEffect(() => {
+    if (tahap !== 'buka' || !paket || !paket.bawaan || sudahCobaBawaan.current) return;
+    sudahCobaBawaan.current = true;
+    bukaPaketKunci(paket, PASSPHRASE_BAWAAN)
+      .then(async (kunci) => {
+        await simpanKunciLokal(idSaya, kunci, paket.public_key);
+        setPrivat(kunci);
+      })
+      .catch(() => setBawaanGagal(true)); // gagal dibuka otomatis: tampilkan layar buka kunci biasa
+  }, [tahap, paket, idSaya]);
+
   const aktifkan = async (pass, reset) => {
     const { paket: baru, privat: kunciBaru } = await buatPaketKunci(pass);
     await api.post('api/chat/keys', { ...baru, reset: Boolean(reset) });
@@ -69,6 +87,12 @@ const ChatWidget = () => {
     setPrivat(kunciBaru);
     await qc.invalidateQueries({ queryKey: ['chat-kunci'] });
     qc.invalidateQueries({ queryKey: ['chat-users'] });
+  };
+
+  const ganti = async (lama, baru) => {
+    const bungkus = await gantiPassphrase(paket, lama, baru);
+    await api.post('api/chat/keys/passphrase', bungkus);
+    await qc.invalidateQueries({ queryKey: ['chat-kunci'] });
   };
 
   const bukaKunci = async (pass) => {
@@ -172,18 +196,33 @@ const ChatWidget = () => {
   const tutup = () => {
     setBuka(false);
     setTujuanId(null);
+    setGantiBuka(false);
   };
 
   const belum = unread?.total ?? data?.belum_dibaca ?? 0;
 
   const isiPanel = () => {
     if (tahap === 'memuat') return <div className="cw-kosong">Memuat…</div>;
+    // kunci bawaan sedang dibuka otomatis
+    if (tahap === 'buka' && paket && paket.bawaan && !bawaanGagal) {
+      return <div className="cw-kosong">Membuka pesan…</div>;
+    }
     if (tahap === 'aktifkan') {
       return <ChatKunci mode="aktifkan" onAktifkan={aktifkan} onBuka={bukaKunci} onTutup={tutup} />;
     }
     if (tahap === 'buka') {
       // dari layar buka kunci, pilihan "reset" memanggil aktifkan dengan reset=true
       return <ChatKunci mode="buka" onAktifkan={aktifkan} onBuka={bukaKunci} onTutup={tutup} />;
+    }
+    if (gantiBuka) {
+      return (
+        <ChatGanti
+          bawaan={Boolean(paket && paket.bawaan)}
+          onGanti={ganti}
+          onKembali={() => setGantiBuka(false)}
+          onTutup={tutup}
+        />
+      );
     }
     if (tujuan) {
       return (
@@ -204,10 +243,21 @@ const ChatWidget = () => {
             <h6>Pesan</h6>
             <small>{data?.jumlah_online ?? 0} online · terenkripsi end-to-end</small>
           </div>
+          <button type="button" onClick={() => setGantiBuka(true)} aria-label="Ganti passphrase" title="Ganti passphrase">
+            <MaterialIcon icon="key" />
+          </button>
           <button type="button" onClick={tutup} aria-label="Tutup">
             &times;
           </button>
         </div>
+        {paket && paket.bawaan && (
+          <button type="button" className="cw-bawaan" onClick={() => setGantiBuka(true)}>
+            <MaterialIcon icon="warning_amber" />
+            <span>
+              Passphrase pesan Anda masih bawaan: <strong>{PASSPHRASE_BAWAAN}</strong>. Segera ganti agar pesan benar-benar rahasia.
+            </span>
+          </button>
+        )}
         <div className="cw-cari">
           <input
             type="search"

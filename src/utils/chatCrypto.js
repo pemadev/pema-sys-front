@@ -152,3 +152,17 @@ export const ambilKunciLokal = (userId) => jalankan('readonly', (t) => t.get(`pr
 export const hapusSemuaKunciLokal = () => {
   return jalankan('readwrite', (t) => t.clear()).catch(() => {});
 };
+
+// passphrase bawaan untuk kunci yang dibuat massal oleh admin; pengguna diminta menggantinya
+export const PASSPHRASE_BAWAAN = 'asdasdasd';
+
+// bungkus ulang kunci privat yang sama dengan passphrase baru (kunci publik tidak berubah, riwayat tetap terbaca)
+export const gantiPassphrase = async (paket, lama, baru) => {
+  const pembungkusLama = await kunciDariPassphrase(lama, b64d(paket.salt), paket.iterasi);
+  const pkcs8 = await subtle().decrypt({ name: 'AES-GCM', iv: b64d(paket.iv) }, pembungkusLama, b64d(paket.wrapped_private));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const pembungkusBaru = await kunciDariPassphrase(baru, salt, ITERASI);
+  const terbungkus = await subtle().encrypt({ name: 'AES-GCM', iv }, pembungkusBaru, pkcs8);
+  return { wrapped_private: b64e(terbungkus), salt: b64e(salt), iv: b64e(iv), iterasi: ITERASI };
+};
