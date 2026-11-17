@@ -4,12 +4,13 @@ import { useSelector } from 'react-redux';
 import Themeroutes from './routes/Router';
 import ThemeSelector from './layouts/theme/ThemeSelector';
 import Loader from './layouts/loader/Loader';
-
+import useCekSesi from './hooks/useCekSesi';
 
 const App = () => {
   const routing = useRoutes(Themeroutes);
   const direction = useSelector((state) => state.customizer.isRTL);
   const isMode = useSelector((state) => state.customizer.isDark);
+  useCekSesi();
   const timerRef = useRef();
   const intervalRef = useRef();
 
