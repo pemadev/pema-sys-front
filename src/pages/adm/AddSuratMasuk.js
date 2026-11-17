@@ -35,6 +35,7 @@ const AddSuratMasuk = ({ refresh, func1 }) => {
     const [tglSurat, setTglSurat] = React.useState(dayjs());
     const vias = ['Email', 'Surat Fisik', 'Whatapps', 'Lainnya'];
     const [via, setVia] = React.useState('');
+    const [kontak, setKontak] = React.useState('');
     const [dir, setDir] = React.useState('3');
     const [file, setFile] = React.useState();
     const [fileName, setFileName] = React.useState('');
@@ -52,17 +53,38 @@ const AddSuratMasuk = ({ refresh, func1 }) => {
             perihal,
             tglSurat,
             via,
+            kontak: via === 'Whatapps' || via === 'Email' || via === 'Surat Fisik' ? kontak.trim() : '',
             dir,
             file,
         });
-    }, [nomorSurat, pengirim, perihal, tglSurat, via, dir, file]);
+    }, [nomorSurat, pengirim, perihal, tglSurat, via, kontak, dir, file]);
+
+    // input kontak menyesuaikan pilihan "via": WhatsApp dan Email wajib, Surat Fisik opsional, Lainnya tidak ada
+    const kontakCfg = {
+        Whatapps: { label: 'Nomor WhatsApp Pengirim', placeholder: 'mis. 081234567890', type: 'tel', wajib: true },
+        Email: { label: 'Email Pengirim', placeholder: 'nama@perusahaan.com', type: 'email', wajib: true },
+        'Surat Fisik': { label: 'Nomor yang Bisa Dihubungi (opsional)', placeholder: 'mis. 081234567890', type: 'tel', wajib: false },
+    }[via];
+
+    const pesanKontak = () => {
+        const v = dataSurat.kontak;
+        if (via === 'Whatapps' && !/^\+?\d{8,15}$/.test(v.replace(/[\s.\-()]/g, ''))) return 'Nomor WhatsApp pengirim tidak valid (8-15 digit).';
+        if (via === 'Email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email pengirim tidak valid.';
+        if (via === 'Surat Fisik' && v !== '' && !/^\+?\d{6,15}$/.test(v.replace(/[\s.\-()]/g, ''))) return 'Nomor yang bisa dihubungi tidak valid (6-15 digit).';
+        return null;
+    };
 
 
 
     const submit =  () => {
-        const allNonEmpty = Object.values(dataSurat).every(value => value !== '' && value !== null && value !== undefined);
+        // kontak dicek terpisah (opsional untuk surat fisik, tidak ada untuk "Lainnya")
+        const { kontak: kontakIsi, ...wajibIsi } = dataSurat;
+        const allNonEmpty = Object.values(wajibIsi).every(value => value !== '' && value !== null && value !== undefined);
+        const galatKontak = allNonEmpty ? pesanKontak() : null;
         if (!allNonEmpty) {
             alert('error', 'Data belum lengkap, silahkan isi data terlebih dahulu');
+        } else if (galatKontak) {
+            alert('error', galatKontak);
         } else {
            
             confirmAlert({
@@ -154,7 +176,7 @@ const AddSuratMasuk = ({ refresh, func1 }) => {
                     style={{ width: '100%' }}
                     variant="outlined"
                     value={via}
-                    onChange={(e) => setVia(e.target.value)}
+                    onChange={(e) => { setVia(e.target.value); setKontak(''); }}
                     label="Surat diterima Via"
                 >
                     {vias?.map((item) => (
@@ -164,6 +186,22 @@ const AddSuratMasuk = ({ refresh, func1 }) => {
                     ))}
                 </TextField>
             </Box>
+
+            {kontakCfg && (
+                <Box className="mb-3">
+                    <TextField
+                        style={{ width: '100%' }}
+                        variant="outlined"
+                        type={kontakCfg.type}
+                        label={kontakCfg.label}
+                        placeholder={kontakCfg.placeholder}
+                        required={kontakCfg.wajib}
+                        value={kontak}
+                        inputProps={{ maxLength: 100 }}
+                        onChange={(e) => setKontak(e.target.value)}
+                    />
+                </Box>
+            )}
 
             <Box className="mb-3">
                 <TextField

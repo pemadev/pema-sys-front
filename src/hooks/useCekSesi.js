@@ -1,17 +1,9 @@
-import { useContext, useEffect } from 'react';
-import axios from 'axios';
+import { useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import useAxios from './useAxios';
 
 const CEK_MS = 60 * 1000;
-
-const bacaToken = () => {
-  try {
-    return JSON.parse(localStorage.getItem('auth'))?.token;
-  } catch (e) {
-    return null;
-  }
-};
 
 // Pengguna yang tampak login di browser tetapi sesinya tidak tercatat (atau sudah dicabut) di user session
 // akan keluar sendiri. Pengguna yang sesinya tercatat tidak disentuh sama sekali.
@@ -19,6 +11,10 @@ const bacaToken = () => {
 const useCekSesi = () => {
   const { auth, dispatch } = useContext(AuthContext);
   const navigate = useNavigate();
+  // pengecekan lewat useAxios: token yang sudah lewat 15 menit diperpanjang dulu, jadi tidak dianggap sesi tidak sah
+  const api = useAxios();
+  const apiRef = useRef(api);
+  apiRef.current = api;
   const sudahLogin = !!auth?.token;
 
   useEffect(() => {
@@ -28,14 +24,10 @@ const useCekSesi = () => {
     let berjalan = false;
 
     const periksa = async () => {
-      const token = bacaToken();
-      if (berjalan || !token) return;
+      if (berjalan) return;
       berjalan = true;
       try {
-        await axios.get(`${process.env.REACT_APP_BASEURL}api/auth/sessions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 15000,
-        });
+        await apiRef.current.get('api/auth/sessions', { timeout: 15000 });
       } catch (error) {
         // hanya 401 (tidak terautentikasi) yang ke halaman login; jaringan putus / 5xx / timeout diabaikan
         if (!berhenti && error?.response?.status === 401) {

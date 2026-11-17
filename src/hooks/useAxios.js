@@ -14,6 +14,14 @@ const bacaAuth = () => {
   }
 };
 
+const masihBerlaku = (token) => {
+  try {
+    return dayjs.unix(jwtDecode(token).exp).diff(dayjs()) > 0;
+  } catch (e) {
+    return false;
+  }
+};
+
 // perpanjang token secepatnya sebelum habis (batas 60 detik)
 const BATAS_PERPANJANG_MS = 60 * 1000;
 
@@ -69,11 +77,21 @@ const useAxios = (baseURL = process.env.REACT_APP_BASEURL) => {
             dispatch({ type: 'REFRESH_TOKEN', payload: tokenPakai });
           }
         } catch (e) {
-          gagal = true;
+          if (e?.response?.status === 401) {
+            // server menolak memperpanjang. Bila tab lain sudah memperpanjang lebih dulu, pakai token terbarunya
+            const terbaru = bacaAuth()?.token;
+            if (terbaru && terbaru !== tokenSaatIni && masihBerlaku(terbaru)) {
+              tokenPakai = terbaru;
+              dispatch({ type: 'REFRESH_TOKEN', payload: terbaru });
+            } else {
+              gagal = true;
+            }
+          }
+          // gangguan jaringan / server (bukan 401): jangan logout, pakai token yang ada dan biarkan permintaannya sendiri yang berhasil atau gagal
         }
 
         if (gagal) {
-          // token tidak bisa diperpanjang (sesi habis, password diganti, atau akun nonaktif): login ulang
+          // server menolak memperpanjang (tidak aktif 3 hari, password diganti, akun nonaktif, atau sesi dikeluarkan): login ulang
           dispatch({ type: 'LOGOUT' });
           // halaman yang sedang dibuka (termasuk query dan hash dari tautan notifikasi) dibuka lagi setelah login
           const { pathname, search, hash } = window.location;

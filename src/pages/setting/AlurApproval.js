@@ -34,6 +34,7 @@ const SUMBER = {
     ['puk', 'PUK divisi pegawai tujuan'],
     ['direktur_divisi', 'Direktur divisi pegawai tujuan'],
     ['dir_terkait', 'Direktur terkait pengaju'],
+    ['role', 'Berdasarkan role akses sistem'],
   ],
   surat: [
     ['posisi', 'Jabatan tertentu'],
@@ -41,6 +42,7 @@ const SUMBER = {
     ['puk', 'PUK divisi surat'],
     ['direktur_divisi', 'Direktur divisi surat'],
     ['penandatangan', 'Penandatangan surat'],
+    ['role', 'Berdasarkan role akses sistem'],
   ],
 };
 
@@ -70,8 +72,10 @@ const TAMBAHAN = {
 
 const langkahBaru = () => ({
   tipe: 'paraf',
+  nama_step: '',
   sumber: 'posisi',
   nilai: '',
+  nilai_teks: '',
   urutan_sumber: 0,
   cadangan_sumber: '',
   cadangan_nilai: '',
@@ -113,6 +117,7 @@ const RingkasLangkah = ({ l, opsi, modul }) => {
     if (sumber === 'puk') return modul === 'sppd' ? 'PUK divisi pegawai tujuan' : 'PUK divisi surat';
     if (sumber === 'direktur_divisi') return 'Direktur divisi';
     if (sumber === 'dir_terkait') return 'Direktur terkait pengaju';
+    if (sumber === 'role') return `Role ${l.nilai_teks || '-'} ke-${off + 1}`;
     return 'Penandatangan surat';
   };
   const catatan = [];
@@ -124,6 +129,7 @@ const RingkasLangkah = ({ l, opsi, modul }) => {
       <Badge color={TIPE[l.tipe].warna} className="align-self-start">
         {TIPE[l.tipe].label}
       </Badge>
+      {l.nama_step && <span className="fw-semibold">{l.nama_step}</span>}
       <strong>{teks(l.sumber, l.nilai, l.urutan_sumber)}</strong>
       {catatan.map((c) => (
         <small key={c}>{c}</small>
@@ -139,6 +145,31 @@ RingkasLangkah.propTypes = {
 
 // pilihan orang untuk satu sumber (jabatan atau jenjang)
 const PilihNilai = ({ sumber, nilai, off, opsi, onNilai, onOff, label }) => {
+  if (sumber === 'role') {
+    return (
+      <Row className="g-2">
+        <Col xs="8">
+          <FormGroup>
+            <Label className="small mb-1">{label}</Label>
+            <Input type="select" bsSize="sm" value={nilai} onChange={(e) => onNilai(e.target.value)}>
+              <option value="">- pilih role -</option>
+              {(opsi.role || []).map((r) => (
+                <option key={r.nama} value={r.nama}>
+                  {r.nama} ({r.jumlah} pengguna)
+                </option>
+              ))}
+            </Input>
+          </FormGroup>
+        </Col>
+        <Col xs="4">
+          <FormGroup>
+            <Label className="small mb-1">Pemegang ke-</Label>
+            <Input type="number" min="1" max="21" bsSize="sm" value={off + 1} onChange={(e) => onOff(Math.max(0, (parseInt(e.target.value, 10) || 1) - 1))} />
+          </FormGroup>
+        </Col>
+      </Row>
+    );
+  }
   if (sumber === 'posisi') {
     return (
       <FormGroup>
@@ -264,6 +295,8 @@ const AlurApproval = () => {
       langkah: a.langkah.map((l) => ({
         ...l,
         nilai: l.nilai === null ? '' : l.nilai,
+        nama_step: l.nama_step || '',
+        nilai_teks: l.nilai_teks || '',
         cadangan_sumber: l.cadangan_sumber || '',
         cadangan_nilai: l.cadangan_nilai === null ? '' : l.cadangan_nilai,
         lewati_jika_sama: l.lewati_jika_sama || '',
@@ -307,6 +340,8 @@ const AlurApproval = () => {
       langkah: edit.langkah.map((l) => ({
         ...l,
         nilai: num(l.nilai),
+        nama_step: (l.nama_step || '').trim() || null,
+        nilai_teks: l.sumber === 'role' ? l.nilai_teks : null,
         cadangan_sumber: l.cadangan_sumber || null,
         cadangan_nilai: l.cadangan_sumber ? num(l.cadangan_nilai) : null,
         lewati_jika_sama: l.lewati_jika_sama || null,
@@ -615,6 +650,16 @@ const AlurApproval = () => {
                       </Button>
                     </div>
                   </div>
+                  <FormGroup>
+                    <Label className="small mb-1">Nama langkah (opsional)</Label>
+                    <Input
+                      bsSize="sm"
+                      value={l.nama_step}
+                      maxLength={100}
+                      placeholder="mis. Review Legal, Paraf Kepala Divisi"
+                      onChange={(e) => ubahLangkah(i, { nama_step: e.target.value })}
+                    />
+                  </FormGroup>
                   <Row className="g-2">
                     <Col md="3">
                       <FormGroup>
@@ -637,7 +682,7 @@ const AlurApproval = () => {
                           type="select"
                           bsSize="sm"
                           value={l.sumber}
-                          onChange={(e) => ubahLangkah(i, { sumber: e.target.value, nilai: '', urutan_sumber: 0, nama_hr: e.target.value === 'posisi' ? l.nama_hr : false, cadangan_sumber: e.target.value === 'dir_terkait' ? l.cadangan_sumber : '', cadangan_nilai: '' })}
+                          onChange={(e) => ubahLangkah(i, { sumber: e.target.value, nilai: '', nilai_teks: '', urutan_sumber: 0, nama_hr: e.target.value === 'posisi' ? l.nama_hr : false, cadangan_sumber: e.target.value === 'dir_terkait' ? l.cadangan_sumber : '', cadangan_nilai: '' })}
                         >
                           {SUMBER[modul].map(([k, t]) => (
                             <option key={k} value={k}>
@@ -650,11 +695,11 @@ const AlurApproval = () => {
                     <Col md="5">
                       <PilihNilai
                         sumber={l.sumber}
-                        nilai={l.nilai}
+                        nilai={l.sumber === 'role' ? l.nilai_teks : l.nilai}
                         off={l.urutan_sumber}
                         opsi={opsi}
-                        label={l.sumber === 'posisi' ? 'Jabatan' : 'Jenjang'}
-                        onNilai={(v) => ubahLangkah(i, { nilai: v })}
+                        label={{ posisi: 'Jabatan', role: 'Role' }[l.sumber] || 'Jenjang'}
+                        onNilai={(v) => ubahLangkah(i, l.sumber === 'role' ? { nilai_teks: v } : { nilai: v })}
                         onOff={(v) => ubahLangkah(i, { urutan_sumber: v })}
                       />
                     </Col>
@@ -666,7 +711,7 @@ const AlurApproval = () => {
                           <Label className="small mb-1">Bila pengaju tidak punya direktur terkait</Label>
                           <Input type="select" bsSize="sm" value={l.cadangan_sumber} onChange={(e) => ubahLangkah(i, { cadangan_sumber: e.target.value, cadangan_nilai: '' })}>
                             <option value="">Lewati langkah ini</option>
-                            {SUMBER[modul].filter(([k]) => k !== 'dir_terkait').map(([k, t]) => (
+                            {SUMBER[modul].filter(([k]) => k !== 'dir_terkait' && k !== 'role').map(([k, t]) => (
                               <option key={k} value={k}>
                                 Gunakan: {t}
                               </option>

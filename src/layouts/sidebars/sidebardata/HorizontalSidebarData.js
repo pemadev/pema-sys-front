@@ -206,6 +206,7 @@ const SidebarData = [
       { title: 'Daftar Notifikasi', href: '/setting/kirim', icon: <MaterialIcon icon="notifications" />, allowedRoles: ['SuperAdmin'] },
       { title: 'Alur Approval', href: '/setting/alur', icon: <MaterialIcon icon="account_tree" />, allowedRoles: ['SuperAdmin'] },
       { title: 'Biaya & Ketetapan SPPD', href: '/setting/biaya', icon: <MaterialIcon icon="payments" />, allowedRoles: ['SuperAdmin'] },
+      { title: 'Lokasi User', href: '/setting/lokasi', icon: <MaterialIcon icon="public" />, allowedRoles: ['SuperAdmin'] },
     ],
   },
 

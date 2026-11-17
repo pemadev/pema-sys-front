@@ -15,8 +15,9 @@
   --cw-biru: #1976d2;
 
   position: fixed;
-  bottom: 92px; // 20px (jarak bell) + 60px (tinggi bell) + 12px (celah)
-  right: 30px;
+  // tepat di atas tombol notifikasi; ukuran & jarak mengikuti variabel --fab-* (lihat Bell.scss)
+  bottom: calc(var(--fab-bottom, 24px) + var(--fab-size, 52px) + var(--fab-gap, 12px) + env(safe-area-inset-bottom, 0px));
+  right: calc(var(--fab-right, 24px) + env(safe-area-inset-right, 0px));
   z-index: 10;
 
   &-tombol {
@@ -24,24 +25,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    border: 0;
+    width: var(--fab-size, 52px);
+    height: var(--fab-size, 52px);
+    border: 1px solid rgba(46, 160, 67, 0.28);
     padding: 0;
     border-radius: 50%;
-    background-color: #b9e8c469;
+    background-color: #fff;
+    box-shadow: 0 4px 14px rgba(46, 160, 67, 0.22);
     cursor: pointer;
-    transition: all 300ms ease;
+    transition: all 200ms ease;
     &:hover {
-      background-color: #8fd9a269;
+      background-color: #ecf8ef;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(46, 160, 67, 0.3);
     }
     i {
-      font-size: 30px;
+      font-size: calc(var(--fab-size, 52px) * 0.46);
       color: var(--cw-hijau);
       user-select: none;
     }
     &.ada-pesan {
-      background-color: #ffd3dc99;
+      background-color: #fff0f3;
+      border-color: rgba(252, 75, 108, 0.35);
       animation: cw-denyut 1.8s ease-in-out infinite;
       i {
         color: #fc4b6c;
@@ -49,8 +54,8 @@
     }
     .total {
       position: absolute;
-      top: 2px;
-      right: 2px;
+      top: -6px;
+      right: -6px;
       min-width: 20px;
       min-height: 20px;
       padding: 0 5px;
@@ -71,10 +76,10 @@
 
   &-panel {
     position: absolute;
-    bottom: 70px;
+    bottom: calc(var(--fab-size, 52px) + var(--fab-gap, 12px));
     right: 0;
     width: 390px;
-    max-width: calc(100vw - 32px);
+    max-width: calc(100vw - 2 * var(--fab-right, 24px));
     height: min(560px, 72vh);
     display: flex;
     flex-direction: column;
@@ -559,11 +564,16 @@
     }
   }
 
-  @media screen and (max-width: 768px) {
-    right: 16px;
+  @media screen and (max-width: 575px) {
+    // layar kecil: panel selebar layar, menempel di atas kedua tombol
     &-panel {
-      width: calc(100vw - 32px);
-      height: min(560px, 75vh);
+      position: fixed;
+      left: var(--fab-right, 14px);
+      right: var(--fab-right, 14px);
+      bottom: calc(var(--fab-bottom, 14px) + var(--fab-size, 46px) * 2 + var(--fab-gap, 10px) * 2 + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      max-width: none;
+      height: min(560px, calc(100vh - var(--fab-size, 46px) * 2 - 120px));
     }
   }
 }

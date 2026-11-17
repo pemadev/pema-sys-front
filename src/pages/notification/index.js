@@ -17,19 +17,21 @@ const STATUS = [
   { nilai: 'sudah', label: 'Sudah dibaca' },
 ];
 
-const MODUL = [
-  ['', 'Semua modul'],
-  ['adm', 'Surat (ADM)'],
-  ['sppd', 'SPPD'],
-  ['mobil', 'Mobil operasional'],
-  ['asset', 'Aset'],
-  ['project', 'Project'],
-  ['task', 'Task'],
-  ['daily', 'Daily'],
-  ['pengajuan', 'Pengajuan'],
-  ['tender', 'Tender'],
-  ['vendor', 'Vendor'],
-];
+// nama tampilan modul; modul yang belum dikenal tampil dengan namanya sendiri
+const NAMA_MODUL = {
+  adm: 'Surat (ADM)',
+  sppd: 'SPPD',
+  mobil: 'Mobil operasional',
+  asset: 'Aset',
+  project: 'Project',
+  task: 'Task',
+  daily: 'Daily',
+  pengajuan: 'Pengajuan',
+  tender: 'Tender',
+  vendor: 'Vendor',
+  sistem: 'Sistem',
+};
+const namaModul = (m) => NAMA_MODUL[m] || m.charAt(0).toUpperCase() + m.slice(1);
 
 // notifikasi tanpa pelaku dikirim otomatis oleh sistem
 const dariSistem = (n) => !n.actor_id && (!n.actor || n.actor === '-');
@@ -49,12 +51,16 @@ const Notifications = () => {
   const [halaman, setHalaman] = useState(1);
   const [hasil, setHasil] = useState({ data: [], total: 0, halaman_terakhir: 1, belum_dibaca: 0 });
   const [loading, setLoading] = useState(true);
+  const [modulAda, setModulAda] = useState([]);
 
   const muat = useCallback(() => {
     setLoading(true);
     api
       .get('api/notification/semua', { params: { status, modul, page: halaman } })
-      .then((res) => setHasil(res.data))
+      .then((res) => {
+        setHasil(res.data);
+        setModulAda(res.data.modul_tersedia || []);
+      })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
   }, [status, modul, halaman]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -114,9 +120,10 @@ const Notifications = () => {
               ))}
             </div>
             <Input type="select" bsSize="sm" className="nt-modul" value={modul} onChange={(e) => ubahFilter(setModul, e.target.value)}>
-              {MODUL.map(([nilai, label]) => (
-                <option key={nilai} value={nilai}>
-                  {label}
+              <option value="">Semua modul</option>
+              {[...new Set([...modulAda, ...(modul ? [modul] : [])])].map((m) => (
+                <option key={m} value={m}>
+                  {namaModul(m)}
                 </option>
               ))}
             </Input>

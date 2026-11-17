@@ -28,10 +28,27 @@
   }
 }
 
+:root {
+  // tumpukan tombol melayang (notifikasi + pesan), dipakai juga oleh ChatWidget.scss
+  --fab-size: 52px;
+  --fab-gap: 12px;
+  --fab-right: 24px;
+  --fab-bottom: 24px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --fab-size: 46px;
+    --fab-gap: 10px;
+    --fab-right: 14px;
+    --fab-bottom: 14px;
+  }
+}
+
 .bell-container {
   position: fixed;
-  bottom: 20px;
-  right: 30px;
+  bottom: calc(var(--fab-bottom) + env(safe-area-inset-bottom, 0px));
+  right: calc(var(--fab-right) + env(safe-area-inset-right, 0px));
   z-index: 10;
 
   .bell-button {
@@ -39,16 +56,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    padding: 5px;
-    background-color: #b3d4fa69;
+    width: var(--fab-size);
+    height: var(--fab-size);
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid rgba(30, 136, 229, 0.25);
+    box-shadow: 0 4px 14px rgba(30, 136, 229, 0.22);
     border-radius: 50%;
     cursor: pointer;
-    transition: all 300ms ease;
+    transition: all 200ms ease;
 
     &:hover {
-      background-color: #84baf869;
+      background-color: #eaf3fe;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(30, 136, 229, 0.3);
     }
 
     .bell-icon {
@@ -58,7 +79,7 @@
       justify-content: center;
 
       i {
-        font-size: 42px;
+        font-size: calc(var(--fab-size) * 0.5);
         color: #1e88e5;
         transition: all 300ms ease;
         -webkit-user-select: none; /* Safari */
@@ -73,8 +94,8 @@
         min-width: 20px;
         min-height: 20px;
         background-color: #fc4b6c;
-        right: 0;
-        top: 0;
+        right: -6px;
+        top: -6px;
         color: white;
         border-radius: 50%;
         padding: 0.5px 1.5px 0px 1.5px;
@@ -91,17 +112,25 @@
 
   .notification-container {
     position: absolute;
-    bottom: 70px;
+    bottom: calc(var(--fab-size) + var(--fab-gap));
     right: 0;
     max-height: 75vh;
-    min-width: 420px;
+    width: 420px;
+    max-width: calc(100vw - 2 * var(--fab-right));
     background-color: white;
     display: block;
 
     animation: notifshow 350ms ease;
 
-    @media screen and (max-width: 768px) {
-      min-width: calc(100vw - 90%);
+    @media screen and (max-width: 575px) {
+      // layar kecil: panel selebar layar dan menempel di atas tombol
+      position: fixed;
+      left: var(--fab-right);
+      right: var(--fab-right);
+      bottom: calc(var(--fab-bottom) + var(--fab-size) * 2 + var(--fab-gap) * 2 + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      max-width: none;
+      max-height: 60vh;
     }
 
     border-radius: 10px;
@@ -233,13 +262,13 @@
   @keyframes notifshow {
     from {
       opacity: 0;
-      bottom: 50px;
+      transform: translateY(10px);
       box-shadow: none;
     }
 
     to {
       opacity: 1;
-      bottom: 70px;
+      transform: none;
     }
   }
 

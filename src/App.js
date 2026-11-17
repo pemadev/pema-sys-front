@@ -5,12 +5,14 @@ import Themeroutes from './routes/Router';
 import ThemeSelector from './layouts/theme/ThemeSelector';
 import Loader from './layouts/loader/Loader';
 import useCekSesi from './hooks/useCekSesi';
+import useLaporLokasi from './hooks/useLaporLokasi';
 
 const App = () => {
   const routing = useRoutes(Themeroutes);
   const direction = useSelector((state) => state.customizer.isRTL);
   const isMode = useSelector((state) => state.customizer.isDark);
   useCekSesi();
+  useLaporLokasi();
   const timerRef = useRef();
   const intervalRef = useRef();
 
