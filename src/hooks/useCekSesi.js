@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const CEK_MS = 60 * 1000;
+
 const bacaToken = () => {
   try {
     return JSON.parse(localStorage.getItem('auth'))?.token;
@@ -33,9 +34,10 @@ const useCekSesi = () => {
       try {
         await axios.get(`${process.env.REACT_APP_BASEURL}api/auth/sessions`, {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
         });
       } catch (error) {
-        // endpoint ini tidak memeriksa peran, jadi 401 apa pun berarti token/sesi tidak lagi sah
+        // hanya 401 (tidak terautentikasi) yang ke halaman login; jaringan putus / 5xx / timeout diabaikan
         if (!berhenti && error?.response?.status === 401) {
           dispatch({ type: 'LOGOUT' });
           const { pathname, search, hash } = window.location;
@@ -44,7 +46,6 @@ const useCekSesi = () => {
             pathname.startsWith('/auth') ? undefined : { state: { from: `${pathname}${search}${hash}` } },
           );
         }
-        // kegagalan lain (jaringan, 5xx) diabaikan: pengguna tidak dikeluarkan karena gangguan sementara
       } finally {
         berjalan = false;
       }
