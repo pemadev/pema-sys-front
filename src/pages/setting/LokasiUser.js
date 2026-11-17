@@ -62,6 +62,21 @@ const css = `
 .lu-vinyet{pointer-events:none;position:absolute;inset:0;z-index:400;box-shadow:inset 0 0 40px rgba(15,23,42,.08)}
 .lu-legenda{position:absolute;left:12px;bottom:12px;z-index:500;display:flex;flex-direction:column;gap:5px;padding:9px 12px;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);border-radius:10px;box-shadow:0 2px 10px rgba(15,23,42,.18);font-size:.76rem;color:#334155}
 .lu-legenda span{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.lu-detail{padding:14px 16px;border-top:1px solid var(--lu-garis);background:var(--lu-hover)}
+.lu-detail-kepala{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.lu-detail-kepala img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.lu-detail-kepala strong{display:block;font-size:.95rem;line-height:1.2}
+.lu-detail-kepala small{color:var(--lu-redup)}
+.lu-detail-tutup{margin-left:auto;border:0;background:transparent;color:var(--lu-redup);font-size:1.2rem;line-height:1;cursor:pointer;padding:4px 6px;border-radius:8px}
+.lu-detail-tutup:hover{background:var(--lu-lembut)}
+.lu-rinci-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 18px}
+.lu-rinci{display:flex;gap:10px;align-items:flex-start}
+.lu-rinci-ikon{flex:none;width:30px;height:30px;border-radius:9px;background:var(--lu-lembut);color:var(--lu-redup);display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.lu-rinci-judul{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--lu-redup);font-weight:600}
+.lu-rinci-isi{font-size:.84rem;font-weight:600;word-break:break-word}
+.lu-rinci-isi small{display:block;font-weight:400;color:var(--lu-redup);font-size:.74rem}
+@media (max-width:767.98px){.lu-rinci-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.lu-rinci-grid{grid-template-columns:1fr}}
 .lu-kaki{padding:7px 14px;font-size:.72rem;color:var(--lu-redup);border-top:1px solid var(--lu-garis)}
 .lu-kaki a{color:inherit;text-decoration:underline}
 
@@ -72,7 +87,7 @@ const css = `
 .lu-item:last-child{border-bottom:0}
 .lu-item:hover{background:var(--lu-hover)}
 .lu-item.pilih{background:var(--lu-pilih)}
-.lu-item:disabled{cursor:default;opacity:.6}
+.lu-item.tanpa{opacity:.65}
 .lu-foto{position:relative;flex:none;width:42px;height:42px}
 .lu-foto img{width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--lu-lembut)}
 .lu-foto .status{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--lu-card);background:var(--lu-off)}
@@ -90,6 +105,7 @@ const css = `
 .lu-skel{background:linear-gradient(90deg,var(--lu-lembut) 25%,var(--lu-hover) 50%,var(--lu-lembut) 75%);background-size:200% 100%;animation:lu-kilau 1.3s infinite;border-radius:14px}
 @keyframes lu-kilau{to{background-position:-200% 0}}
 
+.lu-kantor .kotak{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#0f172a;color:#fff;font-size:1rem;border:2px solid #fff;box-shadow:0 3px 10px rgba(15,23,42,.4)}
 .lu-pin{position:relative}
 .lu-pin .titik{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--pin,#94a3b8);border:3px solid #fff;box-shadow:0 1px 5px rgba(15,23,42,.45)}
 .lu-pin.browser .titik{border-color:#2563eb;background:var(--pin)}
@@ -120,9 +136,19 @@ const waktu = (v) => (v ? dayjs(v).locale('id').fromNow() : '-');
 const jarak = (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
 const lokasiTeks = (u) => {
   if (u.sumber === 'browser') return `Lokasi browser${u.akurasi ? ` (±${jarak(u.akurasi)})` : ''}`;
+  if (u.sumber === 'kantor') return 'Di kantor (IP kantor)';
   if (u.sumber === 'jaringan') return `Sekitar lokasi jaringan${u.akurasi ? ` (±${jarak(u.akurasi)})` : ''}`;
   return [u.kota, u.negara].filter(Boolean).join(', ') || 'Lokasi tidak diketahui';
 };
+
+const JENIS_JARINGAN = { seluler: 'Seluler', isp: 'Kabel / ISP', cloud: 'Cloud / VPN' };
+const jaringanTeks = (u) => {
+  if (!u.jaringan) return null;
+  const jenis = JENIS_JARINGAN[u.jaringan.jenis];
+
+  return `${u.jaringan.org}${jenis ? ` · ${jenis}` : ''}`;
+};
+const SUMBER_LOKASI = { browser: 'Lokasi browser pengguna (GPS)', jaringan: 'Lokasi browser rekan di jaringan yang sama', kantor: 'IP kantor', ip: 'Perkiraan dari IP' };
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
@@ -130,7 +156,7 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
 const popup = (u) =>
   `<div class="lu-pop"><strong>${esc(u.nama)}</strong>${u.jabatan ? `<br/><small>${esc(u.jabatan)}</small>` : ''}<br/>` +
   `${u.live ? '<span style="color:#16a34a;font-weight:600">● Live</span>' : `<span style="color:#64748b">Terakhir aktif ${esc(waktu(u.terakhir_aktif))}</span>`}<br/>` +
-  `<small>${esc(lokasiTeks(u))}<br/>${esc({ browser: 'Dari browser pengguna', jaringan: 'Dari lokasi browser rekan di jaringan yang sama' }[u.sumber] || 'Perkiraan dari IP')}<br/>${esc(u.perangkat || '')}<br/>IP ${esc(u.ip || '-')}</small></div>`;
+  `<small>${esc(lokasiTeks(u))}<br/>${esc({ browser: 'Dari browser pengguna', jaringan: 'Dari lokasi browser rekan di jaringan yang sama', kantor: 'Mengakses dari IP kantor' }[u.sumber] || 'Perkiraan dari IP')}<br/>${esc(u.perangkat || '')}<br/>IP ${esc(u.ip || '-')}${jaringanTeks(u) ? `<br/>${esc(jaringanTeks(u))}` : ''}</small></div>`;
 
 const ikonPin = (u) =>
   L.divIcon({
@@ -138,6 +164,13 @@ const ikonPin = (u) =>
     html: `<span class="titik" style="--pin:${u.live ? '#16a34a' : '#94a3b8'}"></span>`,
     iconSize: [0, 0],
   });
+
+const ikonKantor = L.divIcon({
+  className: 'lu-kantor',
+  html: '<span class="kotak"><i class="bi bi-building"></i></span>',
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+});
 
 const KartuStat = ({ ikon, warna, angka, label }) => (
   <div className="lu-kartu-stat">
@@ -150,6 +183,25 @@ const KartuStat = ({ ikon, warna, angka, label }) => (
     </div>
   </div>
 );
+
+const Rincian = ({ ikon, judul, children }) => (
+  <div className="lu-rinci">
+    <span className="lu-rinci-ikon">
+      <i className={`bi ${ikon}`} />
+    </span>
+    <div className="min-w-0">
+      <div className="lu-rinci-judul">{judul}</div>
+      <div className="lu-rinci-isi">{children}</div>
+    </div>
+  </div>
+);
+
+Rincian.propTypes = {
+  ikon: PropTypes.string.isRequired,
+  judul: PropTypes.string.isRequired,
+  children: PropTypes.node,
+};
+Rincian.defaultProps = { children: null };
 
 KartuStat.propTypes = {
   ikon: PropTypes.string.isRequired,
@@ -222,6 +274,12 @@ const LokasiUser = () => {
     lapis.current.clearLayers();
     penanda.current = {};
     const titik = [];
+    const kantor = hasil?.kantor;
+    if (kantor) {
+      L.marker([kantor.lat, kantor.lng], { icon: ikonKantor, zIndexOffset: 500, keyboard: false })
+        .bindTooltip(esc(kantor.nama), { direction: 'top', offset: [0, -14] })
+        .addTo(lapis.current);
+    }
     [...tampil]
       .sort((a, b) => Number(a.live) - Number(b.live))
       .forEach((u) => {
@@ -241,17 +299,19 @@ const LokasiUser = () => {
       map.fitBounds(titik, { padding: [50, 50], maxZoom: 11 });
       sudahFit.current = true;
     }
-  }, [tampil, siapTampil]);
+  }, [tampil, siapTampil, hasil?.kantor]);
 
   // arahkan peta agar semua titik yang sedang ditampilkan terlihat
+  const terpilih = useMemo(() => (hasil?.data || []).find((u) => u.user_id === dipilih) || null, [hasil, dipilih]);
+
   const tampilkanSemua = () => {
     const titik = tampil.filter((u) => u.lat !== null && u.lng !== null).map((u) => [u.lat, u.lng]);
     if (peta.current && titik.length > 0) peta.current.fitBounds(titik, { padding: [50, 50], maxZoom: 11, animate: true });
   };
 
   const fokus = (u) => {
-    if (u.lat === null || !peta.current) return;
     setDipilih(u.user_id);
+    if (u.lat === null || !peta.current) return;
     peta.current.setView([u.lat, u.lng], Math.max(peta.current.getZoom(), 10), { animate: true });
     const m = penanda.current[u.user_id];
     if (m) m.openPopup();
@@ -340,8 +400,60 @@ const LokasiUser = () => {
               <span>
                 <i className="bi bi-circle" style={{ color: '#2563eb', fontSize: 10 }} /> Tepi biru: lokasi browser
               </span>
+              <span>
+                <i className="bi bi-building" style={{ color: '#0f172a', fontSize: 11 }} /> Kantor
+              </span>
             </div>
           </div>
+          {terpilih && (
+            <div className="lu-detail">
+              <div className="lu-detail-kepala">
+                <img src={fotoKaryawan(terpilih.employe_id)} onError={onAvatarError} alt="" />
+                <div>
+                  <strong>{terpilih.nama}</strong>
+                  <small>{terpilih.jabatan || '-'}</small>
+                </div>
+                <button type="button" className="lu-detail-tutup" onClick={() => setDipilih(null)} aria-label="Tutup rincian">
+                  &times;
+                </button>
+              </div>
+              <div className="lu-rinci-grid">
+                <Rincian ikon="bi-pc-display" judul="Perangkat">
+                  {terpilih.sistem_operasi || '-'}
+                </Rincian>
+                <Rincian ikon="bi-browser-chrome" judul="Browser">
+                  {terpilih.browser || '-'}
+                </Rincian>
+                <Rincian ikon="bi-hdd-network" judul="IP">
+                  {terpilih.ip || '-'}
+                </Rincian>
+                <Rincian ikon="bi-wifi" judul="Jaringan">
+                  {terpilih.jaringan ? (
+                    <>
+                      {terpilih.jaringan.org}
+                      <small>
+                        {JENIS_JARINGAN[terpilih.jaringan.jenis] || ''} · AS{terpilih.jaringan.asn}
+                        {terpilih.sumber === 'kantor' ? ' · jaringan kantor' : ''}
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      {terpilih.sumber === 'kantor' ? 'Jaringan kantor' : '-'}
+                      {hasil.asn_siap === false && <small>Database jaringan belum dipasang</small>}
+                    </>
+                  )}
+                </Rincian>
+                <Rincian ikon="bi-geo-alt" judul="Lokasi">
+                  {terpilih.lat === null ? 'Tidak diketahui' : lokasiTeks(terpilih)}
+                  {terpilih.sumber && <small>{SUMBER_LOKASI[terpilih.sumber]}</small>}
+                </Rincian>
+                <Rincian ikon="bi-clock-history" judul="Aktivitas terakhir">
+                  {terpilih.live ? 'Sedang aktif' : waktu(terpilih.terakhir_aktif)}
+                  {terpilih.terakhir_aktif && <small>{dayjs(terpilih.terakhir_aktif).format('DD MMM YYYY, HH:mm')}</small>}
+                </Rincian>
+              </div>
+            </div>
+          )}
           <div className="lu-kaki">
             Lokasi browser untuk pengguna yang sudah mengizinkan. Yang belum, ditempatkan di sekitar lokasi browser rekan pada IP yang sama; bila tidak ada, perkiraan dari IP (akurat sampai kota).{' '}
             <a href="https://db-ip.com" target="_blank" rel="noreferrer">
@@ -363,7 +475,7 @@ const LokasiUser = () => {
               </div>
             )}
             {tampil.map((u) => (
-              <button key={u.user_id} type="button" className={`lu-item${dipilih === u.user_id ? ' pilih' : ''}`} onClick={() => fokus(u)} disabled={u.lat === null} title={u.lat === null ? 'Lokasi tidak diketahui' : 'Lihat di peta'}>
+              <button key={u.user_id} type="button" className={`lu-item${dipilih === u.user_id ? ' pilih' : ''}${u.lat === null ? ' tanpa' : ''}`} onClick={() => fokus(u)} title={u.lat === null ? 'Lokasi tidak diketahui' : 'Lihat di peta'}>
                 <span className="lu-foto">
                   <img src={fotoKaryawan(u.employe_id)} onError={onAvatarError} alt="" loading="lazy" />
                   <span className={`status${u.live ? ' live' : ''}`} />
@@ -375,10 +487,15 @@ const LokasiUser = () => {
                     {u.live ? <span className="lu-pil live">Live</span> : <span className="lu-pil">Aktif {waktu(u.terakhir_aktif)}</span>}
                     {u.sumber === 'browser' && <span className="lu-pil biru">Browser</span>}
                     {u.sumber === 'jaringan' && <span className="lu-pil biru">Jaringan</span>}
+                    {u.sumber === 'kantor' && <span className="lu-pil biru">Kantor</span>}
                     {u.sumber === 'ip' && <span className="lu-pil">IP</span>}
                   </div>
                   <div className="lu-sub mt-1">
                     <i className="bi bi-geo-alt" /> {lokasiTeks(u)}
+                  </div>
+                  <div className="lu-sub">
+                    <i className="bi bi-hdd-network" /> {u.ip || '-'}
+                    {jaringanTeks(u) ? ` · ${jaringanTeks(u)}` : ''}
                   </div>
                 </span>
               </button>
