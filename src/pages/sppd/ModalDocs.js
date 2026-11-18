@@ -28,11 +28,13 @@ pdfMake.fonts = {
   },
 };
 
-// namaUnduh: bila diisi, surat tugas (ST) langsung dibuat dan diunduh dengan nama file itu, lalu selesaiUnduh dipanggil (dipakai Rekap SPPD)
-const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh }) => {
+// namaUnduh: bila diisi, dokumen langsung dibuat dan diunduh dengan nama file itu, lalu selesaiUnduh dipanggil.
+// jenisUnduh 'ST' = surat tugas (Rekap SPPD), 'biaya' = dokumen perhitungan uang muka (lembar proses KeuanganSppd)
+const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, jenisUnduh }) => {
   const baseURL = process.env.REACT_APP_FRONTEND;
 
-  const baseURL1 = process.env.REACT_APP_BASEURL;
+  // selalu berakhiran "/" (di .env lokal tanpa "/" tautan file menjadi http://host:8000sppd/... dan diblokir browser)
+  const baseURL1 = `${(process.env.REACT_APP_BASEURL || '').replace(/\/+$/, '')}/`;
 
   const [loading, setLoading] = useState(false);
   const [detailSppd, setDetailSppd] = useState();
@@ -172,7 +174,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
         },
       },
     };
-    const unduhST = kindRef.current === 'ST' && namaUnduh;
+    const unduhST = kindRef.current === jenisUnduh && namaUnduh;
     openSignedPdf(api, pdfMake, docDefinition, sppdDetail?.id, ts, kindRef.current, unduhST ? { namaFile: namaUnduh, selesai: selesaiUnduh } : {});
   };
 
@@ -896,14 +898,20 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
       // termin='ete';
       // console.log( detailSppd?.tujuan_sppd[i]?.termin?.length)
 
+      termin = `
+        <tr>
+         <td style="width:12%;margin-bottom:5px; margin-top:4px"><strong>Termin</strong></td>
+         <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Tanggal Bayar</strong></td>
+         <td style="width:28%;margin-bottom:5px; margin-top:4px"><strong>Periode</strong></td>
+         <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Jumlah</strong></td>
+        </tr>`;
       for (let j = 0; j < detailSppd?.tujuan_sppd[i]?.termin?.length; j++) {
-        console.log(detailSppd?.tujuan_sppd[i]?.termin[j]?.id)
         termin += `
         <tr>
-
-         <td style="width:4%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${(detailSppd?.tujuan_sppd[i]?.termin[j]?.id + 1)}</td>
-         <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${dayjs(detailSppd?.tujuan_sppd[i]?.termin[j]?.tgl_bayar).format('DD MMMM YYYY')}</td>
-         <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${rupiah(detailSppd?.tujuan_sppd[i]?.termin[j]?.jumlah)}</td>
+         <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${detailSppd?.tujuan_sppd[i]?.termin[j]?.no ?? (detailSppd?.tujuan_sppd[i]?.termin[j]?.id + 1)}</td>
+         <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${dayjs(detailSppd?.tujuan_sppd[i]?.termin[j]?.tgl_bayar).format('DD MMMM YYYY')}</td>
+         <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${detailSppd?.tujuan_sppd[i]?.termin[j]?.keterangan || ''}</td>
+         <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${rupiah(detailSppd?.tujuan_sppd[i]?.termin[j]?.jumlah)}</td>
         </tr>`;
       }
 
@@ -955,61 +963,45 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
           .format('dddd, DD MMMM YYYY HH:mm')} (${detailSppd?.tujuan_sppd[i].rate_wt * 100
         }%*)</td>
           </tr>
-          <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Tiket </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: aktual</td>
-          </tr>
-          <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Makan </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
-          detailSppd?.tujuan_sppd[i].fix_um,
-        )}</td>
-          </tr>
-          <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Transportasi Lokal </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
-          detailSppd?.tujuan_sppd[i]?.fix_tl,
-        )}</td>
-          </tr>
-          <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang Saku </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
-          detailSppd?.tujuan_sppd[i]?.fix_us,
-        )}</td>
-          </tr>
-            <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Hotel </td </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${detailSppd?.tujuan_sppd[i]?.fix_hotel > 0 ? (rupiah(detailSppd?.tujuan_sppd[i]?.fix_hotel,)) : `Sharing dengan SPPD No. ${detailSppd?.tujuan_sppd[i]?.share_label}`}</td>
-          </tr>
-          <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">Uang BBM </td </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >: ${rupiah(
-          detailSppd?.tujuan_sppd[i]?.bbm,
-        )}</td>
-
-          </tr>
-            <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total Perkiraan Biaya</strong></td </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >:  <strong>${rupiah(
-          detailSppd?.tujuan_sppd[i]?.total_biaya,
-        )}</strong></td>
-          </tr>
-          </tr>
-            <tr>
-            <td style="width:48%;margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total Uang Muka</strong></td </td>
-            <td style="width:50%;margin-bottom:5px; margin-top:4px;border-left:none;border-right:none" >:  <strong>${rupiah(
-          detailSppd?.tujuan_sppd[i]?.uang_muka,
-        )}</strong></td>
-          </tr>
         </tbody>
       </table>
 
-      <p><strong>Termin Pembayaran Uang Muka</strong></p>
-        <table cellspacing="0" width="100%" style="margin-top:-17">
+      <table cellspacing="0" width="100%" style="margin-top:4">
+        <tbody>
+          <tr>
+            <td style="width:34%;margin-bottom:5px; margin-top:4px"><strong>Komponen Biaya</strong></td>
+            <td style="width:24%;margin-bottom:5px; margin-top:4px"><strong>Perkiraan Biaya</strong></td>
+            <td style="width:12%;margin-bottom:5px; margin-top:4px"><strong>Uang Muka</strong></td>
+            <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Jumlah Uang Muka</strong></td>
+          </tr>
+          ${(detailSppd?.tujuan_sppd[i]?.rincian_uang_muka?.komponen || [])
+            .map(
+              (k) => `<tr>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${k.nama}${k.catatan ? ` (${k.catatan})` : ''}</td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${k.kode === 'hotel' && !(k.dasar > 0) && detailSppd?.tujuan_sppd[i]?.share_with ? `Sharing dengan SPPD No. ${detailSppd?.tujuan_sppd[i]?.share_label}` : rupiah(k.dasar)}</td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${k.persen}%</td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none">${rupiah(k.jumlah)}</td>
+          </tr>`,
+            )
+            .join('')}
+          <tr>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>Total</strong></td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>${rupiah(detailSppd?.tujuan_sppd[i]?.total_biaya)}</strong></td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"></td>
+            <td style="margin-bottom:5px; margin-top:4px; border-right:none;border-left:none"><strong>${rupiah(detailSppd?.tujuan_sppd[i]?.uang_muka)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:10px">Tiket : ${detailSppd?.tujuan_sppd[i]?.rincian_uang_muka?.tiket?.ada ? `${rupiah(detailSppd.tujuan_sppd[i].rincian_uang_muka.tiket.jumlah)} (biaya aktual, dibayar ke vendor, tidak termasuk uang muka)` : 'biaya aktual, dibayar ke vendor (tidak termasuk uang muka)'}</p>
+
+      <div data-pdfmake="{&quot;unbreakable&quot;:true}">
+      <p style="margin-top:8"><strong>Termin Pembayaran Uang Muka${detailSppd?.tujuan_sppd?.length > 1 ? ` - ${detailSppd?.tujuan_sppd[i]?.detail_tujuan}` : ''}</strong></p>
+        <table cellspacing="0" width="100%" style="margin-top:4">
         <tbody>
         ${termin}
         </tbody>
       </table>
+      </div>
 
     </li>`;
     }
@@ -1076,7 +1068,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
           </p>
 
           <span style="font-size:10px; font-style:italic">* Persentase Rate hitungan biaya sesuai jam berangkat / tiba<br>
-          ** Perkiraan biaya ini tidak termasuk tiket <br>*** Uang Muka adalah jumlah total perkiraan biaya dikurangi uang saku</span>
+          ** Perkiraan biaya ini tidak termasuk tiket <br>*** Uang Muka = uang makan 100% + transportasi lokal 100% + hotel 100% + BBM 100% dari perkiraan biaya; komponen lain 0%; hotel dihitung per malam (jumlah hari - 1). Tiket dibayar sesuai biaya aktual. SPPD lebih dari 4 hari dibayar bertahap per 4 hari.</span>
       </td>
      </tr>
     </tbody>
@@ -1152,7 +1144,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
     }, 2000);
   };
 
-  // mode unduh ST (Rekap SPPD): begitu detail SPPD termuat, ST dibuat dan diunduh otomatis satu kali
+  // mode unduh (Rekap SPPD / lembar proses Keuangan): begitu detail SPPD termuat, dokumennya dibuat dan diunduh otomatis satu kali
   useEffect(() => {
     if (!modalDoc || !namaUnduh) {
       unduhJalan.current = false;
@@ -1160,7 +1152,8 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
     }
     if (detailSppd && !unduhJalan.current) {
       unduhJalan.current = true;
-      printST();
+      if (jenisUnduh === 'biaya') printBiaya();
+      else printST();
     }
   }, [modalDoc, namaUnduh, detailSppd]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1332,6 +1325,41 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh })
             </>
           ) : null}
 
+          {(detailSppd?.proses_tiket || []).map((t) => (
+            <Col sm={6} md={3} className="mt-3" key={`tiket-${t.id}`}>
+              <a href={`${baseURL1}sppd/${t.file}`} target="_blank" rel="noreferrer">
+                <Card className="  mx-sm-1 p-3 col-card border border-success">
+                  <Card className=" bg-success my-card border shadow text-light p-3">
+                    <MaterialIcon icon="description" />
+                  </Card>
+                  <div className="text-center mt-3">
+                    <h4 className="text-success">Tiket {t.arah === 'pulang' ? 'Pulang' : 'Pergi'}</h4>
+                    <small>{t.keterangan}</small>
+                    <div>
+                      <small>Rp {Number(t.harga).toLocaleString('id-ID')}</small>
+                    </div>
+                  </div>
+                </Card>
+              </a>
+            </Col>
+          ))}
+
+          {(detailSppd?.proses_termin || []).map((t) => (
+            <Col sm={6} md={3} className="mt-3" key={`termin-${t.id}`}>
+              <a href={`${baseURL1}sppd/${t.file}`} target="_blank" rel="noreferrer">
+                <Card className="  mx-sm-1 p-3 col-card border border-success">
+                  <Card className=" bg-success my-card border shadow text-light p-3">
+                    <MaterialIcon icon="receipt_long" />
+                  </Card>
+                  <div className="text-center mt-3">
+                    <h4 className="text-success">Bukti Transfer Termin {t.termin}</h4>
+                    <small>{rupiah(t.jumlah)}</small>
+                  </div>
+                </Card>
+              </a>
+            </Col>
+          ))}
+
           {detailSppd?.proses?.filter((p) => p.as === 'uangmuka')[0]?.file ? (
             <>
               <Col sm={6} md={3} className="mt-3">
@@ -1430,11 +1458,13 @@ ModalDocs.propTypes = {
   sppdDetail: PropTypes.object,
   namaUnduh: PropTypes.string,
   selesaiUnduh: PropTypes.func,
+  jenisUnduh: PropTypes.string,
 };
 
 ModalDocs.defaultProps = {
   namaUnduh: '',
   selesaiUnduh: undefined,
+  jenisUnduh: 'ST',
 };
 
 export default ModalDocs;

@@ -440,6 +440,29 @@ const isMeetingActive = (item, currentTime) => {
   return currentTime <= endDate;
 };
 
+// Rapat yang berlangsung pada hari ini saja (mulai hari ini, atau rapat lintas hari yang masih mencakup hari ini).
+// Rapat yang baru mulai besok atau sesudahnya tidak ditampilkan.
+const isMeetingToday = (item, currentTime) => {
+  const startDate = parseApiDateValue(getValue(item, ['start_time', 'startTime', 'start_at', 'start']));
+  const endDate = parseApiDateValue(getValue(item, ['end_time', 'endTime', 'end_at', 'end']));
+  const todayStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
+  const tomorrowStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 1);
+
+  if (startDate && endDate) {
+    return startDate < tomorrowStart && endDate >= todayStart;
+  }
+
+  if (startDate) {
+    return startDate >= todayStart && startDate < tomorrowStart;
+  }
+
+  if (endDate) {
+    return endDate >= todayStart && endDate < tomorrowStart;
+  }
+
+  return false;
+};
+
 const sortMeetings = (items) => [...items].sort((left, right) => {
   const leftTime = new Date(getValue(left, ['start_time', 'startTime', 'start_at', 'start'])).getTime();
   const rightTime = new Date(getValue(right, ['start_time', 'startTime', 'start_at', 'start'])).getTime();
@@ -529,29 +552,7 @@ const PublicRoomSchedule = () => {
     const grouped = DEFAULT_ROOMS.map((room) => {
       const roomMeetings = sortMeetings(
         meetings.filter((item) => getRoomName(item).toLowerCase() === room.name.toLowerCase()),
-      ).filter((item) => {
-        const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
-        const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
-        const startDate = parseApiDateValue(startValue);
-        const endDate = parseApiDateValue(endValue);
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        const isMeetingRunningToday = () => !!(startDate && endDate && startDate <= now && now <= endDate);
-
-        if (startDate && endDate) {
-          return startDate >= todayStart || isMeetingRunningToday();
-        }
-
-        if (startDate) {
-          return startDate >= todayStart || now >= startDate;
-        }
-
-        if (endDate) {
-          return now <= endDate;
-        }
-
-        return false;
-      });
+      ).filter((item) => isMeetingToday(item, now));
 
       const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
 
@@ -568,29 +569,7 @@ const PublicRoomSchedule = () => {
       .filter((roomName) => !DEFAULT_ROOMS.some((room) => room.name.toLowerCase() === roomName.toLowerCase()))
       .map((roomName, index) => {
         const roomMeetings = sortMeetings(meetings.filter((item) => getRoomName(item).toLowerCase() === roomName.toLowerCase()))
-          .filter((item) => {
-            const startValue = getValue(item, ['start_time', 'startTime', 'start_at', 'start']);
-            const endValue = getValue(item, ['end_time', 'endTime', 'end_at', 'end']);
-            const startDate = parseApiDateValue(startValue);
-            const endDate = parseApiDateValue(endValue);
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-            const isMeetingRunningToday = () => !!(startDate && endDate && startDate <= now && now <= endDate);
-
-            if (startDate && endDate) {
-              return startDate >= todayStart || isMeetingRunningToday();
-            }
-
-            if (startDate) {
-              return startDate >= todayStart || now >= startDate;
-            }
-
-            if (endDate) {
-              return now <= endDate;
-            }
-
-            return false;
-          });
+          .filter((item) => isMeetingToday(item, now));
         const activeMeeting = roomMeetings.find((item) => isMeetingActive(item, now)) || null;
         return {
           name: roomName,
@@ -605,7 +584,7 @@ const PublicRoomSchedule = () => {
       });
 
     return [...grouped, ...extraRooms];
-  }, [meetings]);
+  }, [meetings, now]);
 
   const totalMeetings = roomCards.reduce((sum, room) => sum + room.total, 0);
   const activeRooms = roomCards.filter((room) => room.total > 0).length;

@@ -8,7 +8,8 @@ import Loader from '../../layouts/loader/Loader';
 import rupiah from '../../utils/rupiah';
 import useAxios from '../../hooks/useAxios';
 
-const baseURL = process.env.REACT_APP_BASEURL;
+// selalu berakhiran "/" supaya tautan file valid walau .env tanpa "/" di akhir
+const baseURL = `${(process.env.REACT_APP_BASEURL || '').replace(/\/+$/, '')}/`;
 const ModalDetail = ({ modalD, toggleDetail, sppdDetail }) => {
   const [detailSppd, setDetailSppd] = useState();
 
@@ -156,6 +157,10 @@ const ModalDetail = ({ modalD, toggleDetail, sppdDetail }) => {
                         <tr>
                           <td width="40%">Tiket </td>
                           <td width="60%">aktual**</td>
+                        </tr>
+                        <tr>
+                          <td width="40%">Perlu Tiket </td>
+                          <td width="60%">{t.perlu_tiket === 0 ? 'Tidak (langsung ke divisi keuangan)' : 'Ya (diproses divisi umum)'}</td>
                         </tr>
                         <tr>
                           <td width="40%">Uang Makan</td>

@@ -36,7 +36,8 @@ let sedangRefresh = null;
 const perbaruiToken = (tokenLama) => {
   if (!sedangRefresh) {
     sedangRefresh = axios
-      .get(`${process.env.REACT_APP_BASEURL}api/auth/refresh`, {
+      // BASEURL boleh berakhiran "/" atau tidak (di .env lokal tanpa "/" URL lama menjadi http://host:8000api/... dan perpanjangan token gagal)
+      .get(`${String(process.env.REACT_APP_BASEURL || '').replace(/\/+$/, '')}/api/auth/refresh`, {
         headers: { Authorization: `Bearer ${tokenLama}` },
       })
       .then((res) => {

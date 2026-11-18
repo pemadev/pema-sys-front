@@ -67,6 +67,8 @@ const EditSppd = ({
   // colums datatable
 
   const [cSelected, setCSelected] = useState([]);
+  // perlu tiket: ya = diproses UmumSppd lebih dulu, tidak = langsung ke KeuanganSppd
+  const [perluTiket, setPerluTiket] = useState(true);
   // const [rSelected, setRSelected] = useState(null);
 
   const [listSppd, setListSppd] = useState([]);
@@ -121,6 +123,10 @@ const EditSppd = ({
     {
       name: 'Tiba Kembali',
       selector: (row) => row.waktu_kembali?.format('DD/MM/YYYY HH:mm:ss'),
+    },
+    {
+      name: 'Perlu Tiket',
+      selector: (row) => (row.perlu_tiket === 0 ? 'Tidak' : 'Ya'),
     },
   ];
 
@@ -201,6 +207,7 @@ const EditSppd = ({
         file_undangan: undangan || '-',
         renbis: rkap,
         moda: cSelected.toLocaleString(),
+        perlu_tiket: perluTiket ? 1 : 0,
         ubbm: bbm || 0,
         shareWith: sId?.value || null,
       };
@@ -214,6 +221,7 @@ const EditSppd = ({
       setRkap('');
       setUndangan('');
       setTugas('');
+      setPerluTiket(true);
       alert('success', 'Tujuan SPPD Berhasil ditambahkan');
       toggle();
     } else {
@@ -255,6 +263,7 @@ const EditSppd = ({
           file_undangan: item.base64_undangan,
           renbis: item.id_rkap,
           moda: item.moda,
+          perlu_tiket: item.perlu_tiket === 0 ? 0 : 1,
           ubbm: item.bbm,
           shareWith: item.share_with,
         };
@@ -829,6 +838,46 @@ Jakarta Pusat 10110"
                 >
                   Transportasi Jalur Laut
                 </B>
+              </Box>
+
+              <Box
+                sx={{ p: 2, borderRadius: 2, border: '0.5px solid #C4C4C4' }}
+                className="mb-3"
+                role="radiogroup"
+                aria-label="Perlu tiket"
+              >
+                <div className="mb-2" style={{ fontWeight: 600 }}>
+                  Perlu tiket?
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  <B
+                    className="btn-sm"
+                    color="success"
+                    outline
+                    role="radio"
+                    aria-checked={perluTiket}
+                    active={perluTiket}
+                    onClick={() => setPerluTiket(true)}
+                  >
+                    Perlu tiket
+                  </B>
+                  <B
+                    className="btn-sm"
+                    color="secondary"
+                    outline
+                    role="radio"
+                    aria-checked={!perluTiket}
+                    active={!perluTiket}
+                    onClick={() => setPerluTiket(false)}
+                  >
+                    Tidak perlu tiket
+                  </B>
+                </div>
+                <small className="text-muted d-block mt-2">
+                  {perluTiket
+                    ? 'Setelah disetujui, SPPD diproses divisi umum (pemesanan tiket) lebih dulu, lalu ke divisi keuangan.'
+                    : 'Setelah disetujui, SPPD langsung masuk ke divisi keuangan tanpa melewati divisi umum.'}
+                </small>
               </Box>
 
               <Box className="mb-3">

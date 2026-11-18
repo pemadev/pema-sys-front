@@ -11,6 +11,15 @@ import { lebarKolomTombol } from '../../utils/lebarTombol';
 import { pasKolom } from '../../utils/lebarKolom';
 import './style.scss';
 
+const LABEL_SUMBER_TIKET = {
+  umum: 'Diupload divisi umum',
+  mandiri: 'Dipesan mandiri',
+  // nilai lama, hanya untuk menampilkan data yang diproses sebelum perubahan ini
+  tidak_ada: 'Tidak ada tiket',
+  pelaksana: 'Diupload pelaksana',
+  admin: 'Diupload admin pengaju',
+};
+
 const ListPengajuan = ({
   submitted,
   updateForm,
@@ -22,6 +31,9 @@ const ListPengajuan = ({
   toggleDoc,
   toggleRe,
   done,
+  modeKeuangan, // tabel "Sudah diproses KeuanganSppd": tanpa tombol Process, ada kolom tanggal proses
+  modeSelesai, // tabel "Sudah diproses UmumSppd": tombol Ubah Tiket, kolom sumber/jumlah tiket, dan status kunci
+  ubah,
   extend,
   toggle3, // Tambahkan prop extend
   refresh,
@@ -117,7 +129,7 @@ const ListPengajuan = ({
     l.push('Detail', 'Approval', 'Logs');
     if (value === '3') l.push('Review');
     l.push('Docs');
-    if (value === '4') l.push('Process');
+    if (value === '4' && !modeKeuangan) l.push(modeSelesai ? 'Ubah Tiket' : 'Process');
     if (bisaVoid(row)) l.push('Void');
     if (bisaRealisasi(row)) l.push('Realisasi');
 
@@ -211,7 +223,7 @@ const ListPengajuan = ({
             onClick={() => toggleDoc(row)}
           />
 
-          {value === '4' ? (
+          {value === '4' && !modeSelesai && !modeKeuangan ? (
             <Button
               className="me-2"
               size="sm"
@@ -221,6 +233,22 @@ const ListPengajuan = ({
               type="reset"
               value="Process"
               onClick={() => done(row)}
+            />
+          ) : (
+            ''
+          )}
+
+          {value === '4' && modeSelesai ? (
+            <Button
+              className="me-2"
+              size="sm"
+              outline
+              color="info"
+              tag="input"
+              type="reset"
+              value="Ubah Tiket"
+              title="Ubah / tambah tiket (juga setelah diproses divisi keuangan)"
+              onClick={() => ubah(row)}
             />
           ) : (
             ''
@@ -294,11 +322,48 @@ const ListPengajuan = ({
       name: 'Jenis Proses',
       selector: (row) =>
       (
-        <Badge color="info" style={{ width: '100px' }}>
-          {row.type_proses}
-        </Badge>
+        <>
+          <Badge color="info" style={{ width: '100px' }}>
+            {row.type_proses}
+          </Badge>
+          {row.termin_terbukti > 0 ? (
+            <Badge color="warning" className="ms-1" title="Sebagian termin sudah dibuktikan transfer, masih dalam proses">
+              Dalam proses {row.termin_terbukti}/{row.termin_total} termin
+            </Badge>
+          ) : null}
+        </>
       ),
-      omit: !hPro
+      omit: !hPro || !!modeSelesai,
+    },
+    {
+      name: 'Tanggal Diproses',
+      selector: (row) => (row.tgl_proses ? new Date(String(row.tgl_proses).replace(' ', 'T')).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'),
+      omit: !modeKeuangan,
+    },
+    {
+      name: 'Sumber Tiket',
+      selector: (row) => LABEL_SUMBER_TIKET[row.sumber_tiket] || '-',
+      omit: !modeSelesai,
+    },
+    {
+      name: 'Tiket',
+      selector: (row) =>
+        row.jumlah_tiket > 0 ? `${row.jumlah_tiket} tiket · Rp ${Number(row.total_tiket).toLocaleString('id-ID')}` : '-',
+      omit: !modeSelesai,
+    },
+    {
+      name: 'Status Proses',
+      selector: (row) =>
+        row.sudah_keuangan ? (
+          <Badge color="info" style={{ width: '220px' }} title="Divisi keuangan sudah memproses; tiket (mis. tiket pulang) masih bisa ditambah atau diubah">
+            Sudah diproses divisi keuangan
+          </Badge>
+        ) : (
+          <Badge color="success" style={{ width: '220px' }}>
+            Menunggu divisi keuangan
+          </Badge>
+        ),
+      omit: !modeSelesai,
     },
     {
       name: 'Jenis Persetujuan',
@@ -442,6 +507,9 @@ ListPengajuan.propTypes = {
   toggleDoc: PropTypes.func,
   toggleRe: PropTypes.func,
   done: PropTypes.func,
+  modeSelesai: PropTypes.bool,
+  modeKeuangan: PropTypes.bool,
+  ubah: PropTypes.func,
   extend: PropTypes.func, 
   toggle3:PropTypes.func,// Tambahkan propTypes extend
   refresh: PropTypes.func,

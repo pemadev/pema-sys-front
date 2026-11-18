@@ -44,16 +44,18 @@ const parseDate = (v) => {
 };
 const hhmm = (d) => (d ? d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') : '--:--');
 
-// Rapat yang ditampilkan sama dengan halaman /jadwal-rapat (PublicRoomSchedule): per ruangan, rapat yang mulai hari ini atau sesudahnya
-// (atau yang sedang berjalan), urut jam mulai, paling banyak 3 rapat per ruangan; rapat tanpa nama ruangan tidak ditampilkan.
+// Rapat yang ditampilkan sama dengan halaman /jadwal-rapat (PublicRoomSchedule): per ruangan, hanya rapat yang berlangsung hari ini
+// (mulai hari ini, atau rapat lintas hari yang masih mencakup hari ini; rapat besok dan sesudahnya tidak ditampilkan),
+// urut jam mulai, paling banyak 3 rapat per ruangan; rapat tanpa nama ruangan tidak ditampilkan.
 // Hasilnya digabung dan diurutkan menurut jam mulai.
 const MEETINGS_PER_ROOM = 3;
 const meetingsToday = (list, ref) => {
   const dayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const nextDayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 1);
   const keep = (m) => {
-    if (m.startAt && m.endAt) return m.startAt >= dayStart || (m.startAt <= ref && ref <= m.endAt);
-    if (m.startAt) return m.startAt >= dayStart || ref >= m.startAt;
-    if (m.endAt) return ref <= m.endAt;
+    if (m.startAt && m.endAt) return m.startAt < nextDayStart && m.endAt >= dayStart;
+    if (m.startAt) return m.startAt >= dayStart && m.startAt < nextDayStart;
+    if (m.endAt) return m.endAt >= dayStart && m.endAt < nextDayStart;
     return false;
   };
   const perRoom = new Map();
@@ -1413,7 +1415,7 @@ const DashboardTv = () => {
     hadir: `Daftar Karyawan Hadir${r ? ` (${r.hadir})` : ''}`,
     tidak: `Daftar Karyawan Tidak Hadir${r ? ` (${r.tidak_hadir})` : ''}`,
     kemarin: `Daftar Karyawan Belum Clock Out Kemarin${r ? ` (${r.belum_clock_out_kemarin})` : ''}`,
-    rapat: `Jadwal Rapat · Hari Ini & Mendatang (${rapatCount})`,
+    rapat: `Jadwal Rapat · Hari Ini (${rapatCount})`,
     struktur: `Struktur Organisasi · Direksi${org ? ` (${org.total + 1} karyawan)` : ''}`,
     grafikHari: `Grafik Kehadiran Karyawan Harian${stats ? ` · ${stats.bulan}` : ''}`,
     grafikBulan: `Grafik Kehadiran Karyawan Bulanan${stats ? ` · ${stats.tahun}` : ''}`,

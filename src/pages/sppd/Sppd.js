@@ -2,18 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import Tab from '@mui/material/Tab';
 import Badge from '@mui/material/Badge';
-import { Card, CardBody, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import InputAdornment from '@mui/material/InputAdornment';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { Card, CardBody } from 'reactstrap';
 import { useQueries } from '@tanstack/react-query';
 import MaterialIcon from '@material/react-material-icon';
-import { Button, Box } from '@mui/material';
+import { Button } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import AOS from 'aos';
 import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 import { alert } from '../../components/atoms/Toast';
 import useAxios from '../../hooks/useAxios';
 import useAuth from '../../hooks/useAuth';
@@ -32,10 +28,26 @@ import DashboardDirek from './DashboardDirek';
 import RekapSppd from './RekapSppd';
 import ModalExtend from './ModalExtend';
 import Modal30 from './Modal30';
+import ModalProses from './ModalProses';
+import ringkasUangMuka from './ringkasUangMuka';
 
 const Sppd = () => {
   const [doc, setDoc] = useState('');
   const [docName, setDocName] = useState('');
+  // proses UmumSppd: sumber tiket + daftar tiket per tujuan (pergi/pulang)
+  const [sumberTiket, setSumberTiket] = useState('');
+  const [tikets, setTikets] = useState([]);
+  const [tujuanSppd, setTujuanSppd] = useState([]);
+  // tab PERLU DIPROSES (UmumSppd): daftar SPPD yang sudah diproses, dan mode lembar proses (proses baru atau ubah tiket)
+  const [selesai, setSelesai] = useState([]);
+  const [selesaiKeuangan, setSelesaiKeuangan] = useState([]);
+  const [modeUbah, setModeUbah] = useState(false);
+  // lembar proses KeuanganSppd (uang muka): ringkasan biaya per kategori dan unduhan dokumen perhitungan uang muka
+  const [ringkasan, setRingkasan] = useState(null);
+  const [memuatRingkasan, setMemuatRingkasan] = useState(false);
+  const [unduhBiaya, setUnduhBiaya] = useState(null);
+  // bukti transfer yang dipilih per termin: { "idTujuan:no": { file (data URL), fileName } }
+  const [buktiTermin, setBuktiTermin] = useState({});
 
   const [detailSppd, setDetailSppd] = useState();
 
@@ -223,6 +235,16 @@ const Sppd = () => {
         .then((res) => {
           setSubmitted(res.data.data);
         });
+      if (auth?.user.roles.includes('UmumSppd')) {
+        api.get(`dapi/sppd/pengajuan?ref=by_umum_selesai`).then((res) => {
+          setSelesai(res.data.data);
+        });
+      }
+      if (auth?.user.roles.includes('KeuanganSppd')) {
+        api.get(`dapi/sppd/pengajuan?ref=by_keuangan_selesai`).then((res) => {
+          setSelesaiKeuangan(res.data.data);
+        });
+      }
     }
   };
 
@@ -399,13 +421,166 @@ const Sppd = () => {
     setJProses(re[10].data?.length);
   }, [re]);
 
-  const done = async (row) => {
+  // ubah tiket SPPD yang sudah diproses UmumSppd (tetap bisa walau KeuanganSppd sudah memproses)
+  const bukaUbah = (row) => {
+    setModeUbah(true);
     setDetailSppd(row);
+    setDoc('');
+    setDocName('');
+    setSumberTiket(row.sumber_tiket || '');
+    setTikets([]);
+    setTujuanSppd([]);
     setModalProses(true);
-    console.log(row);
+    api.get(`dapi/sppd/tujuan/${row.id}`).then((res) => setTujuanSppd(res.data.data || []));
+    api.get(`dapi/sppd/pengajuan/${row.id}`).then((res) => {
+      setTikets(
+        (res.data.data.proses_tiket || []).map((t) => ({
+          uid: `t${t.id}`,
+          id: t.id,
+          id_tujuan: String(t.id_tujuan),
+          arah: t.arah,
+          keterangan: t.keterangan || '',
+          file: '',
+          fileName: '',
+          fileUrl: t.file,
+          harga: String(Number(t.harga)),
+        })),
+      );
+    });
+  };
+
+  const tiketKosong = () => ({
+    uid: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id_tujuan: '',
+    arah: 'pergi',
+    keterangan: '',
+    file: '',
+    fileName: '',
+    harga: '',
+  });
+
+  // ringkasan biaya + status bukti per termin (dimuat ulang setelah bukti disimpan)
+  const muatRingkasan = (idSppd) =>
+    api
+      .get(`dapi/sppd/pengajuan/${idSppd}`)
+      .then((res) => setRingkasan(ringkasUangMuka(res.data.data)))
+      .catch(() => setRingkasan(null));
+
+  const done = async (row) => {
+    setModeUbah(false);
+    setDetailSppd(row);
+    setDoc('');
+    setDocName('');
+    setSumberTiket('');
+    setTikets([]);
+    setTujuanSppd([]);
+    setRingkasan(null);
+    setBuktiTermin({});
+    setModalProses(true);
+    if (row.type_proses === 'pemesanan_tiket') {
+      api.get(`dapi/sppd/tujuan/${row.id}`).then((res) => {
+        setTujuanSppd(res.data.data || []);
+      });
+    }
+    if (row.type_proses === 'uangmuka') {
+      setMemuatRingkasan(true);
+      muatRingkasan(row.id).finally(() => setMemuatRingkasan(false));
+    }
+  };
+
+  const BUKTI_MAKS_BYTE = 5 * 1024 * 1024;
+  const pilihBuktiTermin = (kunci, file) => {
+    if (!file) return;
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+      alert('error', 'Bukti transfer harus berupa file PDF, JPG, atau PNG');
+      return;
+    }
+    if (file.size > BUKTI_MAKS_BYTE) {
+      alert('error', 'Ukuran bukti transfer maksimal 5 MB');
+      return;
+    }
+    getBase64(file).then((result) => setBuktiTermin((prev) => ({ ...prev, [kunci]: { file: result, fileName: file.name } })));
+  };
+
+  const simpanBuktiTermin = () => {
+    const kunci = Object.keys(buktiTermin);
+    if (kunci.length === 0) {
+      alert('error', 'Pilih bukti transfer minimal untuk satu termin');
+      return;
+    }
+    confirmAlert({
+      title: 'Simpan bukti transfer?',
+      message: `${kunci.length} bukti transfer akan disimpan. Bukti yang sudah disimpan tidak dapat diganti.`,
+      buttons: [
+        {
+          label: 'Ya, simpan',
+          onClick: () => {
+            api
+              .post('dapi/sppd/pengajuan/termin/bukti', {
+                id_sppd: detailSppd?.id,
+                bukti: kunci.map((k) => ({ id_tujuan: Number(k.split(':')[0]), termin: Number(k.split(':')[1]), file: buktiTermin[k].file })),
+              })
+              .then((res) => {
+                const selesaiSemua = !!res.data?.data?.selesai;
+                alert('success', selesaiSemua ? 'Seluruh termin uang muka sudah dibuktikan, SPPD selesai diproses' : 'Bukti transfer tersimpan');
+                setBuktiTermin({});
+                refetchSubmitted();
+                if (selesaiSemua) setModalProses(false);
+                else muatRingkasan(detailSppd?.id);
+              })
+              .catch((err) => {
+                alert('error', err?.response?.data?.message || err.message);
+                refetchSubmitted();
+                muatRingkasan(detailSppd?.id);
+              });
+          },
+        },
+        { label: 'Batal', onClick: () => {} },
+      ],
+    });
+  };
+
+  const ubahTiket = (uid, patch) => setTikets((prev) => prev.map((t) => (t.uid === uid ? { ...t, ...patch } : t)));
+  const hapusTiket = (uid) => setTikets((prev) => prev.filter((t) => t.uid !== uid));
+  const tambahTiket = () => setTikets((prev) => [...prev, tiketKosong()]);
+  const fileTiket = (uid, file) => {
+    if (!file) return;
+    getBase64(file).then((result) => ubahTiket(uid, { file: result, fileName: file.name }));
+  };
+  const fileBukti = (file) => {
+    if (!file) return;
+    setDocName(file.name);
+    getBase64(file)
+      .then((result) => setDoc(result))
+      .catch(() => alert('error', 'Gagal membaca file'));
+  };
+
+  const pilihSumberTiket = (val) => {
+    setSumberTiket(val);
+    if (val === 'umum' && tikets.length === 0) {
+      setTikets([{ ...tiketKosong(), id_tujuan: tujuanSppd.length === 1 ? tujuanSppd[0].id : '' }]);
+    }
   };
 
   const doneProses = async () => {
+    const isUmum = detailSppd.type_proses === 'pemesanan_tiket';
+    if (isUmum) {
+      if (!sumberTiket) {
+        alert('error', 'Pilih sumber tiket terlebih dahulu');
+        return;
+      }
+      if (sumberTiket === 'umum') {
+        if (tikets.length === 0) {
+          alert('error', 'Tambahkan minimal satu tiket');
+          return;
+        }
+        const tidakLengkap = tikets.some((t) => !t.id_tujuan || !(t.file || t.id) || t.harga === '' || Number(t.harga) < 0);
+        if (tidakLengkap) {
+          alert('error', 'Setiap tiket wajib memilih tujuan, mengunggah file PDF (tiket baru), dan mengisi total harga');
+          return;
+        }
+      }
+    }
     setModalProses(false);
     let whoU = '';
     if (detailSppd.type_proses === 'pemesanan_tiket') {
@@ -417,18 +592,47 @@ const Sppd = () => {
     }
     await confirmAlert({
       title: `Kamu Yakin ?`,
-      message: `Jika Belum Jangan ya dek ya `,
+      message: modeUbah ? `Simpan perubahan tiket SPPD ini?` : `Jika Belum Jangan ya dek ya `,
       buttons: [
         {
           label: 'Yes',
           onClick: () => {
-            api
-              .post(`dapi/sppd/pengajuan/done`, { id_sppd: detailSppd?.id, who: whoU, file: doc })
+            const tiketKirim = tikets.map((t) => ({
+              ...(t.id ? { id: t.id } : {}),
+              id_tujuan: t.id_tujuan,
+              arah: t.arah,
+              keterangan: t.keterangan,
+              ...(t.file ? { file: t.file } : {}),
+              harga: t.harga,
+            }));
+            const permintaan = modeUbah
+              ? api.post(`dapi/sppd/pengajuan/umum/ubah`, {
+                  id_sppd: detailSppd?.id,
+                  sumber_tiket: sumberTiket,
+                  tikets: sumberTiket === 'umum' ? tiketKirim : [],
+                })
+              : api.post(
+                  `dapi/sppd/pengajuan/done`,
+                  isUmum
+                    ? {
+                        id_sppd: detailSppd?.id,
+                        who: whoU,
+                        sumber_tiket: sumberTiket,
+                        tikets: sumberTiket === 'umum' ? tiketKirim : [],
+                      }
+                    : { id_sppd: detailSppd?.id, who: whoU, file: doc },
+                );
+            permintaan
               .then((res) => {
                 if (res.status === 200) {
-                  alert('success', 'Berhasil ditandai sudah di proses');
+                  alert('success', modeUbah ? 'Perubahan tiket tersimpan' : 'Berhasil ditandai sudah di proses');
                   refetchSubmitted();
                 }
+              })
+              .catch((err) => {
+                alert('error', err?.response?.data?.message || err.message);
+                // mis. sudah diproses KeuanganSppd (409): muat ulang supaya statusnya terbarui
+                refetchSubmitted();
               });
           },
         },
@@ -560,7 +764,7 @@ const Sppd = () => {
             ) : (
               ''
             )}
-            {['AdminSPPD', 'UmumSppd', 'KeuanganSppd', 'Director'].some((r) => auth?.user.roles.includes(r)) ? (
+            {auth?.user.roles.includes('RekapSppd') ? (
               <Tab label={<strong>REKAP SPPD</strong>} value="5" />
             ) : (
               ''
@@ -768,6 +972,59 @@ const Sppd = () => {
               ></ListPengajuan>
             </CardBody>
           </Card>
+          {auth?.user.roles.includes('UmumSppd') ? (
+            <Card>
+              <CardBody>
+                <h6 className="mb-1">Sudah diproses divisi umum</h6>
+                <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                  Sumber dan daftar tiket tetap bisa diubah atau ditambah (mis. tiket pulang yang telat diupload), juga setelah divisi keuangan memproses.
+                </p>
+                <ListPengajuan
+                  {...{
+                    submitted: selesai,
+                    refresh,
+                    updateForm,
+                    toggleDetail,
+                    toggleApproval,
+                    toggleLog,
+                    value,
+                    toggleR,
+                    toggleDoc,
+                    extend,
+                    toggle3,
+                  }}
+                  modeSelesai
+                  ubah={bukaUbah}
+                ></ListPengajuan>
+              </CardBody>
+            </Card>
+          ) : null}
+          {auth?.user.roles.includes('KeuanganSppd') ? (
+            <Card>
+              <CardBody>
+                <h6 className="mb-1">Sudah diproses divisi keuangan</h6>
+                <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                  Uang muka yang seluruh termin sudah dibuktikan transfer dan realisasi yang sudah dibayar.
+                </p>
+                <ListPengajuan
+                  {...{
+                    submitted: selesaiKeuangan,
+                    refresh,
+                    updateForm,
+                    toggleDetail,
+                    toggleApproval,
+                    toggleLog,
+                    value,
+                    toggleR,
+                    toggleDoc,
+                    extend,
+                    toggle3,
+                  }}
+                  modeKeuangan
+                ></ListPengajuan>
+              </CardBody>
+            </Card>
+          ) : null}
         </TabPanel>
 
         <TabPanel value="5" className="ps-0 pe-0">
@@ -799,59 +1056,40 @@ const Sppd = () => {
         sppdDetail={sppdExtend}
         onSubmit={handleSubmitExtend}
       />
-      <Modal isOpen={modalProses} toggle={toggleProses}>
-        <ModalHeader toggle={toggleProses}>Lembar Proses</ModalHeader>
-        <ModalBody>
-          <Box className="mb-4">
-            <FormControl fullWidth>
-              <InputLabel htmlFor="outlined-adornment-amount">Docs</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={
-                  <InputAdornment position="start">
-                    <CloudUploadIcon
-                      className="text-primary"
-                      onClick={() => document.getElementById('input-file').click()}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </InputAdornment>
-                }
-                label="Amount"
-                value={docName || ''}
-                disabled
-                placeholder={
-                  auth?.user.roles.includes('UmumSppd')
-                    ? 'Tiket atau surat dokumen lainnya'
-                    : 'Bukti Bayar'
-                }
-              />
-            </FormControl>
-            <input
-              type="file"
-              id="input-file"
-              style={{ display: 'none' }}
-              accept="application/pdf"
-              onChange={(e) => {
-                setDocName(e.target.files[0]?.name);
-                getBase64(e.target.files[0])
-                  .then((result) => {
-                    setDoc(result);
-                    console.log(result);
-                    console.log(doc);
-                  })
-                  .catch((err) => {
-                    console.log(err);
-                  });
-              }}
-            />
-          </Box>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={doneProses}>
-            Done
-          </Button>{' '}
-        </ModalFooter>
-      </Modal>
+      <ModalProses
+        isOpen={modalProses}
+        toggle={toggleProses}
+        sppd={detailSppd}
+        tujuan={tujuanSppd}
+        sumber={sumberTiket}
+        onSumber={pilihSumberTiket}
+        tikets={tikets}
+        onUbahTiket={ubahTiket}
+        onTambahTiket={tambahTiket}
+        onHapusTiket={hapusTiket}
+        onFileTiket={fileTiket}
+        docName={docName}
+        onDoc={fileBukti}
+        onSelesai={detailSppd?.type_proses === 'uangmuka' ? simpanBuktiTermin : doneProses}
+        buktiPilihan={buktiTermin}
+        onPilihBukti={pilihBuktiTermin}
+        jumlahBukti={Object.keys(buktiTermin).length}
+        mode={modeUbah ? 'ubah' : 'proses'}
+        baseUrl={process.env.REACT_APP_BASEURL}
+        ringkasan={ringkasan}
+        memuatRingkasan={memuatRingkasan}
+        onUnduhHitungan={() => setUnduhBiaya(detailSppd)}
+        menyiapkanUnduh={!!unduhBiaya}
+      />
+      {/* unduh dokumen perhitungan uang muka (tanpa membuka jendela dokumen) */}
+      <ModalDocs
+        modalDoc={!!unduhBiaya}
+        toggleDoc={() => setUnduhBiaya(null)}
+        sppdDetail={unduhBiaya ? { id: unduhBiaya.id } : null}
+        namaUnduh={unduhBiaya ? `Perhitungan Uang Muka ${String(unduhBiaya.nomor_sppd || unduhBiaya.id).replace(/[\\\\/:*?"<>|]+/g, '-')}.pdf` : ''}
+        jenisUnduh="biaya"
+        selesaiUnduh={() => setUnduhBiaya(null)}
+      />
     </>
   );
 };
