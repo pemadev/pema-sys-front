@@ -271,7 +271,9 @@ const Sppd = () => {
   // tautan dari notifikasi (?dok=<nomor dokumen>#<tab>): buka dokumennya sekali saja setelah daftar pada tab yang dituju termuat.
   // Tab review (#3) membuka layar Review, tab lain membuka Detail.
   const dokDariLink = new URLSearchParams(search).get('dok');
+  const aksiDariLink = new URLSearchParams(search).get('aksi');
   const sudahDibuka = useRef(false);
+  const bukaProsesRef = useRef(null); // diisi setelah fungsi done didefinisikan
   useEffect(() => {
     const tabTujuan = hash.replace('#', '');
     if (!dokDariLink || sudahDibuka.current || !tabTujuan || value !== tabTujuan) return;
@@ -280,6 +282,9 @@ const Sppd = () => {
     sudahDibuka.current = true;
     if (tabTujuan === '3') {
       toggleR(row);
+    } else if (tabTujuan === '4' && aksiDariLink === 'proses') {
+      // tautan cepat dari notifikasi (WhatsApp/push): langsung buka lembar proses
+      if (bukaProsesRef.current) bukaProsesRef.current(row);
     } else {
       toggleDetail(row);
     }
@@ -487,6 +492,7 @@ const Sppd = () => {
       muatRingkasan(row.id).finally(() => setMemuatRingkasan(false));
     }
   };
+  bukaProsesRef.current = done;
 
   const BUKTI_MAKS_BYTE = 5 * 1024 * 1024;
   const pilihBuktiTermin = (kunci, file) => {
