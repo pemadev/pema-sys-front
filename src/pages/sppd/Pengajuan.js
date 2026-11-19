@@ -106,7 +106,7 @@ const Pengajuan = ({
   // colums datatable
 
   const [cSelected, setCSelected] = useState([]);
-  // perlu tiket: ya = diproses UmumSppd lebih dulu, tidak = langsung ke KeuanganSppd
+  // perlu tiket: ya = diproses UmumSppd (tiket) bersamaan dengan KeuanganSppd (uang muka), tidak = hanya KeuanganSppd
   const [perluTiket, setPerluTiket] = useState(true);
   // const [rSelected, setRSelected] = useState(null);
 
@@ -1024,7 +1024,7 @@ Jakarta Pusat 10110"
                 </div>
                 <small className="text-muted d-block mt-2">
                   {perluTiket
-                    ? 'Setelah disetujui, SPPD diproses divisi umum (pemesanan tiket) lebih dulu, lalu ke divisi keuangan.'
+                    ? 'Setelah disetujui, SPPD diproses divisi umum (pemesanan tiket) dan divisi keuangan (uang muka) secara bersamaan.'
                     : 'Setelah disetujui, SPPD langsung masuk ke divisi keuangan tanpa melewati divisi umum.'}
                 </small>
               </Box>

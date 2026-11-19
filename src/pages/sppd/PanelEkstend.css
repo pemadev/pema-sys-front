@@ -1,0 +1,320 @@
+.pe {
+  padding: 14px 18px 18px;
+  background: #f6f8fb;
+  border-top: 1px solid #e3e8ef;
+}
+.pe-kepala {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #1f2a44;
+}
+.pe-jumlah {
+  background: #1f6feb;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 1px 9px;
+}
+.pe-kosong {
+  padding: 14px 18px;
+  color: #7a8599;
+  font-size: 13px;
+}
+
+/* kartu satu extend */
+.pe-kartu {
+  --warna: #f0ad4e;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-left: 4px solid var(--warna);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.pe-kartu:hover {
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.09);
+}
+.pe-kartu.menunggu { --warna: #f0ad4e; }
+.pe-kartu.disetujui { --warna: #2e9e5b; }
+.pe-kartu.ditolak { --warna: #d9534f; }
+.pe-kartu.dibatalkan { --warna: #9aa4b5; }
+.pe-kartu.dibatalkan .pe-judul { text-decoration: line-through; color: #7a8599; }
+
+.pe-tombol {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.pe-nomor {
+  flex: 0 0 auto;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--warna);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.pe-ringkas {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pe-judul {
+  font-weight: 600;
+  color: #1f2a44;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pe-meta {
+  font-size: 12px;
+  color: #7a8599;
+}
+.pe-status {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warna);
+  background: color-mix(in srgb, var(--warna) 13%, #fff);
+  border-radius: 999px;
+  padding: 3px 11px;
+  white-space: nowrap;
+}
+.pe-panah {
+  flex: 0 0 auto;
+  color: #7a8599;
+  transition: transform 0.2s;
+}
+.pe-kartu.buka .pe-panah { transform: rotate(180deg); }
+
+.pe-isi {
+  padding: 4px 16px 16px 62px;
+}
+@media (max-width: 575px) {
+  .pe-isi { padding-left: 16px; }
+  .pe-status { display: none; }
+}
+
+.pe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px 18px;
+  margin-bottom: 14px;
+}
+.pe-grid dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7a8599;
+  margin: 0;
+  font-weight: 600;
+}
+.pe-grid dd {
+  margin: 0;
+  color: #1f2a44;
+  font-size: 13px;
+}
+.pe-grid .lebar { grid-column: 1 / -1; }
+
+.pe-sub {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2a44;
+  margin: 2px 0 8px;
+}
+
+/* garis waktu penyetuju */
+.pe-garis {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.pe-langkah {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+.pe-langkah:last-child { padding-bottom: 0; }
+.pe-langkah::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 22px;
+  bottom: 0;
+  width: 2px;
+  background: #e3e8ef;
+}
+.pe-langkah:last-child::before { display: none; }
+.pe-titik {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #cfd6e2;
+  color: #fff;
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+  font-weight: 700;
+}
+.pe-titik.approve { background: #2e9e5b; }
+.pe-titik.tolak { background: #d9534f; }
+.pe-titik.menunggu { background: #f0ad4e; }
+.pe-orang { font-size: 13px; color: #1f2a44; font-weight: 600; }
+.pe-orang small { display: block; font-weight: 400; color: #7a8599; }
+.pe-hasil { font-size: 12px; margin-top: 1px; }
+.pe-hasil.approve { color: #2e9e5b; }
+.pe-hasil.tolak { color: #d9534f; }
+.pe-hasil.menunggu { color: #b9770e; }
+.pe-catatan {
+  font-size: 12px;
+  color: #4a5568;
+  background: #f6f8fb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
+.pe-batal-info {
+  background: #f1f3f7;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #4a5568;
+  margin-bottom: 12px;
+}
+.pe-aksi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+/* Action AdminSPPD di daftar: satu tombol utama + menu Action */
+.aksi-admin { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.aksi-admin .aksi-utama {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 82px;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.aksi-admin .aksi-utama .material-icons { font-size: 16px; }
+.aksi-admin .aksi-lain {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #dfe4ec;
+  background: #fff;
+  border-radius: 8px;
+  color: #3b4660;
+  font-weight: 600;
+}
+.aksi-admin .aksi-lain:hover,
+.aksi-admin .aksi-lain.show { background: #eef3fd; border-color: #bcd0f7; color: #1f6feb; }
+.aksi-admin .aksi-panah { font-size: 18px; transition: transform 0.15s; }
+.aksi-admin .aksi-lain.show .aksi-panah { transform: rotate(180deg); }
+
+.aksi-menu {
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18);
+  padding: 6px;
+  min-width: 190px;
+  animation: aksi-muncul 0.14s ease-out;
+}
+@keyframes aksi-muncul {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.aksi-menu .aksi-judul {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #8b95a7;
+  padding: 6px 10px 4px;
+}
+.aksi-menu .aksi-item {
+  --w: #6b7587;
+  border-radius: 9px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #26314d;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.12s, transform 0.12s;
+}
+.aksi-menu .aksi-item:hover,
+.aksi-menu .aksi-item:focus { background: color-mix(in srgb, var(--w) 10%, #fff); transform: translateX(2px); color: #26314d; }
+.aksi-menu .aksi-item:active { background: color-mix(in srgb, var(--w) 16%, #fff); color: #26314d; }
+.aksi-ikon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--w) 14%, #fff);
+  color: var(--w);
+  flex: 0 0 auto;
+}
+.aksi-ikon .material-icons { font-size: 17px; }
+.aksi-success { --w: #2e9e5b; }
+.aksi-primary { --w: #1f6feb; }
+.aksi-warning { --w: #d98a1a; }
+.aksi-danger { --w: #d9534f; }
+.aksi-info { --w: #12a0b8; }
+.aksi-dark { --w: #343a40; }
+.aksi-secondary { --w: #6b7587; }
+.aksi-menu .dropdown-divider { margin: 5px 4px; border-color: #eef1f6; }
+
+/* sel bertumpuk di tabel Pengajuan */
+.sel-tumpuk { display: flex; flex-direction: column; gap: 2px; line-height: 1.25; padding: 4px 0; min-width: 0; }
+.sel-utama { font-weight: 600; color: #1f2a44; }
+.sel-kecil { font-size: 12px; color: #7a8599; }
+.sel-extend {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f6feb;
+  background: #eaf1fe;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
+/* pilih extend yang dibatalkan */
+.bx-daftar { display: flex; flex-direction: column; gap: 8px; }
+.bx-opsi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fff;
+  margin: 0;
+  transition: border-color 0.12s, background 0.12s;
+}
+.bx-opsi:hover { border-color: #bcd0f7; background: #f7f9fd; }
+.bx-opsi.aktif { border-color: #d9534f; background: #fdf1f0; box-shadow: 0 0 0 2px rgba(217, 83, 79, 0.15); }
+.bx-opsi.aktif .pe-nomor { background: #d9534f; }
+.bx-opsi.mati { opacity: 0.55; cursor: not-allowed; background: #f6f8fb; }
+.bx-opsi input { accent-color: #d9534f; }
+.bx-opsi .pe-nomor { background: #9aa4b5; }
+.bx-teks { display: flex; flex-direction: column; min-width: 0; }

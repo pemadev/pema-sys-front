@@ -38,15 +38,16 @@ const ringkasUangMuka = (detail) => {
     hari: r.hari,
     daftar: (r.termin || []).map((x) => {
       const no = Number(x.no ?? Number(x.id) + 1);
-      const idTujuan = Number(x.id_tujuan ?? t.id);
+      // termin extend memakai kunci "e<id extend>" agar tidak bentrok dengan termin tujuan SPPD awal
+      const idTujuan = x.id_ekstend ? `e${x.id_ekstend}` : Number(x.id_tujuan ?? t.id);
       return { no, idTujuan, kunci: `${idTujuan}:${no}`, tgl: x.tgl_bayar, ket: x.keterangan, jumlah: Number(x.jumlah) || 0, bukti: x.bukti || null };
     }),
   }));
   // tiket yang diupload UmumSppd (pergi/pulang per tujuan) beserta file untuk diunduh
-  const namaTujuan = new Map(tujuan.map((t) => [Number(t.id), t.detail_tujuan]));
+  const namaTujuan = new Map(tujuan.map((t) => [String(t.id), t.detail_tujuan]));
   const daftarTiket = (detail?.proses_tiket || []).map((x) => ({
     id: x.id,
-    tujuan: namaTujuan.get(Number(x.id_tujuan)) || '-',
+    tujuan: namaTujuan.get(String(x.id_tujuan)) || '-',
     arah: x.arah,
     keterangan: x.keterangan,
     harga: Number(x.harga) || 0,
@@ -62,7 +63,17 @@ const ringkasUangMuka = (detail) => {
   const semuaTermin = termin.flatMap((x) => x.daftar);
   const selesai = semuaTermin.length > 0 && semuaTermin.every((x) => x.bukti);
 
-  return { komponen, rate, tiket: { jumlah: tiket, ada: tiket > 0, daftar: daftarTiket, status: statusTiket }, total, termin, bertahap, selesai };
+  return { ekstend: !!detail?.adalahEkstend, komponen, rate, tiket: { jumlah: tiket, ada: tiket > 0, daftar: daftarTiket, status: statusTiket }, total, termin, bertahap, selesai };
 };
+
+// detail "semu" dari extend yang disetujui (tiket + uang muka terpisah dari SPPD awal) agar ringkasUangMuka dapat dipakai ulang
+export const detailDariEkstend = (items) => ({
+  adalahEkstend: true,
+  tujuan_sppd: items.map((it) => ({ id: `e${it.id}`, detail_tujuan: it.judul, perlu_tiket: it.perlu_tiket, rincian_uang_muka: it.rincian_uang_muka })),
+  proses_tiket: items.flatMap((it) => (it.tiket || []).map((x) => ({ ...x, id_tujuan: `e${it.id}` }))),
+  proses: items.some((it) => Number(it.by_umum) === 1 && it.sumber_tiket)
+    ? [{ as: 'umum', sumber_tiket: items.find((it) => Number(it.by_umum) === 1 && it.sumber_tiket).sumber_tiket }]
+    : [],
+});
 
 export default ringkasUangMuka;

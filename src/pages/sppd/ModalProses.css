@@ -472,3 +472,8 @@
 
 /* dialog konfirmasi (react-confirm-alert) harus tampil di atas modal Bootstrap (z-index 1055) */
 .react-confirm-alert-overlay { z-index: 2000 !important; }
+
+/* modal extend: pilihan moda berbentuk chip yang bisa dipilih */
+.lp-chip-pilih { min-height: 36px; padding: 6px 14px; cursor: pointer; font-weight: 600; }
+.lp-chip-pilih:hover { background: var(--lp-hover); }
+.lp-chip-pilih.aktif { border-color: var(--lp-aksen); background: var(--lp-aksen-lembut); color: var(--lp-aksen); }

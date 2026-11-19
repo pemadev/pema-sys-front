@@ -11,6 +11,7 @@ import { QRCode } from 'react-qrcode-logo';
 import { alert } from '../../components/atoms/Toast';
 import logo from '../../assets/images/qrcode/qr-code-logo.png';
 import openSignedPdf from './openSignedPdf';
+import { poles, kakiHalaman } from './polesPdf';
 import useAxios from '../../hooks/useAxios';
 import image from '../../assets/image';
 import rupiah from '../../utils/rupiah';
@@ -99,6 +100,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
       },
       tableAutoSize: true,
     });
+    poles(pdfContent);
 
     // Create a document definition for pdfmake
     const docDefinition = {
@@ -156,14 +158,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
           width: lebar,
         };
       },
-      footer: (currentPage, pageCount) => {
-        if (currentPage !== pageCount) return { text: '' };
-
-        return {
-          image: foot,
-          width: lebar,
-        };
-      },
+      footer: kakiHalaman(foot, lebar),
       defaultStyle: {
         font: 'Archivo',
         fontSize: 10,
@@ -208,6 +203,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
       },
       tableAutoSize: true,
     });
+    poles(pdfContent);
 
     const docDefinition = {
       pageOrientation: orientationPage,
@@ -273,10 +269,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
         if (page !== 1) return { text: '' };
         return { image: head, width: lebar };
       },
-      footer: (currentPage, pageCount) => {
-        if (currentPage !== pageCount) return { text: '' };
-        return { image: foot, width: lebar };
-      },
+      footer: kakiHalaman(foot, lebar),
       defaultStyle: {
         font: 'Archivo',
         fontSize: 10,
@@ -745,15 +738,13 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
     }
   };
 
-  const printekstend = (id) => {
-    kindRef.current = `extend-${id}`;
-    console.log(id);
-    console.log(detailSppd);
+  // cetak surat penambahan hari untuk SATU extend; penyetujunya diambil dari langkah bertipe extend-<no_urut> (extend lama: 'extend')
+  const printekstend = (detailektend) => {
+    const tipeApproval = detailektend?.tipe_approval || 'extend';
+    kindRef.current = `extend-${detailektend?.id}`;
     setLoading(true);
-    setTypeSign('extend');
-    const ekstenddata = detailSppd?.approval?.find((f) => f.type === 'extend');
-    console.log(ekstenddata);
-    const detailektend = detailSppd?.ekstend?.find((f) => f.id_tujuan === id);
+    setTypeSign(tipeApproval);
+    const ekstenddata = detailSppd?.approval?.find((f) => f.type === tipeApproval);
 
     const html = `<p style="text-align:center;"><strong style="text-decoration:underline">SURAT PERNYATAAN PENAMBAHAN HARI</strong><br>Nomor SPPD : ${detailSppd?.nomor_sppd.replaceAll(
       'ST',
@@ -795,7 +786,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
         80,
         60,
         80,
-        'extend',
+        tipeApproval,
       );
     }, 2000);
 
@@ -900,10 +891,10 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
 
       termin = `
         <tr>
-         <td style="width:12%;margin-bottom:5px; margin-top:4px"><strong>Termin</strong></td>
-         <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Tanggal Bayar</strong></td>
-         <td style="width:28%;margin-bottom:5px; margin-top:4px"><strong>Periode</strong></td>
-         <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Jumlah</strong></td>
+         <td style="width:12%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Termin</strong></td>
+         <td style="width:30%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Tanggal Bayar</strong></td>
+         <td style="width:28%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Periode</strong></td>
+         <td style="width:30%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Jumlah</strong></td>
         </tr>`;
       for (let j = 0; j < detailSppd?.tujuan_sppd[i]?.termin?.length; j++) {
         termin += `
@@ -969,10 +960,10 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
       <table cellspacing="0" width="100%" style="margin-top:4">
         <tbody>
           <tr>
-            <td style="width:34%;margin-bottom:5px; margin-top:4px"><strong>Komponen Biaya</strong></td>
-            <td style="width:24%;margin-bottom:5px; margin-top:4px"><strong>Perkiraan Biaya</strong></td>
-            <td style="width:12%;margin-bottom:5px; margin-top:4px"><strong>Uang Muka</strong></td>
-            <td style="width:30%;margin-bottom:5px; margin-top:4px"><strong>Jumlah Uang Muka</strong></td>
+            <td style="width:34%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Komponen Biaya</strong></td>
+            <td style="width:24%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Perkiraan Biaya</strong></td>
+            <td style="width:12%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Uang Muka</strong></td>
+            <td style="width:30%;margin-bottom:5px; margin-top:4px;background-color:#eef2f7"><strong>Jumlah Uang Muka</strong></td>
           </tr>
           ${(detailSppd?.tujuan_sppd[i]?.rincian_uang_muka?.komponen || [])
             .map(
@@ -1411,8 +1402,8 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
 
           {detailSppd?.ekstend?.length > 0 ? (
             <>
-              {detailSppd?.ekstend?.map((i) => (
-                <Col sm={6} md={3} className="mt-3" onClick={detailSppd ? () => printekstend(i.id_tujuan) : null}>
+              {detailSppd?.ekstend?.filter((i) => i.status_approval !== 'dibatalkan').map((i) => (
+                <Col sm={6} md={3} key={i.id} className="mt-3" onClick={detailSppd ? () => printekstend(i) : null}>
 
                   <Card
                     className="  mx-sm-1 p-3 col-card border border-success"
@@ -1421,7 +1412,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
                       <MaterialIcon icon="description" />
                     </Card>
                     <div className="text-center mt-3">
-                      <h4 className="text-success">Ekstend </h4>
+                      <h4 className="text-success">Ekstend{i.no_urut ? ` ${i.no_urut}` : ''}</h4>
                       <small>({i.detail_tujuan})</small>
                     </div>
                   </Card>

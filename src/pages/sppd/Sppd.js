@@ -29,7 +29,7 @@ import RekapSppd from './RekapSppd';
 import ModalExtend from './ModalExtend';
 import Modal30 from './Modal30';
 import ModalProses from './ModalProses';
-import ringkasUangMuka from './ringkasUangMuka';
+import ringkasUangMuka, { detailDariEkstend } from './ringkasUangMuka';
 
 const Sppd = () => {
   const [doc, setDoc] = useState('');
@@ -65,7 +65,10 @@ const Sppd = () => {
   const [submitted, setSubmitted] = useState();
   const [approved, setApproved] = useState();
 
-  const [value, setValue] = useState('1');
+  // tab awal mengikuti hash tautan (#1-#4) supaya data tab lain tidak sempat termuat dan menimpa daftar tab tujuan
+  const [value, setValue] = useState(() => (['#1', '#2', '#3', '#4'].includes(hash) ? hash.replace('#', '') : '1'));
+  const tabAktifRef = useRef(value);
+  tabAktifRef.current = value;
   // sub-daftar pada tab PENGAJUAN: 'saya' (yang saya ajukan, default) atau 'tim' (diajukan tim satu divisi)
   const [subPengajuan, setSubPengajuan] = useState('saya');
   const [editForm, setEditForm] = useState(false);
@@ -209,17 +212,19 @@ const Sppd = () => {
   };
 
   const getData = (val) => {
+    // respons milik tab yang sudah ditinggalkan diabaikan agar tidak menimpa daftar tab aktif
+    const masihAktif = () => tabAktifRef.current === val;
     if (val === '1') {
       api.get(subPengajuan === 'tim' ? `dapi/sppd/pengajuan?ref=divisi` : `dapi/sppd/pengajuan`).then((res) => {
-        setSubmitted(res.data.data);
+        if (masihAktif()) setSubmitted(res.data.data);
       });
     } else if (val === '2') {
       api.get(`dapi/sppd/pengajuan?ref=mine`).then((res) => {
-        setSubmitted(res.data.data);
+        if (masihAktif()) setSubmitted(res.data.data);
       });
     } else if (val === '3') {
       api.get(`dapi/sppd/pengajuan?ref=review`).then((res) => {
-        setSubmitted(res.data.data);
+        if (masihAktif()) setSubmitted(res.data.data);
       });
       api.get(`dapi/sppd/pengajuan?ref=approved_by`).then((res) => {
         setApproved(res.data.data);
@@ -233,7 +238,7 @@ const Sppd = () => {
           }`,
         )
         .then((res) => {
-          setSubmitted(res.data.data);
+          if (masihAktif()) setSubmitted(res.data.data);
         });
       if (auth?.user.roles.includes('UmumSppd')) {
         api.get(`dapi/sppd/pengajuan?ref=by_umum_selesai`).then((res) => {
@@ -277,7 +282,10 @@ const Sppd = () => {
   useEffect(() => {
     const tabTujuan = hash.replace('#', '');
     if (!dokDariLink || sudahDibuka.current || !tabTujuan || value !== tabTujuan) return;
-    const row = (submitted || []).find((p) => p.nomor_dokumen === dokDariLink);
+    // satu nomor dokumen bisa punya baris SPPD awal dan baris extend di tab PERLU DIPROSES: ?jenis=extend memilih baris extend
+    const kandidat = (submitted || []).filter((p) => p.nomor_dokumen === dokDariLink);
+    const mauExtend = new URLSearchParams(search).get('jenis') === 'extend';
+    const row = kandidat.find((p) => !!p.mode_ekstend === mauExtend) || kandidat[0];
     if (!row) return;
     sudahDibuka.current = true;
     if (tabTujuan === '3') {
@@ -465,10 +473,19 @@ const Sppd = () => {
   });
 
   // ringkasan biaya + status bukti per termin (dimuat ulang setelah bukti disimpan)
-  const muatRingkasan = (idSppd) =>
+  // ekstendIds: lembar proses extend (item extend yang disetujui, terpisah dari SPPD awal)
+  const muatRingkasan = (idSppd, ekstendIds) =>
     api
       .get(`dapi/sppd/pengajuan/${idSppd}`)
-      .then((res) => setRingkasan(ringkasUangMuka(res.data.data)))
+      .then((res) => {
+        const { data } = res.data;
+        if (ekstendIds) {
+          const items = (data?.ekstend_items || []).filter((it) => ekstendIds.includes(it.id));
+          setRingkasan(ringkasUangMuka(detailDariEkstend(items)));
+        } else {
+          setRingkasan(ringkasUangMuka(data));
+        }
+      })
       .catch(() => setRingkasan(null));
 
   const done = async (row) => {
@@ -483,13 +500,21 @@ const Sppd = () => {
     setBuktiTermin({});
     setModalProses(true);
     if (row.type_proses === 'pemesanan_tiket') {
-      api.get(`dapi/sppd/tujuan/${row.id}`).then((res) => {
-        setTujuanSppd(res.data.data || []);
-      });
+      if (row.mode_ekstend) {
+        // extend yang disetujui: tiket per extend (tujuan baru / tambah hari), bukan per tujuan SPPD awal
+        api.get(`dapi/sppd/pengajuan/${row.id}`).then((res) => {
+          const items = (res.data.data?.ekstend_items || []).filter((it) => (row.ekstend_ids || []).includes(it.id));
+          setTujuanSppd(items.map((it) => ({ id: `e${it.id}`, detail_tujuan: it.judul, waktu_berangkat: it.start, waktu_kembali: it.end })));
+        });
+      } else {
+        api.get(`dapi/sppd/tujuan/${row.id}`).then((res) => {
+          setTujuanSppd(res.data.data || []);
+        });
+      }
     }
     if (row.type_proses === 'uangmuka') {
       setMemuatRingkasan(true);
-      muatRingkasan(row.id).finally(() => setMemuatRingkasan(false));
+      muatRingkasan(row.id, row.mode_ekstend ? row.ekstend_ids || [] : undefined).finally(() => setMemuatRingkasan(false));
     }
   };
   bukaProsesRef.current = done;
@@ -521,23 +546,33 @@ const Sppd = () => {
         {
           label: 'Ya, simpan',
           onClick: () => {
+            const extend = !!detailSppd?.mode_ekstend;
             api
-              .post('dapi/sppd/pengajuan/termin/bukti', {
-                id_sppd: detailSppd?.id,
-                bukti: kunci.map((k) => ({ id_tujuan: Number(k.split(':')[0]), termin: Number(k.split(':')[1]), file: buktiTermin[k].file })),
-              })
+              .post(
+                'dapi/sppd/pengajuan/termin/bukti',
+                extend
+                  ? {
+                      ekstend: 1,
+                      id_sppd: detailSppd?.id,
+                      bukti: kunci.map((k) => ({ id_ekstend: Number(k.split(':')[0].replace('e', '')), termin: Number(k.split(':')[1]), file: buktiTermin[k].file })),
+                    }
+                  : {
+                      id_sppd: detailSppd?.id,
+                      bukti: kunci.map((k) => ({ id_tujuan: Number(k.split(':')[0]), termin: Number(k.split(':')[1]), file: buktiTermin[k].file })),
+                    },
+              )
               .then((res) => {
                 const selesaiSemua = !!res.data?.data?.selesai;
                 alert('success', selesaiSemua ? 'Seluruh termin uang muka sudah dibuktikan, SPPD selesai diproses' : 'Bukti transfer tersimpan');
                 setBuktiTermin({});
                 refetchSubmitted();
                 if (selesaiSemua) setModalProses(false);
-                else muatRingkasan(detailSppd?.id);
+                else muatRingkasan(detailSppd?.id, detailSppd?.mode_ekstend ? detailSppd?.ekstend_ids || [] : undefined);
               })
               .catch((err) => {
                 alert('error', err?.response?.data?.message || err.message);
                 refetchSubmitted();
-                muatRingkasan(detailSppd?.id);
+                muatRingkasan(detailSppd?.id, detailSppd?.mode_ekstend ? detailSppd?.ekstend_ids || [] : undefined);
               });
           },
         },
@@ -603,9 +638,10 @@ const Sppd = () => {
         {
           label: 'Yes',
           onClick: () => {
+            const extend = !!detailSppd?.mode_ekstend;
             const tiketKirim = tikets.map((t) => ({
               ...(t.id ? { id: t.id } : {}),
-              id_tujuan: t.id_tujuan,
+              ...(extend ? { id_ekstend: Number(String(t.id_tujuan).replace('e', '')) } : { id_tujuan: t.id_tujuan }),
               arah: t.arah,
               keterangan: t.keterangan,
               ...(t.file ? { file: t.file } : {}),
@@ -623,6 +659,7 @@ const Sppd = () => {
                     ? {
                         id_sppd: detailSppd?.id,
                         who: whoU,
+                        ...(extend ? { ekstend: 1 } : {}),
                         sumber_tiket: sumberTiket,
                         tikets: sumberTiket === 'umum' ? tiketKirim : [],
                       }
@@ -664,12 +701,16 @@ const Sppd = () => {
   // Handler submit extend
   const handleSubmitExtend = async(data) => {
     
-   await api.post(`dapi/sppd/ekstend`, { id_tujuan: data.tujuan, alasan: data.alasan, start:data.mulai ,end:data.hingga }).then((res) => {
+   return api.post(`dapi/sppd/ekstend`, data.jenis === 'tujuan_baru'
+      ? { tipe: 'tujuan_baru', id_sppd: sppdExtend?.id, detail_tujuan: data.namaBaru, id_kategori: data.kategori, moda: data.moda, perlu_tiket: data.perluTiket, bbm: data.bbm, alasan: data.alasan, start: data.mulai, end: data.hingga }
+      : { tipe: 'perpanjang', id_tujuan: data.tujuan, perlu_tiket: data.perluTiket, bbm: data.bbm, alasan: data.alasan, start: data.mulai, end: data.hingga }).then((res) => {
       if (res.status === 200) {
-        alert('success', 'Penambahan Hari Berhasil diajukan');
+        alert('success', res.data?.message?.includes('diperbarui') ? 'Extend yang menunggu berhasil diperbarui' : 'Extend berhasil diajukan');
         toggleExtend();
         refetchSubmitted();
       }
+    }).catch((err) => {
+      alert('error', err?.response?.data?.message || err.message);
     });
   };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import DataTable from 'react-data-table-component';
 import { Alert, Badge, Button, Input, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
+import useAuth from '../../hooks/useAuth';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
 import PilihTahun from '../../components/atoms/PilihTahun';
@@ -9,6 +10,8 @@ import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan, tanggalValid } from '../../utils/tahun';
 import { lebarKolomTombol } from '../../utils/lebarTombol';
 import { pasKolom } from '../../utils/lebarKolom';
+import AksiBaris from './AksiBaris';
+import ModalBatalEkstend from './ModalBatalEkstend';
 import './style.scss';
 
 const LABEL_SUMBER_TIKET = {
@@ -20,10 +23,23 @@ const LABEL_SUMBER_TIKET = {
   admin: 'Diupload admin pengaju',
 };
 
+// gaya tabel baru (uji coba di tab Pengajuan): header berlatar lembut, baris lega dengan garis tipis, sorot saat hover
+const gayaTabel = {
+  table: { style: { borderRadius: '12px', overflow: 'hidden', border: '1px solid #e3e8ef' } },
+  headRow: { style: { backgroundColor: '#f1f5fb', minHeight: '46px', borderBottom: '1px solid #e3e8ef' } },
+  headCells: { style: { fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#4a5568' } },
+  rows: { style: { minHeight: '58px', fontSize: '13px', borderBottom: '1px solid #eef1f6', '&:hover': { backgroundColor: '#f7f9fd' } } },
+  cells: { style: { paddingTop: '8px', paddingBottom: '8px' } },
+  pagination: { style: { borderTop: '1px solid #e3e8ef', fontSize: '13px' } },
+};
+
+// tab Pengajuan: kolom selebar isinya (tanpa melar mengisi ruang kosong); hanya kolom teks panjang yang menampung sisa ruang
+const KOLOM_LUWES = ['Pelaksana'];
+const rapatkan = (kolom) => kolom.map((k) => (k.width || k.omit ? k : { ...k, grow: KOLOM_LUWES.includes(k.name) ? 1 : 0 }));
+
 const ListPengajuan = ({
   submitted,
   updateForm,
-  toggleDetail,
   toggleApproval,
   toggleLog,
   value,
@@ -39,6 +55,13 @@ const ListPengajuan = ({
   refresh,
 }) => {
   const api = useAxios();
+  const { auth } = useAuth();
+  // AdminSPPD: banyak tombol per baris, jadi dirapikan menjadi satu tombol utama + menu Aksi
+  const adalahAdmin = value !== '2' && !!auth?.user?.roles?.includes('AdminSPPD');
+  // tampilan baru tabel berlaku di semua tab
+  const tampilanBaru = true;
+  // modal pilih extend yang dibatalkan
+  const [batalRow, setBatalRow] = useState(null);
   // void SPPD: tandai SPPD yang tidak jadi berangkat (sudah atau belum di-approve) beserta alasannya
   const [voidRow, setVoidRow] = useState(null);
   // jumlah SPPD perlu void yang peringatannya sudah ditutup; muncul lagi bila jumlahnya bertambah
@@ -126,7 +149,7 @@ const ListPengajuan = ({
     const l = [];
     if (value === '1' && !row.void) l.push(row.current_status !== 'signed' ? 'Update' : 'Ekstend');
     if (row.current_status === 'signed' && value === '1' && !row.void) l.push('Hotel 30%');
-    l.push('Detail', 'Approval', 'Logs');
+    l.push('Approval', 'Logs');
     if (value === '3') l.push('Review');
     l.push('Docs');
     if (value === '4' && !modeKeuangan) l.push(modeSelesai ? 'Ubah Tiket' : 'Process');
@@ -135,11 +158,38 @@ const ListPengajuan = ({
 
     return l;
   };
+  // daftar aksi per baris untuk tampilan AdminSPPD; syaratnya sama dengan tombol biasa di bawah
+  const aksiBaris = (row) => {
+    const a = [];
+    const approval = { label: 'Approval', ikon: 'verified', warna: 'success', jalan: () => toggleApproval(row) };
+    // tab Pengajuan: semua aksi ada di menu Action (tanpa tombol utama)
+    if (value === '3') a.push({ label: 'Review', ikon: 'rate_review', warna: 'danger', jalan: () => toggleR(row) });
+    if (value === '4' && !modeSelesai && !modeKeuangan) a.push({ label: 'Process', ikon: 'play_circle', warna: 'info', jalan: () => done(row) });
+    if (value === '4' && modeSelesai) a.push({ label: 'Ubah Tiket', ikon: 'confirmation_number', warna: 'info', jalan: () => ubah(row) });
+    if (value === '1' && !row.void) a.push({ label: row.current_status !== 'signed' ? 'Update' : 'Ekstend', ikon: 'edit', warna: 'danger', jalan: () => update(row) });
+    if (row.current_status === 'signed' && value === '1' && !row.void) a.push({ label: 'Hotel 30%', ikon: 'hotel', warna: 'dark', jalan: () => toggle3(row) });
+    if (Number(row.jumlah_ekstend) > 0 && !row.void) a.push({ label: 'Batalkan Extend', ikon: 'event_busy', warna: 'danger', jalan: () => setBatalRow(row) });
+    a.push(approval);
+    a.push({ label: 'Logs', ikon: 'history', warna: 'primary', jalan: () => toggleLog(row) });
+    a.push({ label: 'Docs', ikon: 'description', warna: 'warning', jalan: () => toggleDoc(row) });
+    if (bisaRealisasi(row)) {
+      a.push({
+        label: 'Realisasi',
+        ikon: 'assignment_turned_in',
+        warna: 'warning',
+        jalan: () => (row.current_status === 'signed' ? toggleRe(row) : alert('error', 'Realisasi hanya bisa dilakukan pada status approved')),
+      });
+    }
+    if (bisaVoid(row)) a.push({ label: 'Void', ikon: 'block', warna: 'secondary', jalan: () => bukaVoid(row), pisah: true });
+
+    return a;
+  };
+
   const columns = [
     {
       name: 'Actions',
-      width: lebarKolomTombol(submitted, labelsAksi),
-      selector: (row) => (
+      width: adalahAdmin ? (value === '1' ? '130px' : '220px') : lebarKolomTombol(submitted, labelsAksi),
+      selector: (row) => (adalahAdmin ? <AksiBaris aksi={aksiBaris(row)} semuaDiMenu={value === '1'} /> : (
         <>
           {value === '1' && !row.void ? (
             <Button
@@ -166,17 +216,6 @@ const ListPengajuan = ({
             value="Hotel 30%"
             onClick={() => toggle3(row)}
           />) : ('')}
-
-          <Button
-            size="sm"
-            className="me-2"
-            outline
-            color="dark"
-            tag="input"
-            type="reset"
-            value="Detail"
-            onClick={() => toggleDetail(row)}
-          />
 
           <Button
             className="me-2"
@@ -290,11 +329,22 @@ const ListPengajuan = ({
             ''
           )}
         </>
-      ),
+      )),
     },
     {
       name: 'Nomor ST',
-      selector: (row) => row.nomor_sppd,
+      // badge tidak bisa diukur otomatis: nomor + ruang badge 'Extend n x'
+      ukur: (row) => `${row.nomor_sppd || ''}${row.jumlah_ekstend > 0 ? '          Extend 2x' : ''}`,
+      selector: (row) => (
+        <>
+          {row.nomor_sppd}
+          {row.jumlah_ekstend > 0 ? (
+            <Badge color="primary" className="ms-1" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
+              Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
+            </Badge>
+          ) : null}
+        </>
+      ),
     },
     {
       name: 'Nama',
@@ -315,6 +365,7 @@ const ListPengajuan = ({
 
     {
       name: 'Diajukan sejak',
+      ...(tampilanBaru ? { width: '170px' } : {}),
       selector: (row) =>
         formatTanggal(row.created_at, 'M/D/YYYY h:mm:ss A'),
     },
@@ -326,6 +377,11 @@ const ListPengajuan = ({
           <Badge color="info" style={{ width: '100px' }}>
             {row.type_proses}
           </Badge>
+          {row.mode_ekstend ? (
+            <Badge color="primary" className="ms-1" title={row.ekstend_judul}>
+              Extend
+            </Badge>
+          ) : null}
           {row.termin_terbukti > 0 ? (
             <Badge color="warning" className="ms-1" title="Sebagian termin sudah dibuktikan transfer, masih dalam proses">
               Dalam proses {row.termin_terbukti}/{row.termin_total} termin
@@ -376,6 +432,7 @@ const ListPengajuan = ({
     },
     {
       name: 'Status Pengajuan',
+      ...(tampilanBaru ? { width: '140px' } : {}),
       selector: (row) =>
         row.void ? (
           <Badge color="dark" style={{ width: '100px' }} title={row.alasan_void || ''}>
@@ -404,6 +461,7 @@ const ListPengajuan = ({
 
     {
       name: 'Status Realisasi',
+      ...(tampilanBaru ? { width: '140px' } : {}),
       selector: (row) =>
         row.realisasi_status ? (
           <Badge color="info" style={{ width: '100px' }}>
@@ -416,6 +474,62 @@ const ListPengajuan = ({
         ),
     },
   ];
+
+  // tab Pengajuan: data yang berhubungan ditumpuk dalam satu sel supaya kolom lebih sedikit dan rapi (kolom asli tetap dipakai untuk Excel)
+  const kolomRapi = (cols) => {
+    const hasil = [];
+    cols.forEach((k) => {
+      if (k.name === 'Nomor ST') {
+        hasil.push({
+          ...k,
+          ukur: (row) => `${row.nomor_sppd || ''}
+${row.jumlah_ekstend > 0 ? 'Extend 2x' : ''}`,
+          selector: (row) => (
+            <div className="sel-tumpuk">
+              <span className="sel-utama">{row.nomor_sppd}</span>
+              {row.jumlah_ekstend > 0 ? (
+                <span className="sel-extend" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
+                  Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
+                </span>
+              ) : null}
+            </div>
+          ),
+        });
+      } else if (k.name === 'Nama') {
+        hasil.push({
+          name: 'Pelaksana',
+          ukur: (row) => `${row.nama || ''}
+${row.jabatan || ''}`,
+          selector: (row) => (
+            <div className="sel-tumpuk">
+              <span className="sel-utama">{row.nama}</span>
+              <span className="sel-kecil">{row.jabatan}</span>
+            </div>
+          ),
+        });
+      } else if (k.name === 'Jabatan') {
+        // sudah digabung ke kolom Pelaksana
+      } else if (k.name === 'Diajukan oleh') {
+        hasil.push({
+          name: 'Diajukan',
+          ukur: (row) => `${row.first_name || ''}
+${formatTanggal(row.created_at, 'DD MMM YYYY HH:mm')}`,
+          selector: (row) => (
+            <div className="sel-tumpuk">
+              <span className="sel-utama">{row.first_name}</span>
+              <span className="sel-kecil">{formatTanggal(row.created_at, 'DD MMM YYYY HH:mm')}</span>
+            </div>
+          ),
+        });
+      } else if (k.name === 'Diajukan sejak' && cols.some((c) => c.name === 'Diajukan oleh')) {
+        // sudah digabung ke kolom Diajukan (tab Pengajuan); tab lain tetap memakai kolom ini
+      } else {
+        hasil.push(k);
+      }
+    });
+
+    return hasil;
+  };
 
   const tampilkanPerluVoid = () => {
     setTahun('semua');
@@ -450,8 +564,11 @@ const ListPengajuan = ({
       ) : null}
       <DataTable
         keyField={value === '4' ? 'id_unique' : 'id'}
-        columns={pasKolom(columns, listP)}
+        columns={tampilanBaru ? rapatkan(pasKolom(kolomRapi(columns), listP)) : pasKolom(columns, listP)}
         data={listP}
+        customStyles={tampilanBaru ? gayaTabel : undefined}
+        highlightOnHover={tampilanBaru}
+        pointerOnHover={false}
         pagination
         subHeader
         subHeaderComponent={
@@ -469,6 +586,7 @@ const ListPengajuan = ({
         }
       />
 
+      <ModalBatalEkstend row={batalRow} onTutup={() => setBatalRow(null)} onUbah={refresh} />
       <Modal isOpen={!!voidRow} toggle={() => setVoidRow(null)}>
         <ModalHeader toggle={() => setVoidRow(null)}>Void SPPD</ModalHeader>
         <ModalBody>
@@ -499,7 +617,6 @@ const ListPengajuan = ({
 ListPengajuan.propTypes = {
   submitted: PropTypes.array,
   updateForm: PropTypes.func,
-  toggleDetail: PropTypes.func,
   toggleApproval: PropTypes.func,
   toggleLog: PropTypes.func,
   value: PropTypes.string,

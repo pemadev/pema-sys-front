@@ -91,6 +91,9 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
   const ubahCek = (idx, nilai) => setChekList((prev) => prev.map((c, i) => (i === idx ? { ...c, status: nilai } : c)));
 
   const tipe = detailSppd?.current_type;
+  // tipe 'extend' (lama) atau 'extend-<n>' (approval per extend): hanya extend yang sedang direview yang ditampilkan
+  const adalahExtend = tipe === 'extend' || /^extend-\d+$/.test(tipe || '');
+  const daftarExtend = (detailSppd?.ekstend || []).filter((x) => (x.tipe_approval ? x.tipe_approval === tipe && x.status_approval !== 'dibatalkan' : true));
   const tujuan = detailSppd?.tujuan_sppd || [];
   const berangkat = tujuan.map((t) => t.waktu_berangkat).filter(Boolean).sort()[0];
   const kembali = tujuan.map((t) => t.waktu_kembali).filter(Boolean).sort().slice(-1)[0];
@@ -108,7 +111,9 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
         </div>
         <div className="lp-head-teks">
           <h5 className="lp-judul">Lembar Persetujuan</h5>
-          <p className="lp-sub">{JUDUL_TAHAP[tipe] || 'Persetujuan SPPD'}</p>
+          <p className="lp-sub">
+            {adalahExtend ? `${JUDUL_TAHAP.extend}${/^extend-(\d+)$/.test(tipe) ? ` (extend ${tipe.split('-')[1]})` : ''}` : JUDUL_TAHAP[tipe] || 'Persetujuan SPPD'}
+          </p>
         </div>
         <button type="button" className="lp-tutup" onClick={toggleR} aria-label="Tutup">
           <MaterialIcon icon="close" />
@@ -235,12 +240,16 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
               </div>
             ) : null}
 
-            {tipe === 'extend' && Array.isArray(detailSppd.ekstend) && detailSppd.ekstend.length > 0 ? (
+            {adalahExtend && daftarExtend.length > 0 ? (
               <div className="lp-bagian">
                 <p className="lp-label">Pengajuan perpanjangan</p>
-                {detailSppd.ekstend.map((item) => (
+                {daftarExtend.map((item) => (
                   <div className="lp-tujuan-kartu" key={item.id || `${item.detail_tujuan}-${item.start}`}>
-                    <Baris nama="Tujuan">{item.detail_tujuan}</Baris>
+                    <Baris nama="Jenis">{item.tipe === 'tujuan_baru' ? 'Tujuan baru' : 'Tambah hari tujuan yang ada'}</Baris>
+                    <Baris nama="Tujuan">{item.tipe === 'tujuan_baru' ? item.nama_tujuan_baru : item.detail_tujuan}</Baris>
+                    {item.tipe === 'tujuan_baru' ? <Baris nama="Kategori / moda">{[item.kategori_nama, item.moda].filter(Boolean).join(' · ') || '-'}</Baris> : null}
+                    {item.butuh_proses ? <Baris nama="Tiket">{item.perlu_tiket ? 'Perlu (divisi umum)' : 'Tidak perlu'}</Baris> : null}
+                    {Number(item.bbm) > 0 ? <Baris nama="Uang BBM">{rupiah(item.bbm)}</Baris> : null}
                     <Baris nama="Mulai">{item.start}</Baris>
                     <Baris nama="Hingga">{item.end}</Baris>
                     <Baris nama="Alasan">{item.alasan}</Baris>

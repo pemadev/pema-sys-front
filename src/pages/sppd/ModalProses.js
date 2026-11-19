@@ -192,14 +192,17 @@ const RingkasanBiaya = ({ ringkasan, memuat, onUnduh, menyiapkan, baseUrl }) => 
         ) : null}
       </>
     ) : null}
-    <button type="button" className="lp-unduh" onClick={onUnduh} disabled={menyiapkan}>
-      <MaterialIcon icon="download" />
-      {menyiapkan ? 'Menyiapkan dokumen...' : 'Unduh dokumen perhitungan uang muka'}
-    </button>
+    {ringkasan && ringkasan.ekstend ? null : (
+      <button type="button" className="lp-unduh" onClick={onUnduh} disabled={menyiapkan}>
+        <MaterialIcon icon="download" />
+        {menyiapkan ? 'Menyiapkan dokumen...' : 'Unduh dokumen perhitungan uang muka'}
+      </button>
+    )}
   </div>
 );
 
 const ringkasanShape = PropTypes.shape({
+  ekstend: PropTypes.bool,
   komponen: PropTypes.arrayOf(PropTypes.shape({ kode: PropTypes.string, nama: PropTypes.string, persen: PropTypes.number, dasar: PropTypes.number, jumlah: PropTypes.number, catatan: PropTypes.string })),
   rate: PropTypes.arrayOf(PropTypes.shape({ tujuan: PropTypes.string, hari: PropTypes.number, malam: PropTypes.number, kategori: PropTypes.shape({}), komponen: PropTypes.arrayOf(PropTypes.shape({})) })),
   tiket: PropTypes.shape({ jumlah: PropTypes.number, ada: PropTypes.bool, daftar: PropTypes.arrayOf(PropTypes.shape({})), status: PropTypes.string }),
@@ -362,6 +365,11 @@ const ModalProses = ({
           <p className="lp-label">Ringkasan SPPD</p>
           <div className="lp-ringkas">
             <div className="lp-ringkas-no">{sppd?.nomor_sppd || '-'}</div>
+            {sppd?.mode_ekstend ? (
+              <div className="lp-ringkas-meta">
+                <span className="lp-rate-chip">Extend</span> {sppd.ekstend_judul}
+              </div>
+            ) : null}
             <div className="lp-ringkas-meta">
               {mulai} s.d. {selesai}
             </div>
@@ -584,6 +592,8 @@ ModalProses.propTypes = {
   toggle: PropTypes.func.isRequired,
   sppd: PropTypes.shape({
     nomor_sppd: PropTypes.string,
+    mode_ekstend: PropTypes.bool,
+    ekstend_judul: PropTypes.string,
     nama: PropTypes.string,
     jabatan: PropTypes.string,
     first_name: PropTypes.string,
