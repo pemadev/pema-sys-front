@@ -88,6 +88,7 @@ const BiayaSppd = () => {
         setForm({
           dasar_ketetapan: d.ketetapan.dasar_ketetapan,
           berlaku_mulai: d.ketetapan.berlaku_mulai,
+          termin_aktif: d.ketetapan.termin_aktif !== false,
           biaya: d.biaya.map((b) => ({ ...b })),
           waktu: d.waktu.map((w) => ({ ...w })),
         });
@@ -202,6 +203,22 @@ const BiayaSppd = () => {
             <Badge color={k.aktif ? 'success' : 'secondary'}>{k.aktif ? 'Aktif' : 'Tidak aktif'}</Badge>
           </Col>
         </Row>
+        <div className="mb-3 p-3 border rounded">
+          <Input
+            type="switch"
+            role="switch"
+            id="termin-aktif"
+            label="Uang muka bertermin"
+            checked={!!form.termin_aktif}
+            onChange={(e) => setForm({ ...form, termin_aktif: e.target.checked })}
+          />
+          <small className="text-muted d-block mt-1">
+            {form.termin_aktif
+              ? 'Aktif: uang muka dibayar per termin (4 hari per termin). Lembar proses keuangan dan seluruh dokumen biaya memuat termin.'
+              : 'Nonaktif: uang muka dibayar sekali sekaligus. Lembar proses keuangan dan dokumen biaya tidak memuat termin.'}
+            {' '}Berlaku untuk semua SPPD yang memakai ketetapan ini; jadwal termin dihitung ulang saat dokumen dibuka.
+          </small>
+        </div>
 
         <h6>Tarif per golongan dan kategori</h6>
         <div className="table-responsive">
@@ -301,7 +318,7 @@ const BiayaSppd = () => {
       <div className="table-responsive">
         <Table hover className="align-middle">
           <thead>
-            <tr><th>Dasar ketetapan</th><th>Berlaku mulai</th><th>Status</th><th className="text-end">SPPD memakai</th><th className="text-end">Baris tarif</th><th /></tr>
+            <tr><th>Dasar ketetapan</th><th>Berlaku mulai</th><th>Status</th><th>Termin</th><th className="text-end">SPPD memakai</th><th className="text-end">Baris tarif</th><th /></tr>
           </thead>
           <tbody>
             {daftar.map((k) => (
@@ -309,6 +326,7 @@ const BiayaSppd = () => {
                 <td>{k.dasar_ketetapan}</td>
                 <td>{k.berlaku_mulai ? dayjs(k.berlaku_mulai).format('DD MMM YYYY') : '-'}</td>
                 <td><Badge color={k.aktif ? 'success' : 'secondary'}>{k.aktif ? 'Aktif' : 'Tidak aktif'}</Badge></td>
+                <td><Badge color={k.termin_aktif ? 'info' : 'secondary'}>{k.termin_aktif ? 'Bertermin' : 'Tanpa termin'}</Badge></td>
                 <td className="text-end">{rupiah(k.jumlah_sppd)}</td>
                 <td className="text-end">{k.jumlah_biaya}</td>
                 <td className="text-end">
@@ -317,7 +335,7 @@ const BiayaSppd = () => {
                 </td>
               </tr>
             ))}
-            {daftar.length === 0 && <tr><td colSpan={6} className="text-muted">Belum ada ketetapan.</td></tr>}
+            {daftar.length === 0 && <tr><td colSpan={7} className="text-muted">Belum ada ketetapan.</td></tr>}
           </tbody>
         </Table>
       </div>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Modal } from 'reactstrap';
 import MaterialIcon from '@material/react-material-icon';
+import { unitDokumen } from './ringkasUangMuka';
 import './ModalProses.css';
 
 const SUMBER_TIKET = [
@@ -89,7 +90,10 @@ const tglPendek = (v) => {
   return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 };
 
-// Ringkasan uang muka per kategori biaya (lembar proses KeuanganSppd) + tombol unduh dokumen perhitungan uang muka
+// rate berangkat/tiba tersimpan sebagai pecahan (1 = 100%, 0,5 = 50%); ditampilkan dalam persen
+const persen = (v) => (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? '-' : `${Math.round(Number(v) * 100)}%`);
+
+// Ringkasan uang muka per kategori biaya (lembar proses KeuanganSppd) + tombol download voucher dan tabel biaya
 const STATUS_TIKET = {
   tanpa: { ikon: 'block', kelas: 'tanpa', judul: 'Tidak memerlukan tiket', ket: 'Perjalanan ini tidak memerlukan tiket, tidak diproses oleh divisi umum.' },
   mandiri: { ikon: 'person', kelas: 'mandiri', judul: 'Tiket dibeli mandiri', ket: 'Dibeli sendiri oleh pelaksana atau admin pengaju; tiket diupload saat realisasi.' },
@@ -97,7 +101,7 @@ const STATUS_TIKET = {
   menunggu: { ikon: 'hourglass_empty', kelas: 'tanpa', judul: 'Tiket belum diproses divisi umum', ket: '' },
 };
 
-const RingkasanBiaya = ({ ringkasan, memuat, onUnduh, menyiapkan, baseUrl }) => (
+const RingkasanBiaya = ({ ringkasan, memuat, baseUrl }) => (
   <div className="lp-bagian">
     <p className="lp-label">Ringkasan biaya uang muka</p>
     {memuat ? <div className="lp-kosong">Memuat perhitungan biaya...</div> : null}
@@ -118,7 +122,7 @@ const RingkasanBiaya = ({ ringkasan, memuat, onUnduh, menyiapkan, baseUrl }) => 
               {[tj.kategori.jenis, tj.kategori.moda ? `moda ${tj.kategori.moda}` : null, tj.kategori.sumber_biaya ? `biaya ${tj.kategori.sumber_biaya}` : null].filter(Boolean).join(' · ')}
             </div>
             <div className="lp-rate-meta">
-              {tj.hari} hari ({tj.malam} malam) · hitung {tj.kategori.rate_hari} hari (berangkat {tj.kategori.rate_berangkat}, tiba {tj.kategori.rate_tiba})
+              {tj.hari} hari ({tj.malam} malam) · hitung {tj.kategori.rate_hari} hari (berangkat {persen(tj.kategori.rate_berangkat)}, tiba {persen(tj.kategori.rate_tiba)})
             </div>
           </div>
         ))}
@@ -192,16 +196,11 @@ const RingkasanBiaya = ({ ringkasan, memuat, onUnduh, menyiapkan, baseUrl }) => 
         ) : null}
       </>
     ) : null}
-    {ringkasan && ringkasan.ekstend ? null : (
-      <button type="button" className="lp-unduh" onClick={onUnduh} disabled={menyiapkan}>
-        <MaterialIcon icon="download" />
-        {menyiapkan ? 'Menyiapkan dokumen...' : 'Unduh dokumen perhitungan uang muka'}
-      </button>
-    )}
   </div>
 );
 
 const ringkasanShape = PropTypes.shape({
+  terminAktif: PropTypes.bool,
   ekstend: PropTypes.bool,
   komponen: PropTypes.arrayOf(PropTypes.shape({ kode: PropTypes.string, nama: PropTypes.string, persen: PropTypes.number, dasar: PropTypes.number, jumlah: PropTypes.number, catatan: PropTypes.string })),
   rate: PropTypes.arrayOf(PropTypes.shape({ tujuan: PropTypes.string, hari: PropTypes.number, malam: PropTypes.number, kategori: PropTypes.shape({}), komponen: PropTypes.arrayOf(PropTypes.shape({})) })),
@@ -214,11 +213,9 @@ const ringkasanShape = PropTypes.shape({
 RingkasanBiaya.propTypes = {
   ringkasan: ringkasanShape,
   memuat: PropTypes.bool,
-  onUnduh: PropTypes.func.isRequired,
-  menyiapkan: PropTypes.bool,
   baseUrl: PropTypes.string,
 };
-RingkasanBiaya.defaultProps = { ringkasan: null, memuat: false, menyiapkan: false, baseUrl: '' };
+RingkasanBiaya.defaultProps = { ringkasan: null, memuat: false, baseUrl: '' };
 
 const labelJatuhTempo = (v) => {
   const d = v ? new Date(`${String(v).slice(0, 10)}T00:00:00`) : null;
@@ -231,19 +228,25 @@ const labelJatuhTempo = (v) => {
 };
 
 // Termin uang muka + upload bukti transfer per termin (lembar proses KeuanganSppd)
-const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl }) => {
+const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl, onUnduh, menyiapkan, onAktual }) => {
   if (!ringkasan) return null;
+  // satu dokumen per nomor termin bila ada lebih dari satu termin; selain itu satu dokumen untuk seluruh uang muka
+  const unit = unitDokumen(ringkasan);
   const fileBase = `${(baseUrl || '').replace(/\/+$/, '')}/sppd/`;
   const semua = ringkasan.termin.flatMap((x) => x.daftar);
-  const sudah = semua.filter((x) => x.bukti).length;
+  const sudah = semua.filter((x) => x.bukti || x.aktual).length;
+  // tanpa termin (pengaturan ketetapan): satu pembayaran uang muka, tanpa kata termin dan hitungan hari
+  const bertermin = ringkasan.terminAktif !== false;
 
   return (
     <div className="lp-bagian">
       <p className="lp-label">
-        Termin pembayaran dan bukti transfer
-        <span className="lp-progres">
-          {sudah}/{semua.length} termin
-        </span>
+        {bertermin ? 'Termin pembayaran dan bukti transfer' : 'Pembayaran uang muka dan bukti transfer'}
+        {bertermin ? (
+          <span className="lp-progres">
+            {sudah}/{semua.length} termin
+          </span>
+        ) : null}
       </p>
       <div className="lp-termin">
         {ringkasan.termin.map((tj) => (
@@ -256,7 +259,13 @@ const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl }) => {
                 <div key={x.kunci} className="lp-termin-item">
                   <div className="lp-termin-info">
                     <div className="lp-termin-nama">
-                      Termin {x.no} <span className="lp-pct-inline">· {x.ket}</span>
+                      {bertermin ? (
+                        <>
+                          Termin {x.no} <span className="lp-pct-inline">· {x.ket}</span>
+                        </>
+                      ) : (
+                        'Uang muka'
+                      )}
                     </div>
                     <div className="lp-termin-meta">
                       Jatuh tempo {tglPendek(x.tgl)}
@@ -275,7 +284,17 @@ const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl }) => {
                           {x.bukti.oleh ? ` · ${x.bukti.oleh}` : ''}
                         </small>
                       </div>
+                    ) : x.aktual ? (
+                      <div className="lp-aktual-ada">
+                        <span>
+                          <MaterialIcon icon="event_available" /> Dibayar di aktual
+                        </span>
+                        <small>
+                          {[x.aktual.catatan, x.aktual.oleh, tglPendek(x.aktual.tgl)].filter(Boolean).join(' · ')}
+                        </small>
+                      </div>
                     ) : (
+                      <>
                       <label className={`lp-berkas lp-berkas-kecil${dipilih ? ' ada' : ''}`} htmlFor={`bukti-${x.kunci}`}>
                         <MaterialIcon icon={dipilih ? 'check_circle' : 'upload_file'} />
                         <span>{dipilih ? dipilih.fileName : 'Upload bukti transfer'}</span>
@@ -286,7 +305,19 @@ const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl }) => {
                           onChange={(e) => onPilih(x.kunci, e.target.files[0])}
                         />
                       </label>
+                        <AktualTermin termin={x} onTandai={onAktual} bertermin={bertermin} />
+                      </>
                     )}
+                  </div>
+                  <div className="lp-termin-dok">
+                    <button type="button" className="lp-unduh lp-unduh-kecil" onClick={() => onUnduh('voucher', unit.find((u) => u.no === x.no))} disabled={!!menyiapkan}>
+                      <MaterialIcon icon="receipt_long" />
+                      {menyiapkan === (unit.length ? `voucher-${x.no}` : 'voucher') ? 'Menyiapkan...' : 'Download Voucher'}
+                    </button>
+                    <button type="button" className="lp-unduh lp-unduh-kecil" onClick={() => onUnduh('tabel', unit.find((u) => u.no === x.no))} disabled={!!menyiapkan}>
+                      <MaterialIcon icon="table_chart" />
+                      {menyiapkan === (unit.length ? `tabel-${x.no}` : 'tabel') ? 'Menyiapkan...' : 'Download Tabel Biaya'}
+                    </button>
                   </div>
                 </div>
               );
@@ -298,13 +329,62 @@ const TerminBukti = ({ ringkasan, pilihan, onPilih, baseUrl }) => {
   );
 };
 
+// Satu termin tidak dibayarkan di muka (mis. SPPD mendadak): ditandai tanpa bukti transfer, dibayar saat realisasi (aktual).
+// Termin lain tetap bisa dibayar dan dibuktikan seperti biasa.
+const AktualTermin = ({ termin, onTandai, bertermin }) => {
+  const [buka, setBuka] = useState(false);
+  const [alasan, setAlasan] = useState('');
+  const [proses, setProses] = useState(false);
+  if (!onTandai) return null;
+
+  if (!buka) {
+    return (
+      <button type="button" className="lp-tautan lp-tautan-kecil" onClick={() => setBuka(true)}>
+        <MaterialIcon icon="event_busy" /> Tidak dibayar di muka (dibayar di aktual)
+      </button>
+    );
+  }
+
+  return (
+    <div className="lp-aktual-kotak">
+      <p className="lp-label">{bertermin ? `Termin ${termin.no}` : 'Uang muka'} dibayar saat realisasi</p>
+      <small className="lp-pct">{bertermin ? 'Termin ini' : 'Uang muka ini'} dicatat tanpa bukti transfer dan dibayarkan pada realisasi (aktual).{bertermin ? ' Termin lain tidak terpengaruh.' : ''}</small>
+      <textarea className="lp-input" rows={2} value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Alasan (opsional), mis. SPPD mendadak" />
+      <div className="lp-aktual-aksi">
+        <button type="button" className="lp-tombol" onClick={() => setBuka(false)} disabled={proses}>
+          Batal
+        </button>
+        <button
+          type="button"
+          className="lp-tombol utama"
+          disabled={proses}
+          onClick={async () => {
+            setProses(true);
+            try {
+              await onTandai(termin, alasan.trim());
+            } finally {
+              setProses(false);
+            }
+          }}
+        >
+          {proses ? 'Memproses...' : 'Ya, tandai'}
+        </button>
+      </div>
+    </div>
+  );
+};
+AktualTermin.propTypes = { termin: PropTypes.shape({ no: PropTypes.number }).isRequired, onTandai: PropTypes.func, bertermin: PropTypes.bool };
+AktualTermin.defaultProps = { onTandai: null, bertermin: true };
 TerminBukti.propTypes = {
   ringkasan: ringkasanShape,
   pilihan: PropTypes.objectOf(PropTypes.shape({ fileName: PropTypes.string })),
   onPilih: PropTypes.func.isRequired,
   baseUrl: PropTypes.string,
+  onUnduh: PropTypes.func.isRequired,
+  menyiapkan: PropTypes.string,
+  onAktual: PropTypes.func,
 };
-TerminBukti.defaultProps = { ringkasan: null, pilihan: {}, baseUrl: '' };
+TerminBukti.defaultProps = { ringkasan: null, pilihan: {}, baseUrl: '', menyiapkan: '', onAktual: null };
 
 
 const ModalProses = ({
@@ -328,6 +408,7 @@ const ModalProses = ({
   memuatRingkasan,
   onUnduhHitungan,
   menyiapkanUnduh,
+  onTerminAktual,
   buktiPilihan,
   onPilihBukti,
   jumlahBukti,
@@ -558,8 +639,8 @@ const ModalProses = ({
           <>
             {jenis === 'uangmuka' ? (
               <>
-                <RingkasanBiaya ringkasan={ringkasan} memuat={memuatRingkasan} onUnduh={onUnduhHitungan} menyiapkan={menyiapkanUnduh} baseUrl={baseUrl} />
-                <TerminBukti ringkasan={ringkasan} pilihan={buktiPilihan} onPilih={onPilihBukti} baseUrl={baseUrl} />
+                <RingkasanBiaya ringkasan={ringkasan} memuat={memuatRingkasan} baseUrl={baseUrl} />
+                <TerminBukti ringkasan={ringkasan} pilihan={buktiPilihan} onPilih={onPilihBukti} baseUrl={baseUrl} onUnduh={onUnduhHitungan} menyiapkan={menyiapkanUnduh} onAktual={onTerminAktual} />
               </>
             ) : (
               <div className="lp-bagian">
@@ -637,11 +718,12 @@ ModalProses.propTypes = {
   ringkasan: ringkasanShape,
   memuatRingkasan: PropTypes.bool,
   onUnduhHitungan: PropTypes.func,
-  menyiapkanUnduh: PropTypes.bool,
+  menyiapkanUnduh: PropTypes.string,
+  onTerminAktual: PropTypes.func,
   buktiPilihan: PropTypes.objectOf(PropTypes.shape({ fileName: PropTypes.string })),
   onPilihBukti: PropTypes.func,
   jumlahBukti: PropTypes.number,
 };
-ModalProses.defaultProps = { sppd: null, tujuan: [], sumber: '', tikets: [], docName: '', mode: 'proses', baseUrl: '', ringkasan: null, memuatRingkasan: false, onUnduhHitungan: () => {}, menyiapkanUnduh: false, buktiPilihan: {}, onPilihBukti: () => {}, jumlahBukti: 0 };
+ModalProses.defaultProps = { sppd: null, tujuan: [], sumber: '', tikets: [], docName: '', mode: 'proses', baseUrl: '', ringkasan: null, memuatRingkasan: false, onUnduhHitungan: () => {}, menyiapkanUnduh: '', onTerminAktual: null, buktiPilihan: {}, onPilihBukti: () => {}, jumlahBukti: 0 };
 
 export default ModalProses;

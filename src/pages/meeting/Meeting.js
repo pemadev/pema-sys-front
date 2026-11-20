@@ -260,6 +260,15 @@ const Meeting = () => {
   const [zoomError, setZoomError] = useState('');
   const [zoomSuccess, setZoomSuccess] = useState('');
   const [roomMeetings, setRoomMeetings] = useState([]);
+  // blokir ruang rapat oleh Sekretaris Direksi (tidak tampil di /jadwal-rapat; staf lain tidak bisa booking pada rentang itu)
+  const [bolehBlokir, setBolehBlokir] = useState(false);
+  const [blokirList, setBlokirList] = useState([]);
+  const [isBlokirModalOpen, setIsBlokirModalOpen] = useState(false);
+  const [blokirForm, setBlokirForm] = useState({ room: 'Growth', startTime: '', endTime: '', alasan: '' });
+  const [submittingBlokir, setSubmittingBlokir] = useState(false);
+  const [cancelingBlokirId, setCancelingBlokirId] = useState(null);
+  const [blokirError, setBlokirError] = useState('');
+  const [blokirSuccess, setBlokirSuccess] = useState('');
   const [loadingRoomMeetings, setLoadingRoomMeetings] = useState(false);
   const [submittingRoom, setSubmittingRoom] = useState(false);
   const [cancelingRoomId, setCancelingRoomId] = useState(null);
@@ -313,6 +322,64 @@ const Meeting = () => {
       setRoomError(error?.response?.data?.message || 'Gagal memuat daftar booking ruang.');
     } finally {
       setLoadingRoomMeetings(false);
+    }
+  };
+
+  const fetchBlokir = async () => {
+    try {
+      const response = await api.get('dapi/meeting/room/blokir');
+      const data = response?.data?.data ?? {};
+      setBolehBlokir(!!data.boleh_blokir);
+      setBlokirList(Array.isArray(data.blokir) ? data.blokir : []);
+    } catch (error) {
+      setBolehBlokir(false);
+      setBlokirList([]);
+    }
+  };
+
+  const handleBlokirChange = (e) => {
+    const { name, value } = e.target;
+    setBlokirForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlokirSubmit = async (e) => {
+    e.preventDefault();
+    setBlokirError('');
+    setBlokirSuccess('');
+    setSubmittingBlokir(true);
+    try {
+      const response = await api.post('dapi/meeting/room/blokir', {
+        room: blokirForm.room,
+        start_time: blokirForm.startTime,
+        end_time: blokirForm.endTime,
+        alasan: blokirForm.alasan,
+      });
+      ensureApiSuccess(response, 'Gagal memblokir ruangan.');
+      setIsBlokirModalOpen(false);
+      setBlokirForm({ room: 'Growth', startTime: '', endTime: '', alasan: '' });
+      setBlokirSuccess(response?.data?.message || 'Ruangan berhasil diblokir.');
+      await fetchBlokir();
+    } catch (error) {
+      setBlokirError(getApiErrorMessage(error, 'Gagal memblokir ruangan.'));
+    } finally {
+      setSubmittingBlokir(false);
+    }
+  };
+
+  const handleBatalBlokir = async (id) => {
+    if (!id) return;
+    setBlokirError('');
+    setBlokirSuccess('');
+    setCancelingBlokirId(id);
+    try {
+      const response = await api.post(`dapi/meeting/room/blokir/${id}/batal`);
+      ensureApiSuccess(response, 'Gagal membatalkan blokir.');
+      setBlokirSuccess('Blokir ruangan dibatalkan.');
+      await fetchBlokir();
+    } catch (error) {
+      setBlokirError(getApiErrorMessage(error, 'Gagal membatalkan blokir.'));
+    } finally {
+      setCancelingBlokirId(null);
     }
   };
 
@@ -726,6 +793,7 @@ const Meeting = () => {
     api.get('dapi/sppd/static/renbis').then((res) => setRenbisList(Array.isArray(res.data.data) ? res.data.data : [])).catch(() => {});
     fetchZoomMeetings();
     fetchRoomMeetings();
+    fetchBlokir();
     fetchGeneralDivisionApprover();
   }, []);
 
@@ -753,6 +821,18 @@ const Meeting = () => {
               </CardText>
             </div>
             <div className="d-flex align-items-center gap-2 flex-wrap">
+              {bolehBlokir ? (
+                <Button
+                  color="warning"
+                  outline
+                  onClick={() => {
+                    setBlokirError('');
+                    setIsBlokirModalOpen(true);
+                  }}
+                >
+                  Blokir Ruang
+                </Button>
+              ) : null}
               <Button color="success" onClick={() => setIsZoomModalOpen(true)}>
                 + Booking Zoom
               </Button>
@@ -799,6 +879,43 @@ const Meeting = () => {
           );
         })}
       </Row>
+
+      {blokirSuccess ? <Alert color="success" toggle={() => setBlokirSuccess('')}>{blokirSuccess}</Alert> : null}
+      {blokirError && !isBlokirModalOpen ? <Alert color="danger" toggle={() => setBlokirError('')}>{blokirError}</Alert> : null}
+      {blokirList.length > 0 ? (
+        <Card className="shadow-sm border-0 mb-4" style={{ borderRadius: '16px', border: '1px solid #fde7b0', background: '#fffbeb' }}>
+          <CardBody>
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <strong>Ruangan diblokir</strong>
+              <Badge color="warning" pill>
+                {blokirList.length}
+              </Badge>
+              <small className="text-muted">Pada waktu ini ruangan tidak bisa dibooking.</small>
+            </div>
+            <div className="d-flex flex-column gap-2">
+              {blokirList.map((b) => (
+                <div key={b.id} className="d-flex justify-content-between align-items-center flex-wrap gap-2 p-2 rounded-3" style={{ background: 'white', border: '1px solid #fbe7b8' }}>
+                  <div>
+                    <Badge color="warning" className="me-2">
+                      {b.room}
+                    </Badge>
+                    <strong>
+                      {formatZoomDateTime(b.start_time)} - {formatZoomDateTime(b.end_time)}
+                    </strong>
+                    {b.alasan ? <span className="text-muted ms-2">{b.alasan}</span> : null}
+                    {b.created_by_name ? <small className="text-muted ms-2">oleh {b.created_by_name}</small> : null}
+                  </div>
+                  {bolehBlokir ? (
+                    <Button size="sm" color="danger" outline disabled={cancelingBlokirId === b.id} onClick={() => handleBatalBlokir(b.id)}>
+                      {cancelingBlokirId === b.id ? 'Membatalkan...' : 'Batalkan Blokir'}
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
 
       <Modal isOpen={isMeetingModalOpen} toggle={() => setIsMeetingModalOpen(!isMeetingModalOpen)} centered>
         <ModalHeader toggle={() => setIsMeetingModalOpen(!isMeetingModalOpen)}>Booking Rapat</ModalHeader>
@@ -897,6 +1014,53 @@ const Meeting = () => {
               </Button>
               <Button color="primary" type="submit" disabled={submittingRoom}>
                 {submittingRoom ? 'Menyimpan...' : 'Simpan Booking'}
+              </Button>
+            </div>
+          </Form>
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={isBlokirModalOpen} toggle={() => setIsBlokirModalOpen(!isBlokirModalOpen)} centered>
+        <ModalHeader toggle={() => setIsBlokirModalOpen(!isBlokirModalOpen)}>Blokir Ruang Rapat</ModalHeader>
+        <ModalBody>
+          {blokirError ? <Alert color="danger">{blokirError}</Alert> : null}
+          <p className="text-muted small">
+            Ruangan yang diblokir tidak bisa dibooking staf lain pada rentang waktu ini, dan tidak ditampilkan di halaman jadwal rapat.
+          </p>
+          <Form onSubmit={handleBlokirSubmit}>
+            <FormGroup>
+              <Label for="blokirRoom">Ruangan</Label>
+              <Input id="blokirRoom" name="room" type="select" value={blokirForm.room} onChange={handleBlokirChange}>
+                <option value="Growth">Growth</option>
+                <option value="Harmoni">Harmoni</option>
+                <option value="Kopiah">Kopiah</option>
+                <option value="Internasional">Internasional</option>
+              </Input>
+            </FormGroup>
+            <Row>
+              <Col md="6">
+                <FormGroup>
+                  <Label for="blokirMulai">Dari jam</Label>
+                  <Input id="blokirMulai" name="startTime" type="datetime-local" value={blokirForm.startTime} onChange={handleBlokirChange} required />
+                </FormGroup>
+              </Col>
+              <Col md="6">
+                <FormGroup>
+                  <Label for="blokirSelesai">Sampai jam</Label>
+                  <Input id="blokirSelesai" name="endTime" type="datetime-local" value={blokirForm.endTime} onChange={handleBlokirChange} required />
+                </FormGroup>
+              </Col>
+            </Row>
+            <FormGroup>
+              <Label for="blokirAlasan">Keterangan (opsional)</Label>
+              <Input id="blokirAlasan" name="alasan" type="text" maxLength={255} value={blokirForm.alasan} onChange={handleBlokirChange} placeholder="Contoh: Rapat direksi" />
+            </FormGroup>
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button color="secondary" type="button" onClick={() => setIsBlokirModalOpen(false)}>
+                Batal
+              </Button>
+              <Button color="warning" type="submit" disabled={submittingBlokir}>
+                {submittingBlokir ? 'Menyimpan...' : 'Blokir Ruangan'}
               </Button>
             </div>
           </Form>

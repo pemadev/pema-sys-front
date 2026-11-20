@@ -334,11 +334,11 @@ const ListPengajuan = ({
     {
       name: 'Nomor ST',
       // badge tidak bisa diukur otomatis: nomor + ruang badge 'Extend n x'
-      ukur: (row) => `${row.nomor_sppd || ''}${row.jumlah_ekstend > 0 ? '          Extend 2x' : ''}`,
+      ukur: (row) => `${row.nomor_sppd || ''}${value !== '4' && row.jumlah_ekstend > 0 ? '          Extend 2x' : ''}`,
       selector: (row) => (
         <>
           {row.nomor_sppd}
-          {row.jumlah_ekstend > 0 ? (
+          {value !== '4' && row.jumlah_ekstend > 0 ? (
             <Badge color="primary" className="ms-1" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
               Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
             </Badge>
@@ -377,6 +377,11 @@ const ListPengajuan = ({
           <Badge color="info" style={{ width: '100px' }}>
             {row.type_proses}
           </Badge>
+          {row.uangmuka_aktual ? (
+            <Badge color="warning" className="ms-1" title={row.catatan_aktual || 'Termin uang muka tidak dibayar di muka'}>
+              {Array.isArray(row.termin_aktual) && row.termin_aktual.length ? `Termin ${row.termin_aktual.join(', ')} dibayar di aktual` : 'Dibayar di aktual'}
+            </Badge>
+          ) : null}
           {row.mode_ekstend ? (
             <Badge color="primary" className="ms-1" title={row.ekstend_judul}>
               Extend
@@ -483,11 +488,11 @@ const ListPengajuan = ({
         hasil.push({
           ...k,
           ukur: (row) => `${row.nomor_sppd || ''}
-${row.jumlah_ekstend > 0 ? 'Extend 2x' : ''}`,
+${value !== '4' && row.jumlah_ekstend > 0 ? 'Extend 2x' : ''}`,
           selector: (row) => (
             <div className="sel-tumpuk">
               <span className="sel-utama">{row.nomor_sppd}</span>
-              {row.jumlah_ekstend > 0 ? (
+              {value !== '4' && row.jumlah_ekstend > 0 ? (
                 <span className="sel-extend" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
                   Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
                 </span>

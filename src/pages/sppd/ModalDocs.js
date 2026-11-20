@@ -985,7 +985,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
       </table>
       <p style="font-size:10px">Tiket : ${detailSppd?.tujuan_sppd[i]?.rincian_uang_muka?.tiket?.ada ? `${rupiah(detailSppd.tujuan_sppd[i].rincian_uang_muka.tiket.jumlah)} (biaya aktual, dibayar ke vendor, tidak termasuk uang muka)` : 'biaya aktual, dibayar ke vendor (tidak termasuk uang muka)'}</p>
 
-      <div data-pdfmake="{&quot;unbreakable&quot;:true}">
+      ${detailSppd?.tujuan_sppd[i]?.rincian_uang_muka?.termin_aktif === false ? '' : `      <div data-pdfmake="{&quot;unbreakable&quot;:true}">
       <p style="margin-top:8"><strong>Termin Pembayaran Uang Muka${detailSppd?.tujuan_sppd?.length > 1 ? ` - ${detailSppd?.tujuan_sppd[i]?.detail_tujuan}` : ''}</strong></p>
         <table cellspacing="0" width="100%" style="margin-top:4">
         <tbody>
@@ -993,6 +993,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
         </tbody>
       </table>
       </div>
+`}
 
     </li>`;
     }

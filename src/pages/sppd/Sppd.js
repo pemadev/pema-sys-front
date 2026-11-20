@@ -29,6 +29,7 @@ import RekapSppd from './RekapSppd';
 import ModalExtend from './ModalExtend';
 import Modal30 from './Modal30';
 import ModalProses from './ModalProses';
+import PilihanVoucher from './PilihanVoucher';
 import ringkasUangMuka, { detailDariEkstend } from './ringkasUangMuka';
 
 const Sppd = () => {
@@ -45,7 +46,8 @@ const Sppd = () => {
   // lembar proses KeuanganSppd (uang muka): ringkasan biaya per kategori dan unduhan dokumen perhitungan uang muka
   const [ringkasan, setRingkasan] = useState(null);
   const [memuatRingkasan, setMemuatRingkasan] = useState(false);
-  const [unduhBiaya, setUnduhBiaya] = useState(null);
+  // dokumen keuangan lembar proses: '' | 'voucher' | 'tabel' (sedang disiapkan)
+  const [menyiapkanDokumen, setMenyiapkanDokumen] = useState('');
   // bukti transfer yang dipilih per termin: { "idTujuan:no": { file (data URL), fileName } }
   const [buktiTermin, setBuktiTermin] = useState({});
 
@@ -487,6 +489,61 @@ const Sppd = () => {
         }
       })
       .catch(() => setRingkasan(null));
+
+  // Voucher Pengeluaran Kas / Tabel Standar Biaya (Excel): data penandatangan, rekening, dan daftar petugas dari server.
+  // Voucher memilih Petugas Transaksi dan Cheque/Giro lebih dulu lewat dialog; tabel biaya langsung diunduh.
+  // dialogVoucher: { data, unit } - data dari server, unit = termin yang dipilih (kosong bila hanya satu termin)
+  const [dialogVoucher, setDialogVoucher] = useState(null);
+  const unduhDokumenKeuangan = async (jenis, unit) => {
+    if (!detailSppd || !ringkasan || menyiapkanDokumen) return;
+    setMenyiapkanDokumen(unit ? `${jenis}-${unit.no}` : jenis);
+    try {
+      const res = await api.get(`dapi/sppd/pengajuan/${detailSppd.id}/dokumen-keuangan`);
+      if (jenis === 'voucher') {
+        setDialogVoucher({ data: res.data.data, unit });
+      } else {
+        const { unduhTabelBiaya } = await import('./dokumenKeuangan');
+        await unduhTabelBiaya({ sppd: detailSppd, ringkasan, data: res.data.data, ekstend: !!detailSppd.mode_ekstend, unit });
+      }
+    } catch (err) {
+      alert('error', err?.response?.data?.message || err.message || 'Gagal membuat dokumen');
+    } finally {
+      setMenyiapkanDokumen('');
+    }
+  };
+  // satu termin tidak dibayar di muka (SPPD mendadak): ditandai tanpa bukti transfer, dibayar saat realisasi (aktual)
+  const tandaiTerminAktual = async (x, alasan) => {
+    const extend = !!detailSppd?.mode_ekstend;
+    const muat = () => muatRingkasan(detailSppd?.id, extend ? detailSppd?.ekstend_ids || [] : undefined);
+    try {
+      const res = await api.post('dapi/sppd/pengajuan/termin/aktual', {
+        id_sppd: detailSppd.id,
+        ekstend: extend,
+        alasan,
+        termin: [extend ? { id_ekstend: Number(String(x.idTujuan).replace('e', '')), termin: x.no } : { id_tujuan: Number(x.idTujuan), termin: x.no }],
+      });
+      const selesaiSemua = !!res.data?.data?.selesai;
+      alert('success', selesaiSemua ? 'Seluruh termin sudah ditangani, uang muka selesai diproses' : `Termin ${x.no} ditandai dibayar di aktual`);
+      refetchSubmitted();
+      if (selesaiSemua) setModalProses(false);
+      else muat();
+    } catch (err) {
+      alert('error', err?.response?.data?.message || err.message || 'Gagal menandai termin');
+      muat();
+    }
+  };
+  const lanjutkanVoucher = async ({ petugas, chequeGiro }) => {
+    setMenyiapkanDokumen('voucher');
+    try {
+      const { unduhVoucher } = await import('./dokumenKeuangan');
+      await unduhVoucher({ sppd: detailSppd, ringkasan, data: dialogVoucher.data, ekstend: !!detailSppd.mode_ekstend, petugas, chequeGiro, unit: dialogVoucher.unit });
+      setDialogVoucher(null);
+    } catch (err) {
+      alert('error', err?.message || 'Gagal membuat voucher');
+    } finally {
+      setMenyiapkanDokumen('');
+    }
+  };
 
   const done = async (row) => {
     setModeUbah(false);
@@ -1125,18 +1182,11 @@ const Sppd = () => {
         baseUrl={process.env.REACT_APP_BASEURL}
         ringkasan={ringkasan}
         memuatRingkasan={memuatRingkasan}
-        onUnduhHitungan={() => setUnduhBiaya(detailSppd)}
-        menyiapkanUnduh={!!unduhBiaya}
+        onUnduhHitungan={unduhDokumenKeuangan}
+        menyiapkanUnduh={menyiapkanDokumen}
+        onTerminAktual={tandaiTerminAktual}
       />
-      {/* unduh dokumen perhitungan uang muka (tanpa membuka jendela dokumen) */}
-      <ModalDocs
-        modalDoc={!!unduhBiaya}
-        toggleDoc={() => setUnduhBiaya(null)}
-        sppdDetail={unduhBiaya ? { id: unduhBiaya.id } : null}
-        namaUnduh={unduhBiaya ? `Perhitungan Uang Muka ${String(unduhBiaya.nomor_sppd || unduhBiaya.id).replace(/[\\\\/:*?"<>|]+/g, '-')}.pdf` : ''}
-        jenisUnduh="biaya"
-        selesaiUnduh={() => setUnduhBiaya(null)}
-      />
+      <PilihanVoucher data={dialogVoucher ? dialogVoucher.data : null} unit={dialogVoucher ? dialogVoucher.unit : null} onTutup={() => setDialogVoucher(null)} onUnduh={lanjutkanVoucher} proses={menyiapkanDokumen === 'voucher' && !!dialogVoucher} />
     </>
   );
 };

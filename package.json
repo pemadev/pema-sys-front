@@ -53,6 +53,7 @@
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.12",
     "draft-js": "^0.11.7",
+    "exceljs": "^4.4.0",
     "font-awesome": "^4.7.0",
     "formik": "^2.4.2",
     "gantt-schedule-timeline-calendar": "^3.40.1",

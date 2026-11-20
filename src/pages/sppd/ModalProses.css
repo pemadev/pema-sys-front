@@ -477,3 +477,52 @@
 .lp-chip-pilih { min-height: 36px; padding: 6px 14px; cursor: pointer; font-weight: 600; }
 .lp-chip-pilih:hover { background: var(--lp-hover); }
 .lp-chip-pilih.aktif { border-color: var(--lp-aksen); background: var(--lp-aksen-lembut); color: var(--lp-aksen); }
+
+/* ===== termin pembayaran: satu kartu per termin (info + jumlah, upload bukti, lalu tombol dokumen) ===== */
+.lp-termin { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+.lp-termin-blok { display: flex; flex-direction: column; gap: 10px; }
+.lp-termin .lp-termin-blok .lp-termin-item {
+  grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px 12px; padding: 12px;
+  background: var(--lp-kartu); border: 1px solid var(--lp-garis); border-radius: 12px; box-shadow: var(--lp-bayangan);
+}
+.lp-termin-item .lp-termin-aksi { grid-column: 1 / -1; }
+.lp-termin-item .lp-termin-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.lp-termin-item .lp-jt { margin-left: 0; }
+.lp-termin-item .lp-berkas-kecil { width: 100%; }
+
+/* tombol dokumen di bawah tiap termin: dua kolom sama lebar, satu kolom di layar sempit */
+.lp-termin-item .lp-termin-dok {
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding-top: 10px;
+  border-top: 1px dashed var(--lp-garis-input);
+}
+.lp-termin-dok .lp-unduh { width: 100%; margin-top: 0; min-height: 40px; padding: 6px 10px; font-size: 0.84rem; line-height: 1.2; }
+.lp-termin-dok .lp-unduh .material-icons { font-size: 18px; }
+@media (max-width: 479.98px) {
+  .lp-termin { padding: 8px; }
+  .lp-termin .lp-termin-blok .lp-termin-item { padding: 10px; }
+  .lp-termin-item .lp-termin-dok { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ===== uang muka tidak dibayar di muka (dibayar di aktual) ===== */
+.lp-aktual { margin-top: 12px; }
+.lp-tautan {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 42px; padding: 8px 14px;
+  border: 1.5px dashed #f59e0b; border-radius: 10px; background: #fffbeb; color: #b45309; font-weight: 600; font-size: 0.86rem; text-align: center; cursor: pointer;
+}
+.lp-tautan:hover { background: #fef3c7; }
+.dark .lp-tautan, [data-bs-theme='dark'] .lp-tautan { background: #3a2a12; color: #fbbf24; border-color: #b7791f; }
+@media (min-width: 768px) { .lp-tautan { width: auto; } }
+.lp-aktual-kotak { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid #f3d9a4; border-radius: 12px; background: #fffbeb; }
+.dark .lp-aktual-kotak, [data-bs-theme='dark'] .lp-aktual-kotak { background: #2b2210; border-color: #6b4e16; }
+.lp-aktual-kotak .lp-input { width: 100%; }
+.lp-aktual-aksi { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+@media (max-width: 479.98px) { .lp-aktual-aksi .lp-tombol { flex: 1 1 100%; } }
+
+/* termin dibayar di aktual */
+.lp-tautan-kecil { width: 100%; min-height: 36px; padding: 6px 12px; font-size: 0.8rem; }
+@media (min-width: 768px) { .lp-tautan-kecil { width: auto; } }
+.lp-termin-aksi { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.lp-aktual-ada { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: #fffbeb; border: 1px solid #f3d9a4; color: #b45309; font-weight: 600; font-size: 0.84rem; }
+.lp-aktual-ada > span { display: inline-flex; align-items: center; gap: 6px; }
+.lp-aktual-ada small { color: var(--lp-teks-redup); font-weight: 500; font-size: 0.74rem; }
+.dark .lp-aktual-ada, [data-bs-theme='dark'] .lp-aktual-ada { background: #2b2210; border-color: #6b4e16; color: #fbbf24; }
