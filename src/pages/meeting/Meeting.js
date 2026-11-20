@@ -260,7 +260,7 @@ const Meeting = () => {
   const [zoomError, setZoomError] = useState('');
   const [zoomSuccess, setZoomSuccess] = useState('');
   const [roomMeetings, setRoomMeetings] = useState([]);
-  // blokir ruang rapat oleh Sekretaris Direksi (tidak tampil di /jadwal-rapat; staf lain tidak bisa booking pada rentang itu)
+  // ruang rapat dipakai direksi, ditandai Sekretaris Direksi (tidak tampil di /jadwal-rapat; staf lain tidak bisa booking pada rentang itu)
   const [bolehBlokir, setBolehBlokir] = useState(false);
   const [blokirList, setBlokirList] = useState([]);
   const [isBlokirModalOpen, setIsBlokirModalOpen] = useState(false);
@@ -354,13 +354,13 @@ const Meeting = () => {
         end_time: blokirForm.endTime,
         alasan: blokirForm.alasan,
       });
-      ensureApiSuccess(response, 'Gagal memblokir ruangan.');
+      ensureApiSuccess(response, 'Gagal menandai ruangan dipakai direksi.');
       setIsBlokirModalOpen(false);
       setBlokirForm({ room: 'Growth', startTime: '', endTime: '', alasan: '' });
-      setBlokirSuccess(response?.data?.message || 'Ruangan berhasil diblokir.');
+      setBlokirSuccess(response?.data?.message || 'Ruangan ditandai dipakai direksi.');
       await fetchBlokir();
     } catch (error) {
-      setBlokirError(getApiErrorMessage(error, 'Gagal memblokir ruangan.'));
+      setBlokirError(getApiErrorMessage(error, 'Gagal menandai ruangan dipakai direksi.'));
     } finally {
       setSubmittingBlokir(false);
     }
@@ -373,11 +373,11 @@ const Meeting = () => {
     setCancelingBlokirId(id);
     try {
       const response = await api.post(`dapi/meeting/room/blokir/${id}/batal`);
-      ensureApiSuccess(response, 'Gagal membatalkan blokir.');
-      setBlokirSuccess('Blokir ruangan dibatalkan.');
+      ensureApiSuccess(response, 'Gagal membatalkan pemakaian ruangan oleh direksi.');
+      setBlokirSuccess('Pemakaian ruangan oleh direksi dibatalkan.');
       await fetchBlokir();
     } catch (error) {
-      setBlokirError(getApiErrorMessage(error, 'Gagal membatalkan blokir.'));
+      setBlokirError(getApiErrorMessage(error, 'Gagal membatalkan pemakaian ruangan oleh direksi.'));
     } finally {
       setCancelingBlokirId(null);
     }
@@ -830,7 +830,7 @@ const Meeting = () => {
                     setIsBlokirModalOpen(true);
                   }}
                 >
-                  Blokir Ruang
+                  Ruang Dipakai Direksi
                 </Button>
               ) : null}
               <Button color="success" onClick={() => setIsZoomModalOpen(true)}>
@@ -886,7 +886,7 @@ const Meeting = () => {
         <Card className="shadow-sm border-0 mb-4" style={{ borderRadius: '16px', border: '1px solid #fde7b0', background: '#fffbeb' }}>
           <CardBody>
             <div className="d-flex align-items-center gap-2 mb-2">
-              <strong>Ruangan diblokir</strong>
+              <strong>Ruangan dipakai direksi</strong>
               <Badge color="warning" pill>
                 {blokirList.length}
               </Badge>
@@ -907,7 +907,7 @@ const Meeting = () => {
                   </div>
                   {bolehBlokir ? (
                     <Button size="sm" color="danger" outline disabled={cancelingBlokirId === b.id} onClick={() => handleBatalBlokir(b.id)}>
-                      {cancelingBlokirId === b.id ? 'Membatalkan...' : 'Batalkan Blokir'}
+                      {cancelingBlokirId === b.id ? 'Membatalkan...' : 'Batalkan'}
                     </Button>
                   ) : null}
                 </div>
@@ -1021,11 +1021,11 @@ const Meeting = () => {
       </Modal>
 
       <Modal isOpen={isBlokirModalOpen} toggle={() => setIsBlokirModalOpen(!isBlokirModalOpen)} centered>
-        <ModalHeader toggle={() => setIsBlokirModalOpen(!isBlokirModalOpen)}>Blokir Ruang Rapat</ModalHeader>
+        <ModalHeader toggle={() => setIsBlokirModalOpen(!isBlokirModalOpen)}>Ruang Dipakai Direksi</ModalHeader>
         <ModalBody>
           {blokirError ? <Alert color="danger">{blokirError}</Alert> : null}
           <p className="text-muted small">
-            Ruangan yang diblokir tidak bisa dibooking staf lain pada rentang waktu ini, dan tidak ditampilkan di halaman jadwal rapat.
+            Ruangan yang ditandai dipakai direksi tidak bisa dibooking staf lain pada rentang waktu ini, dan tidak ditampilkan di halaman jadwal rapat.
           </p>
           <Form onSubmit={handleBlokirSubmit}>
             <FormGroup>
@@ -1060,7 +1060,7 @@ const Meeting = () => {
                 Batal
               </Button>
               <Button color="warning" type="submit" disabled={submittingBlokir}>
-                {submittingBlokir ? 'Menyimpan...' : 'Blokir Ruangan'}
+                {submittingBlokir ? 'Menyimpan...' : 'Simpan'}
               </Button>
             </div>
           </Form>
