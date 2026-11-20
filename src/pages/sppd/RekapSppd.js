@@ -34,6 +34,7 @@ const RekapSppd = () => {
   const [halaman, setHalaman] = useState(1);
   const [perHalaman, setPerHalaman] = useState(25);
   const [unduh, setUnduh] = useState(null); // { id, namaFile } SPPD yang sedang diunduh ST-nya
+  const [docRow, setDocRow] = useState(null); // SPPD yang dokumennya dibuka lewat tombol Docs
 
   useEffect(() => {
     setLoading(true);
@@ -115,9 +116,14 @@ const RekapSppd = () => {
   };
 
   const tombolST = (b) => (
-    <Button size="sm" color="primary" outline disabled={!!unduh} onClick={() => setUnduh({ id: b.id, namaFile: namaFileST(b) })}>
-      {unduh?.id === b.id ? 'Menyiapkan...' : 'Unduh ST'}
-    </Button>
+    <span className="d-inline-flex gap-1">
+      <Button size="sm" color="primary" outline disabled={!!unduh} onClick={() => setUnduh({ id: b.id, namaFile: namaFileST(b) })}>
+        {unduh?.id === b.id ? 'Menyiapkan...' : 'Unduh ST'}
+      </Button>
+      <Button size="sm" color="warning" outline disabled={!!unduh} onClick={() => setDocRow({ id: b.id })}>
+        Docs
+      </Button>
+    </span>
   );
 
   const statusRealisasi = (b) => {
@@ -383,6 +389,7 @@ const RekapSppd = () => {
           </div>
         </>
       )}
+      <ModalDocs modalDoc={!!docRow} toggleDoc={() => setDocRow(null)} sppdDetail={docRow} />
       <ModalDocs modalDoc={!!unduh} toggleDoc={() => setUnduh(null)} sppdDetail={unduh ? { id: unduh.id } : null} namaUnduh={unduh?.namaFile || ''} selesaiUnduh={() => setUnduh(null)} />
     </div>
   );

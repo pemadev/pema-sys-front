@@ -206,16 +206,18 @@ const ListPengajuan = ({
             ''
           )}
 
-          {row.current_status === 'signed' && value === '1' && !row.void ? ( <Button
-            size="sm"
-            className="me-2"
-            outline
-            color="dark"
-            tag="input"
-            type="reset"
-            value="Hotel 30%"
-            onClick={() => toggle3(row)}
-          />) : ('')}
+          {row.current_status === 'signed' && value === '1' && !row.void ? (
+            <Button
+              size="sm"
+              className="me-2"
+              outline
+              color="dark"
+              tag="input"
+              type="reset"
+              value="Hotel 30%"
+              onClick={() => toggle3(row)}
+            />
+          ) : ('')}
 
           <Button
             className="me-2"

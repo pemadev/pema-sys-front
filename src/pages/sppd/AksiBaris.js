@@ -15,7 +15,7 @@ const AksiBaris = ({ aksi, semuaDiMenu }) => {
   return (
     <div className="aksi-admin">
       {semuaDiMenu ? null : (
-        <Button size="sm" color={utama.warna} outline className="aksi-utama" onClick={utama.jalan}>
+        <Button size="sm" color={utama.warna} outline className="aksi-utama" onClick={utama.jalan} disabled={!!utama.nonaktif} title={utama.nonaktif || undefined}>
           {utama.ikon ? <MaterialIcon icon={utama.ikon} /> : null}
           {utama.label}
         </Button>
@@ -30,7 +30,7 @@ const AksiBaris = ({ aksi, semuaDiMenu }) => {
             {lain.map((x) => (
               <React.Fragment key={x.label}>
                 {x.pisah ? <DropdownItem divider /> : null}
-                <DropdownItem onClick={x.jalan} className={`aksi-item aksi-${x.warna}`}>
+                <DropdownItem onClick={x.jalan} disabled={!!x.nonaktif} title={x.nonaktif || undefined} className={`aksi-item aksi-${x.warna}`}>
                   <span className="aksi-ikon">
                     <MaterialIcon icon={x.ikon || 'chevron_right'} />
                   </span>
@@ -53,6 +53,7 @@ AksiBaris.propTypes = {
       ikon: PropTypes.string,
       jalan: PropTypes.func.isRequired,
       pisah: PropTypes.bool,
+      nonaktif: PropTypes.string, // alasan aksi dimatikan (juga tampil sebagai tooltip)
     }),
   ).isRequired,
   semuaDiMenu: PropTypes.bool,

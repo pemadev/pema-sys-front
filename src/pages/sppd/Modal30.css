@@ -1,0 +1,37 @@
+/* Form Hotel 30%: kartu bersih, responsif sampai layar ponsel */
+.m30 .modal-content { border: 0; border-radius: 16px; overflow: hidden; }
+.m30 .modal-header { background: linear-gradient(135deg, #0f766e, #0e7490); color: #fff; border: 0; padding: 16px 20px; }
+.m30 .modal-header .modal-title { font-weight: 600; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.m30 .modal-header .btn-close { filter: invert(1) grayscale(1) brightness(2); opacity: 0.85; }
+.m30 .modal-body { padding: 18px 20px 20px; background: #f8fafc; }
+
+.m30-intro { font-size: 0.85rem; color: #64748b; line-height: 1.5; margin: 0 0 14px; }
+
+.m30-kartu { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.m30-label { display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
+.m30 .form-select, .m30 .form-control { border-radius: 10px; border-color: #cbd5e1; }
+.m30 .form-select:focus, .m30 .form-control:focus { border-color: #0e7490; box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15); }
+
+.m30-tanggal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.m30-tanggal .MuiFormControl-root, .m30-tanggal .MuiTextField-root { width: 100%; }
+
+.m30-rentang { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.8rem; color: #475569; }
+.m30-chip { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; border-radius: 999px; padding: 2px 10px; font-weight: 600; font-size: 0.78rem; }
+.m30-hint { width: 100%; color: #94a3b8; font-size: 0.75rem; }
+
+.m30-info { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 14px; font-size: 0.85rem; color: #1e3a8a; margin-bottom: 12px; }
+.m30-tunggu { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+
+.m30-aksi { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.m30-aksi .btn { border-radius: 10px; padding: 9px 22px; font-weight: 600; }
+.m30-aksi .btn-primary { background: #0e7490; border-color: #0e7490; }
+.m30-aksi .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; }
+
+@media (max-width: 575.98px) {
+  .m30 .modal-body { padding: 14px; }
+  .m30-tanggal { grid-template-columns: 1fr; }
+  .m30-kartu { padding: 12px; }
+  .m30-aksi { flex-direction: column-reverse; }
+  .m30-aksi .btn { width: 100%; }
+  .m30-tunggu .d-flex { width: 100%; }
+}

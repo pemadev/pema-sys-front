@@ -1,15 +1,17 @@
 import PropTypes from 'prop-types';
-import { Modal, ModalHeader, ModalBody, FormGroup, Label, Row, Col, Input, Alert, Button } from 'reactstrap';
+import { Modal, ModalHeader, ModalBody, Label, Input, Alert, Button } from 'reactstrap';
 import { useEffect, useState } from 'react';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import useAxios from '../../hooks/useAxios';
 import { alert } from '../../components/atoms/Toast';
 
 import 'dayjs/locale/id';
 import './ModalDocs.scss';
+import './Modal30.css';
 
 
 const pdfFonts = require('../../assets/vfs_fonts');
@@ -36,9 +38,20 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
   const [email, setEmail] = useState('');
   const [tertunda, setTertunda] = useState([]); // klaim pelaksana non-karyawan yang masih menunggu persetujuan
 
+  // rentang tanggal yang boleh dipilih (dari server): tanggal tujuan sampai akhir extend yang sudah disetujui
+  const itemTujuan = (detailSppd || []).find((d) => String(d.id) === String(tujuan));
+  const jendela = itemTujuan?.hotel30_mulai && itemTujuan?.hotel30_akhir ? { min: dayjs(itemTujuan.hotel30_mulai), max: dayjs(itemTujuan.hotel30_akhir) } : null;
+  const sudahDiajukan = itemTujuan?.tigapuluh != null; // hanya sekali; pengajuan berikutnya = ubah tanggal
+  const sudahDisetujui = sppdDetail?.current_status === 'signed';
+  const fmt = (v) => dayjs(v).locale('id').format('DD MMM YYYY');
+
   const handleSubmitAction = async () => {
     if (!sppdDetail?.id) {
       alert('error', 'SPPD tidak valid');
+      return;
+    }
+    if (!sudahDisetujui) {
+      alert('error', 'Hotel 30% hanya bisa diajukan setelah SPPD disetujui');
       return;
     }
     if (!tujuan) {
@@ -49,11 +62,19 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
       alert('error', 'Pilih tanggal mulai dan tanggal berakhir');
       return;
     }
+    if (jendela && (mulai.isBefore(jendela.min, 'day') || hingga.isAfter(jendela.max, 'day'))) {
+      alert('error', `Tanggal harus dalam ${fmt(jendela.min)} s.d. ${fmt(jendela.max)}`);
+      return;
+    }
+    if (hingga.isBefore(mulai, 'day')) {
+      alert('error', 'Tanggal berakhir tidak boleh sebelum tanggal mulai');
+      return;
+    }
     const payload = { sppd_id: sppdDetail.id, id_tujuan: Number(tujuan) };
     // include tanggal mulai dan berakhir
     payload.start_date = mulai.format('YYYY-MM-DD');
     payload.end_date = hingga.format('YYYY-MM-DD');
-    if (pelaksana?.tamu) {
+    if (pelaksana?.tamu && !sudahDiajukan) {
       if (!/^\S+@\S+\.\S+$/.test(email)) {
         alert('error', 'Isi email pelaksana yang valid untuk permintaan persetujuan');
         return;
@@ -93,6 +114,19 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
   const handleSelectChange = (e) => {
     setTujuan(e.target.value);
     setPelaksana(null);
+    // tanggal bawaan = seluruh rentang yang diizinkan; admin bisa mempersempit ke beberapa hari saja
+    const item = (detailSppd || []).find((d) => String(d.id) === String(e.target.value));
+    if (item?.tigapuluh?.mulai && item?.tigapuluh?.selesai) {
+      // sudah pernah diajukan: tampilkan tanggal pengajuan sebelumnya untuk diubah
+      setMulai(dayjs(item.tigapuluh.mulai));
+      setHingga(dayjs(item.tigapuluh.selesai));
+    } else if (item?.hotel30_mulai && item?.hotel30_akhir) {
+      setMulai(dayjs(item.hotel30_mulai));
+      setHingga(dayjs(item.hotel30_akhir));
+    } else {
+      setMulai(null);
+      setHingga(null);
+    }
     if (e.target.value) {
       api.get(`dapi/sppd/tiga-puluh/${e.target.value}/pelaksana`).then((res) => setPelaksana(res.data.data)).catch(() => setPelaksana(null));
     }
@@ -136,116 +170,130 @@ const Modal30 = ({ modal3, toggle3, sppdDetail }) => {
       setTertunda([]);
       setPelaksana(null);
       setEmail('');
+      setTujuan('');
+      setMulai(null);
+      setHingga(null);
     }
   }, [modal3, sppdDetail]);
   //  console.log('sppdDetail modal 30%', sppdDetail);
 
   return (
-    <Modal isOpen={modal3} toggle={toggle3} size="md" className="modal1" centered>
+    <Modal isOpen={modal3} toggle={toggle3} size="md" className="m30" centered scrollable>
       <ModalHeader toggle={toggle3}>Pengajuan Biaya Hotel 30%</ModalHeader>
-      <ModalBody className="p-4 ">
-        <p>Pelaku Perjalanan Dinas yang tidak menginap di Hotel/Penginapan atau tidak memiliki bill hotel bisa mengajukan 30% dari rate hotel yang disedikan oleh perusahaan. Silakan pilih tujuan Perjalanan Dinas di bawah ini untuk mengajukan</p>
-        <FormGroup>
-          <Label>Tujuan SPPD</Label>
-          
-            <div className="tujuan-select">
-              {(!detailSppd || detailSppd.length === 0) ? (
-                <div>Tidak ada tujuan</div>
-              ) : (
-                <Input id="tujuan" type="select" value={tujuan} onChange={handleSelectChange}>
-                  <option value="">Pilih tujuan</option>
-                  {detailSppd.map((item) => (
-                    <option key={item.id} value={String(item.id)} disabled={Boolean(item?.tigapuluh != null)}>
-                      {item.detail_tujuan}{item?.tigapuluh != null ? ' (sudah diajukan)' : ''}
-                    </option>
-                  ))}
-                </Input>
-              )}
+      <ModalBody>
+        {!sudahDisetujui ? <Alert color="warning">Hotel 30% hanya bisa diajukan setelah SPPD disetujui.</Alert> : null}
+        <p className="m30-intro">
+          Pelaku perjalanan dinas yang tidak menginap di hotel/penginapan atau tidak punya bill hotel bisa mengajukan 30% dari rate hotel yang disediakan perusahaan.
+        </p>
+
+        <div className="m30-kartu">
+          <span className="m30-label">Tujuan SPPD</span>
+          {!detailSppd || detailSppd.length === 0 ? (
+            <div className="text-muted">Tidak ada tujuan</div>
+          ) : (
+            <Input id="tujuan" type="select" value={tujuan} onChange={handleSelectChange}>
+              <option value="">Pilih tujuan</option>
+              {detailSppd.map((item) => (
+                <option key={item.id} value={String(item.id)}>
+                  {item.detail_tujuan}
+                  {item?.tigapuluh != null ? ' (sudah diajukan, bisa diubah)' : ''}
+                </option>
+              ))}
+            </Input>
+          )}
+        </div>
+
+        <div className="m30-kartu">
+          <span className="m30-label">Tanggal Hotel 30%</span>
+          {sudahDiajukan ? <div className="m30-hint mb-2">Tujuan ini sudah pernah diajukan. Hotel 30% hanya bisa diajukan sekali, jadi pengajuan kedua hanya mengubah tanggal pengajuan sebelumnya.</div> : null}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <div className="m30-tanggal">
+              <div>
+                <Label for="mulai" className="small text-muted mb-1">
+                  Mulai
+                </Label>
+                <DatePicker
+                  value={mulai}
+                  onChange={setMulai}
+                  disabled={!jendela}
+                  minDate={jendela?.min}
+                  maxDate={hingga && jendela && hingga.isBefore(jendela.max) ? hingga : jendela?.max}
+                  renderInput={(params) => <Input {...params} id="mulai" type="text" className="bg-white w-100" placeholder="Pilih tanggal mulai" readOnly />}
+                />
+              </div>
+              <div>
+                <Label for="hingga" className="small text-muted mb-1">
+                  Hingga
+                </Label>
+                <DatePicker
+                  value={hingga}
+                  onChange={setHingga}
+                  disabled={!jendela}
+                  minDate={mulai && jendela && mulai.isAfter(jendela.min) ? mulai : jendela?.min}
+                  maxDate={jendela?.max}
+                  renderInput={(params) => <Input {...params} id="hingga" type="text" className="bg-white w-100" placeholder="Pilih tanggal hingga" readOnly />}
+                />
+              </div>
             </div>
-
-           
-
-          <div className="mt-3">
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Row>
-                  <Col md={6} className="mb-2">
-                    <FormGroup>
-                      <Label for="mulai" className="d-block mb-1">Mulai</Label>
-                      <DatePicker
-                        value={mulai}
-                        onChange={setMulai}
-                        renderInput={(params) => (
-                          <Input
-                            {...params}
-                            id="mulai"
-                            type="text"
-                            className="bg-white w-100"
-                            style={{ width: '100%' }}
-                            placeholder="Pilih tanggal mulai"
-                            readOnly
-                          />
-                        )}
-                      />
-                    </FormGroup>
-                  </Col>
-
-                  <Col md={6} className="mb-2">
-                    <FormGroup>
-                      <Label for="hingga" className="d-block mb-1">Hingga</Label>
-                      <DatePicker
-                        value={hingga}
-                        onChange={setHingga}
-                        renderInput={(params) => (
-                          <Input
-                            {...params}
-                            id="hingga"
-                            type="text"
-                            className="bg-white w-100"
-                            style={{ width: '100%' }}
-                            placeholder="Pilih tanggal hingga"
-                            readOnly
-                          />
-                        )}
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-              </LocalizationProvider>
+          </LocalizationProvider>
+          {jendela ? (
+            <div className="m30-rentang">
+              <span>Bisa dipilih:</span>
+              <span className="m30-chip">{fmt(jendela.min)}</span>
+              <span>s.d.</span>
+              <span className="m30-chip">{fmt(jendela.max)}</span>
+              <span className="m30-hint">
+                {itemTujuan?.hotel30_ekstend_akhir
+                  ? `SPPD sampai ${fmt(itemTujuan.waktu_kembali)}, extend yang sudah disetujui sampai ${fmt(itemTujuan.hotel30_ekstend_akhir)}. `
+                  : 'Sesuai tanggal SPPD. '}
+                Boleh dipilih beberapa hari saja.
+              </span>
             </div>
-        </FormGroup>
-        {pelaksana?.tamu && (
-          <Alert color="info" className="mt-2">
+          ) : (
+            <div className="m30-rentang">
+              <span className="m30-hint">Pilih tujuan dulu untuk melihat tanggal yang bisa dipilih.</span>
+            </div>
+          )}
+        </div>
+
+        {pelaksana?.tamu && !sudahDiajukan && (
+          <div className="m30-info">
             <div>
-              Pelaksana bukan karyawan: <b>{pelaksana.nama}</b>{pelaksana.jabatan ? `, ${pelaksana.jabatan}` : ''}. Persetujuannya dikirim lewat email.
+              Pelaksana bukan karyawan: <b>{pelaksana.nama}</b>
+              {pelaksana.jabatan ? `, ${pelaksana.jabatan}` : ''}. Persetujuannya dikirim lewat email.
             </div>
             <Input className="mt-2" type="email" placeholder="Email pelaksana" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </Alert>
+          </div>
         )}
+
         {tertunda.length > 0 && (
-          <div className="mt-3">
-            <Label>Menunggu persetujuan pelaksana</Label>
+          <div className="mb-2">
+            <span className="m30-label">Menunggu persetujuan pelaksana</span>
             {tertunda.map((x) => (
-              <div key={x.id} className="d-flex justify-content-between align-items-center border rounded p-2 mb-1 flex-wrap gap-2">
+              <div key={x.id} className="m30-tunggu">
                 <small>
                   <b>{x.nama}</b> — {x.jabatan || ''}
                   {x.email ? ` (${x.email})` : ' (email belum dikirim)'}
                 </small>
-                <span className="d-flex gap-1">
-                  <Button size="sm" outline color="primary" onClick={() => kirimUlang(x.id, x.email)}>Kirim ulang email</Button>
-                  <Button size="sm" outline color="secondary" onClick={() => tandaiManual(x.id)}>Tanda tangan manual</Button>
+                <span className="d-flex gap-1 flex-wrap">
+                  <Button size="sm" outline color="primary" onClick={() => kirimUlang(x.id, x.email)}>
+                    Kirim ulang email
+                  </Button>
+                  <Button size="sm" outline color="secondary" onClick={() => tandaiManual(x.id)}>
+                    Tanda tangan manual
+                  </Button>
                 </span>
               </div>
             ))}
           </div>
         )}
-        <div className="d-flex justify-content-end mt-3">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleSubmitAction}
-            disabled={submitting}
-          >
-            {submitting ? 'Mengirim...' : 'Ajukan 30%'}
+
+        <div className="m30-aksi">
+          <button type="button" className="btn btn-light" onClick={toggle3}>
+            Batal
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handleSubmitAction} disabled={submitting || !sudahDisetujui}>
+            {submitting ? 'Mengirim...' : sudahDiajukan ? 'Simpan Perubahan' : 'Ajukan 30%'}
           </button>
         </div>
       </ModalBody>
