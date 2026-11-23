@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, CardBody, CardText, CardTitle, Input } from 'reactstrap';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
+import HalamanPro from '../../components/HalamanPro';
 import useAxios from '../../hooks/useAxios';
 
 // Atur tampilan Dashboard TV: urutan bagian (naik/turun) dan tampil/sembunyi. Hanya untuk role PICDashboard.
@@ -65,8 +65,7 @@ const PengaturanDashboardTv = () => {
   };
 
   return (
-    <>
-      <BreadCrumbs />
+    <HalamanPro judul="Dashboard TV" keterangan="Pengaturan tampilan dashboard absensi di TV">
       <Card className="shadow-sm border-0 mb-4" style={{ borderRadius: '16px' }}>
         <CardBody>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -141,7 +140,7 @@ const PengaturanDashboardTv = () => {
           </small>
         </CardBody>
       </Card>
-    </>
+    </HalamanPro>
   );
 };
 

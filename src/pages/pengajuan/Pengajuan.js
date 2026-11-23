@@ -6,8 +6,8 @@ import TabPanel from '@mui/lab/TabPanel';
 import Tab from '@mui/material/Tab';
 import Badge from '@mui/material/Badge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import HalamanPro from '../../components/HalamanPro';
 import useAxios from '../../hooks/useAxios';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import Dashboard from './dashboard/Dashboard';
 import PengajuanBiaya from './pengajuanBiaya/PengajuanBiaya';
 import ApprovalPengajuan from './approvalPengajuan/ApprovalPengajuan';
@@ -61,8 +61,7 @@ const Pengajuan = () => {
   }, [location]);
 
   return (
-    <div>
-      <BreadCrumbs />
+    <HalamanPro judul="Pengajuan" keterangan="Pengajuan, approval dan status penyelesaian">
       <TabContext value={value}>
         <Card className="mb-1">
           <TabList onChange={handleChange} vertical="sm" variant="scrollable" scrollButtons="auto">
@@ -159,7 +158,7 @@ const Pengajuan = () => {
           <PengajuanSelesai /> {/* Passing setBadgeCount to PengajuanSelesai */}
         </TabPanel>
       </TabContext>
-    </div>
+    </HalamanPro>
   );
 };
 

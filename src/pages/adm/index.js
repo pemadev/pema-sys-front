@@ -1,6 +1,5 @@
 import React from 'react';
 import { Alert } from 'reactstrap';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import HalamanPro from '../../components/HalamanPro';
 import Adm from './Adm';
 
@@ -18,7 +17,6 @@ const Index = () => {
         </a>
         .
       </Alert>
-      <BreadCrumbs />
       <Adm />
     </HalamanPro>
   );

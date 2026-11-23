@@ -1186,7 +1186,7 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
   }
 
   return (
-    <Modal isOpen={modalDoc} toggle={toggleDoc} size="xl" className="modal1" centered>
+    <Modal isOpen={modalDoc} toggle={toggleDoc} size="xl" className="modal1 modal-docs" centered scrollable>
       <ModalHeader toggle={toggleDoc}>Cetak Dokumen SPPD</ModalHeader>
       <ModalBody className="p-3 ">
         {loading ? (

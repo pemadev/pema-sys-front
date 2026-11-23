@@ -1,13 +1,11 @@
 import React from 'react';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import Mobil from './Mobil';
 import HalamanPro from '../../components/HalamanPro';
 
 
 const Index = () => {
   return (
-    <HalamanPro>
-      <BreadCrumbs />
+    <HalamanPro judul="Mobil" keterangan="Penggunaan dan pemesanan mobil operasional">
       <Mobil />
     </HalamanPro>
   );

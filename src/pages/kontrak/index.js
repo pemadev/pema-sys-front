@@ -1,4 +1,3 @@
-import BreadCrumbs from "../../layouts/breadcrumbs/BreadCrumbs";
 import Dashboard from "./DashboardTemp";
 import HalamanPro from "../../components/HalamanPro";
 
@@ -6,8 +5,7 @@ import HalamanPro from "../../components/HalamanPro";
 const index = () => {
     return (
 
-        <HalamanPro>
-            <BreadCrumbs />
+        <HalamanPro judul="Kontrak" keterangan="Ringkasan dan riwayat kontrak">
             <Dashboard />
         </HalamanPro>
     );

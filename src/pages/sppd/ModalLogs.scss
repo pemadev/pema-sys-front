@@ -1,30 +1,112 @@
-ul.timeline {
-    list-style-type: none;
-    position: relative;
-}
-ul.timeline:before {
-    content: ' ';
-    background: #d4d9df;
-    display: inline-block;
+// Log pengajuan SPPD: garis waktu vertikal, kartu per aktivitas, rapi di layar kecil
+.log-sppd {
+  --log-garis: #e4e7ec;
+  --log-titik: #1e88e5;
+
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 28px;
+  list-style: none;
+
+  &::before {
+    content: '';
     position: absolute;
-    left: 29px;
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
     width: 2px;
-    height: 100%;
-    z-index: 400;
-}
-ul.timeline > li {
-    margin: 20px 0;
-    padding-left: 20px;
-}
-ul.timeline > li:before {
-    content: ' ';
-    background: white;
+    background: var(--log-garis);
+    border-radius: 2px;
+  }
+
+  > li {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--log-garis);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 17px;
+      left: -26px;
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border: 3px solid var(--log-titik);
+      border-radius: 50%;
+      box-sizing: border-box;
+    }
+
+    &:first-child::before {
+      background: var(--log-titik);
+      box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.18);
+    }
+  }
+
+  .log-kepala {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 12px;
+  }
+  .log-nama {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #101828;
+  }
+  .log-waktu {
+    font-size: 0.75rem;
+    color: #667085;
+    white-space: nowrap;
+  }
+  .log-jabatan {
     display: inline-block;
-    position: absolute;
-    border-radius: 50%;
-    border: 3px solid #22c0e8;
-    left: 20px;
-    width: 20px;
-    height: 20px;
-    z-index: 400;
-}   
+    margin-top: 2px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #475467;
+    background: #f2f4f7;
+    border-radius: 999px;
+  }
+  .log-isi {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #344054;
+    overflow-wrap: anywhere;
+  }
+}
+
+.log-kosong {
+  padding: 24px 0;
+  text-align: center;
+  color: #667085;
+}
+
+@media (max-width: 575.98px) {
+  .log-sppd {
+    padding-left: 24px;
+
+    > li {
+      padding: 10px 12px;
+
+      &::before {
+        left: -22px;
+      }
+    }
+    .log-waktu {
+      white-space: normal;
+    }
+  }
+}

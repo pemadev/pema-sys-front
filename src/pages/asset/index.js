@@ -1,12 +1,10 @@
 import React from 'react';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import Asset from './Asset';
 import HalamanPro from '../../components/HalamanPro';
 
 const index = () => {
   return (
-    <HalamanPro>
-      <BreadCrumbs />
+    <HalamanPro judul="Asset" keterangan="Data dan pengelolaan aset perusahaan">
       <Asset></Asset>
     </HalamanPro>
   );

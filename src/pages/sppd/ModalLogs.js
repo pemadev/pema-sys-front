@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Badge, Modal, ModalBody, ModalHeader } from 'reactstrap';
+import { Modal, ModalBody, ModalHeader } from 'reactstrap';
 import dayjs from 'dayjs';
 import 'dayjs/locale/id';
 import Loader from '../../layouts/loader/Loader';
@@ -17,7 +17,17 @@ const ModalLogs = ({ modalLog, toggleLog, sppdDetail }) => {
   useEffect(() => {
     if (modalLog && sppdDetail) {
       api.get(`dapi/sppd/pengajuan/${sppdDetail?.id}`).then((res) => {
-        setDetailSppd(res.data.data.log_pengajuan);
+        // log dobel (user, aktivitas, dan waktu sama sampai menit) hanya ditampilkan satu kali
+        const lihat = new Set();
+        setDetailSppd(
+          (res.data.data.log_pengajuan || []).filter((l) => {
+            const kunci = `${l.employe_id}|${l.activity}|${dayjs(l.created_at).format('YYYY-MM-DD HH:mm')}`;
+            if (lihat.has(kunci)) return false;
+            lihat.add(kunci);
+
+            return true;
+          }),
+        );
       });
     } else {
       setDetailSppd(null);
@@ -26,36 +36,26 @@ const ModalLogs = ({ modalLog, toggleLog, sppdDetail }) => {
   }, [modalLog, sppdDetail]);
   return (
     <>
-      <Modal isOpen={modalLog} toggle={toggleLog} size="lg">
+      <Modal isOpen={modalLog} toggle={toggleLog} size="lg" scrollable centered>
         <ModalHeader toggle={toggleLog}>Log Pengajuan</ModalHeader>
         <ModalBody className="p-3">
           {detailSppd ? (
-            <>
-              <ul className="timeline">
+            detailSppd.length ? (
+              <ul className="log-sppd">
                 {detailSppd.map((item) => (
                   <li key={item.id}>
-                    <h5
-                      style={{ marginBottom: '-1px' }}
-                      className='fw-bold'
-                    >
-                      {item.first_name}
-                    </h5>
-                    <Badge
-                      className="text-dark"
-                      color="light"
-                      style={{paddingLeft: '2px', paddingRight: '2px'}}
-                    >
-                      {item.position_name}
-                    </Badge>
-                    <span className="float-end small fw-lighter">{dayjs(item.created_at).locale('id').format('dddd, DD MMMM YYYY HH:mm')}</span>
-                    <p className='mt-2 small' >
-                      {item.activity}
-                    </p>
+                    <div className="log-kepala">
+                      <h5 className="log-nama">{item.first_name}</h5>
+                      <span className="log-waktu">{dayjs(item.created_at).locale('id').format('dddd, DD MMMM YYYY HH:mm')}</span>
+                    </div>
+                    {item.position_name ? <span className="log-jabatan">{item.position_name}</span> : null}
+                    <p className="log-isi">{item.activity}</p>
                   </li>
                 ))}
               </ul>
-            </>
-
+            ) : (
+              <div className="log-kosong">Belum ada log</div>
+            )
           ) : (
             <Loader style={{ height: '50px!important' }} />
           )}

@@ -5,8 +5,6 @@ import {
   Button,
   Card,
   CardBody,
-  CardText,
-  CardTitle,
   Col,
   Form,
   FormGroup,
@@ -18,7 +16,8 @@ import {
   Row,
 } from 'reactstrap';
 import pdfMake from 'pdfmake/build/pdfmake';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
+import HalamanPro from '../../components/HalamanPro';
+import './Meeting.scss';
 import useAxios from '../../hooks/useAxios';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -430,21 +429,25 @@ const Meeting = () => {
     const hasStart = !!startDate && !Number.isNaN(startDate.getTime());
     const hasEnd = !!endDate && !Number.isNaN(endDate.getTime());
 
+    // akhir hari ini: rapat yang mulai hari ini tetap "Live Today" walau belum dimulai (mis. nanti jam 3)
+    const akhirHariIni = new Date(currentTime);
+    akhirHariIni.setHours(23, 59, 59, 999);
+
     if (hasStart && hasEnd) {
-      if (currentTime < startDate) {
-        return SCHEDULE_FILTER.UPCOMING;
+      if (currentTime > endDate) {
+        return SCHEDULE_FILTER.PREVIOUS;
       }
-      if (startDate <= currentTime && currentTime <= endDate) {
+      if (startDate <= akhirHariIni) {
         return SCHEDULE_FILTER.LIVE_TODAY;
       }
-      return SCHEDULE_FILTER.PREVIOUS;
+      return SCHEDULE_FILTER.UPCOMING;
     }
 
     if (hasStart) {
-      if (currentTime < startDate) {
-        return SCHEDULE_FILTER.UPCOMING;
+      if (startDate <= akhirHariIni) {
+        return SCHEDULE_FILTER.LIVE_TODAY;
       }
-      return SCHEDULE_FILTER.LIVE_TODAY;
+      return SCHEDULE_FILTER.UPCOMING;
     }
 
     if (hasEnd) {
@@ -469,15 +472,20 @@ const Meeting = () => {
       return bucket === SCHEDULE_FILTER.PREVIOUS;
     });
 
+    const startOf = (item) => {
+      const date = parseApiDateValue(getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']));
+      return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+    };
+
+    // live today: urut dari yang paling awal mulai, supaya rapat berikutnya hari ini mudah dilihat
+    if (scheduleFilter === SCHEDULE_FILTER.LIVE_TODAY) {
+      return [...filtered].sort((x, y) => startOf(x) - startOf(y));
+    }
     if (scheduleFilter !== SCHEDULE_FILTER.PREVIOUS) {
       return filtered;
     }
 
     // previous: rapat yang paling baru di atas
-    const startOf = (item) => {
-      const date = parseApiDateValue(getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']));
-      return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
-    };
     return [...filtered].sort((x, y) => startOf(y) - startOf(x));
   };
 
@@ -498,6 +506,10 @@ const Meeting = () => {
 
     if (hasStart && hasEnd) {
       if (nowTime < startDate.getTime()) {
+        // mulai nanti tetapi masih hari ini: tampil di Live Today sebagai "belum mulai"
+        if (startDate.toDateString() === currentTime.toDateString()) {
+          return { label: 'Hari Ini - Belum Mulai', color: 'info', textClassName: 'text-white' };
+        }
         return { label: 'Upcoming', color: 'primary', textClassName: 'text-white' };
       }
       if (startDate.getTime() <= nowTime && nowTime <= endDate.getTime()) {
@@ -806,21 +818,11 @@ const Meeting = () => {
   }, []);
 
   return (
-    <>
-      <BreadCrumbs />
-
-      <Card className="shadow-sm border-0 mb-4" style={{ borderRadius: '16px' }}>
-        <CardBody>
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <CardTitle tag="h4" className="mb-1">
-                Daftar Rapat
-              </CardTitle>
-              <CardText className="text-muted mb-0">
-                Organisasi rapat berdasarkan ruangan dan agenda yang sedang berjalan.
-              </CardText>
-            </div>
-            <div className="d-flex align-items-center gap-2 flex-wrap">
+    <HalamanPro
+      judul="Meeting"
+      keterangan="Jadwal dan pemesanan ruang rapat"
+      aksi={
+            <div className="aksi-meeting">
               {bolehBlokir ? (
                 <Button
                   color="warning"
@@ -840,15 +842,14 @@ const Meeting = () => {
                 + Booking Rapat
               </Button>
             </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      <Row className="g-3 mb-4">
+      }
+    >
+      <div className="halaman-meeting">
+      <Row className="g-3 mb-4 kartu-ruangan">
         {['Growth', 'Harmoni', 'Kopiah', 'Internasional'].map((room) => {
           const total = roomMeetings.filter((item) => (item.room || item.ruangan || item.location) === room).length || 0;
           return (
-            <Col md="3" key={room}>
+            <Col xs="12" sm="6" lg="3" key={room}>
               <Card className="shadow-sm border-0 h-100" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)' }}>
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-start">
@@ -1337,7 +1338,7 @@ const Meeting = () => {
         </ModalBody>
       </Modal>
 
-      <div className="d-flex justify-content-between align-items-center gap-2 mb-3 p-2 rounded-3 shadow-sm flex-wrap" style={{ background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)', border: '1px solid #e6eefc' }}>
+      <div className="bar-tab-meeting d-flex justify-content-between align-items-center gap-2 mb-3 p-2 rounded-3 shadow-sm flex-wrap" style={{ background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)', border: '1px solid #e6eefc' }}>
         <div className="d-flex gap-2 flex-wrap">
           <Button
             onClick={() => setActiveTab('meeting')}
@@ -1397,7 +1398,7 @@ const Meeting = () => {
           </Button>
         </div>
 
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex align-items-center gap-2 filter-meeting">
 
           <Input
             id="scheduleFilter"
@@ -1413,7 +1414,7 @@ const Meeting = () => {
         </div>
       </div>
 
-      <div className="d-flex flex-column" style={{ gap: '10px' }}>
+      <div className="daftar-rapat">
         {activeTab === 'meeting' ? (
           loadingRoomMeetings ? (
             <Card className="shadow-sm border-0" style={{ borderRadius: '16px' }}>
@@ -1435,14 +1436,14 @@ const Meeting = () => {
               const roomStatusMeta = getRoomMeetingStatusMeta(item);
 
               return (
-                <Card key={id} className="shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openRoomDetailModal(item)}>
+                <Card key={id} className="kartu-rapat shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openRoomDetailModal(item)}>
                   <CardBody>
-                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                      <div>
+                    <div className="kepala-rapat">
+                      <div className="judul-rapat">
                         <h5 className="mb-1">{title}</h5>
-                        <div className="text-muted">{description}</div>
+                        {description ? <div className="text-muted small">{description}</div> : null}
                       </div>
-                      <div className="d-flex align-items-center gap-2">
+                      <div className="aksi-rapat">
                         <Badge color={roomColors[room]} pill>
                           {room}
                         </Badge>
@@ -1494,18 +1495,29 @@ const Meeting = () => {
                       </div>
                     </div>
 
-                    <div className="d-flex flex-wrap gap-3 text-muted small">
-                      <span>📅 {start}</span>
-                      <span>🕒 {end}</span>
-                      <span>👥 {participants}</span>
+                    <div className="meta-rapat">
+                      <div>
+                        <small>Mulai</small>
+                        <span>📅 {start}</span>
+                      </div>
+                      <div>
+                        <small>Selesai</small>
+                        <span>🕒 {end}</span>
+                      </div>
+                      {participants ? (
+                        <div>
+                          <small>Peserta</small>
+                          <span>👥 {participants}</span>
+                        </div>
+                      ) : null}
                     </div>
 
-                    <div className="mt-3">
+                    <div className="status-rapat">
                       <Badge color={roomStatusMeta.color} className={roomStatusMeta.textClassName}>
                         Status: {roomStatusMeta.label}
                       </Badge>
                       {getCreatorName(item) ? (
-                        <Badge color="secondary" className="text-white ms-2">
+                        <Badge color="secondary" className="text-white">
                           Dibooking oleh: {getCreatorName(item)}
                         </Badge>
                       ) : null}
@@ -1548,13 +1560,13 @@ const Meeting = () => {
               const zoomStatusMeta = getZoomMeetingStatusMeta(item);
 
               return (
-                <Card key={zid} className="shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openZoomDetailModal(item)}>
+                <Card key={zid} className="kartu-rapat kartu-zoom shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openZoomDetailModal(item)}>
                   <CardBody>
-                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                      <div>
+                    <div className="kepala-rapat">
+                      <div className="judul-rapat">
                         <h5 className="mb-1">{title}</h5>
                       </div>
-                      <div className="d-flex align-items-center gap-2">
+                      <div className="aksi-rapat">
                         <Badge
                           color="info"
                           pill
@@ -1580,12 +1592,18 @@ const Meeting = () => {
                       </div>
                     </div>
 
-                    <div className="d-flex flex-wrap gap-3 text-muted small">
-                      <span>📅 {start}</span>
-                      <span>🕒 {end}</span>
+                    <div className="meta-rapat">
+                      <div>
+                        <small>Mulai</small>
+                        <span>📅 {start}</span>
+                      </div>
+                      <div>
+                        <small>Selesai</small>
+                        <span>🕒 {end}</span>
+                      </div>
                     </div>
 
-                    <div className="mt-3 d-flex flex-wrap gap-2">
+                    <div className="status-rapat">
                       <Badge color={zoomStatusMeta.color} className={zoomStatusMeta.textClassName}>
                         Status: {zoomStatusMeta.label}
                       </Badge>
@@ -1602,7 +1620,8 @@ const Meeting = () => {
           )
         )}
       </div>
-    </>
+      </div>
+    </HalamanPro>
   );
 };
 

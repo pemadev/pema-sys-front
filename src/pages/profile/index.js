@@ -1,13 +1,12 @@
 import { Row, Col } from 'reactstrap';
 import React from 'react';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import Timeline from './Timeline';
 import ProfileCard from './ProfileCard';
+import HalamanPro from '../../components/HalamanPro';
 
 const index = () => {
   return (
-    <>
-      <BreadCrumbs />
+    <HalamanPro judul="Profil" keterangan="Data diri dan aktivitas akun Anda">
       <Row>
         <Col lg="4">
           <ProfileCard />
@@ -16,7 +15,7 @@ const index = () => {
           <Timeline />
         </Col>
       </Row>
-    </>
+    </HalamanPro>
   );
 };
 

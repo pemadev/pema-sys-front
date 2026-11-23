@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, CardBody, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Progress } from 'reactstrap';
 import { confirmAlert } from 'react-confirm-alert';
-import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import useAxios from '../../hooks/useAxios';
 import rupiah from '../../utils/rupiah';
 import { alert } from '../../components/atoms/Toast';
@@ -173,7 +172,6 @@ const AturRenbis = () => {
   if (ditolak) {
     return (
       <>
-        <BreadCrumbs />
         <Alert color="warning">Menu ini hanya untuk PUK divisi Keuangan.</Alert>
       </>
     );
@@ -182,7 +180,6 @@ const AturRenbis = () => {
   return (
     <>
       <style>{gaya}</style>
-      <BreadCrumbs />
       <Card className="shadow-sm border-0 mb-4" style={{ borderRadius: '16px' }}>
         <CardBody className="p-3 p-md-4">
           <div className="rb-atas d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
