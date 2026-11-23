@@ -6,7 +6,7 @@ import useAxios from '../../hooks/useAxios';
 
 // Daftar peserta yang diundang pada detail rapat/Zoom. Pembuat rapat bisa menambah undangan (tag karyawan lagi);
 // hanya peserta baru yang menerima notifikasi push dan WhatsApp.
-const PanelUndangan = ({ tipe, rapatId, undangan, bolehTambah, pilihanPegawai, onUbah }) => {
+const PanelUndangan = ({ tipe, rapatId, undangan, bolehTambah, selesai, pilihanPegawai, onUbah }) => {
   const api = useAxios();
   const [dipilih, setDipilih] = useState([]);
   const [mengirim, setMengirim] = useState(false);
@@ -108,6 +108,8 @@ const PanelUndangan = ({ tipe, rapatId, undangan, bolehTambah, pilihanPegawai, o
         </div>
       ) : null}
 
+      {!bolehTambah && selesai ? <div className="text-muted small mt-2">Rapat sudah selesai, undangan tidak bisa ditambah.</div> : null}
+
       {pesan ? (
         <Alert color={pesan.color} className="mt-2 mb-0 py-2" toggle={() => setPesan(null)}>
           {pesan.teks}
@@ -122,6 +124,7 @@ PanelUndangan.propTypes = {
   rapatId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   undangan: PropTypes.array,
   bolehTambah: PropTypes.bool,
+  selesai: PropTypes.bool,
   pilihanPegawai: PropTypes.array,
   onUbah: PropTypes.func,
 };
@@ -130,6 +133,7 @@ PanelUndangan.defaultProps = {
   rapatId: null,
   undangan: [],
   bolehTambah: false,
+  selesai: false,
   pilihanPegawai: [],
   onUbah: undefined,
 };

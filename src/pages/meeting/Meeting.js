@@ -283,6 +283,11 @@ const Meeting = () => {
   const [pilihanPegawai, setPilihanPegawai] = useState([]);
   const [undanganRapat, setUndanganRapat] = useState([]);
   const [undanganZoom, setUndanganZoom] = useState([]);
+  // ubah ruangan/waktu rapat oleh pembuatnya (mis. setelah ruangan diblokir direksi)
+  const [ubahTarget, setUbahTarget] = useState(null);
+  const [ubahForm, setUbahForm] = useState({ room: 'Growth', startTime: '', endTime: '' });
+  const [submittingUbah, setSubmittingUbah] = useState(false);
+  const [ubahError, setUbahError] = useState('');
   const [zoomFormData, setZoomFormData] = useState({
     topic: '',
     startTime: '',
@@ -383,12 +388,27 @@ const Meeting = () => {
     setBlokirSuccess('');
     setSubmittingBlokir(true);
     try {
-      const response = await api.post('dapi/meeting/room/blokir', {
-        room: blokirForm.room,
-        start_time: blokirForm.startTime,
-        end_time: blokirForm.endTime,
-        alasan: blokirForm.alasan,
-      });
+      const kirimBlokir = (konfirmasi) =>
+        api.post('dapi/meeting/room/blokir', {
+          room: blokirForm.room,
+          start_time: blokirForm.startTime,
+          end_time: blokirForm.endTime,
+          alasan: blokirForm.alasan,
+          konfirmasi: konfirmasi ? 1 : 0,
+        });
+      let response = await kirimBlokir(false);
+      // sudah ada rapat yang dibooking pada rentang ini: minta konfirmasi, pembuat rapat akan diminta mengganti ruangan/waktu
+      if (response?.data?.success === false && response?.data?.data?.perlu_konfirmasi) {
+        const daftar = (response.data.data.terdampak || [])
+          .map((r) => `- ${r.topic} (${formatZoomDateTime(r.start_time)}) oleh ${r.pembuat}`)
+          .join('\n');
+        // eslint-disable-next-line no-alert
+        const lanjut = window.confirm(`${response.data.message}\n\n${daftar}\n\nLanjutkan memblokir ruangan?`);
+        if (!lanjut) {
+          return;
+        }
+        response = await kirimBlokir(true);
+      }
       ensureApiSuccess(response, 'Gagal menandai ruangan dipakai direksi.');
       setIsBlokirModalOpen(false);
       setBlokirForm({ room: 'Growth', startTime: '', endTime: '', alasan: '' });
@@ -612,8 +632,9 @@ const Meeting = () => {
         const data = res?.data?.data ?? [];
         setPilihanPegawai(
           (Array.isArray(data) ? data : [])
-            .filter((p) => p.employe_id)
-            .map((p) => ({ value: String(p.employe_id), label: p.first_name || String(p.employe_id) }))
+            // API mengembalikan {value: employe_id, label: nama}; format lama {employe_id, first_name} tetap didukung
+            .map((p) => ({ value: String(p.value ?? p.employe_id ?? ''), label: p.label || p.first_name || '' }))
+            .filter((p) => p.value && p.label)
             .sort((a, b) => a.label.localeCompare(b.label)),
         );
       })
@@ -698,6 +719,64 @@ const Meeting = () => {
     setSelectedRoomDetail(item);
     setCopyMessage('');
     setIsRoomDetailModalOpen(true);
+  };
+
+  const keInputWaktu = (value) => {
+    const d = parseApiDateValue(value);
+    if (!d) return '';
+    const dua = (n) => String(n).padStart(2, '0');
+
+    return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}T${dua(d.getHours())}:${dua(d.getMinutes())}`;
+  };
+
+  const bukaUbahJadwal = (item) => {
+    setUbahError('');
+    setUbahTarget(item);
+    setUbahForm({
+      room: item.room || item.ruangan || 'Growth',
+      startTime: keInputWaktu(item.start_time || item.startTime),
+      endTime: keInputWaktu(item.end_time || item.endTime),
+    });
+  };
+
+  const handleUbahSubmit = async (e) => {
+    e.preventDefault();
+    if (!ubahTarget) return;
+    setUbahError('');
+    setSubmittingUbah(true);
+    try {
+      const response = await api.post(`dapi/meeting/room/${ubahTarget.id}/ubah`, {
+        room: ubahForm.room,
+        start_time: ubahForm.startTime,
+        end_time: ubahForm.endTime,
+      });
+      ensureApiSuccess(response, 'Gagal mengubah ruangan atau waktu rapat.');
+      setUbahTarget(null);
+      setIsRoomDetailModalOpen(false);
+      setSelectedRoomDetail(null);
+      setRoomSuccess(response?.data?.message || 'Ruangan/waktu rapat berhasil diubah.');
+      await fetchRoomMeetings();
+      await fetchZoomMeetings();
+    } catch (error) {
+      setUbahError(getApiErrorMessage(error, 'Gagal mengubah ruangan atau waktu rapat.'));
+    } finally {
+      setSubmittingUbah(false);
+    }
+  };
+
+  // rapat yang bentrok dengan ruangan yang sedang dipakai direksi (perlu diganti ruangan/waktunya)
+  const bentrokBlokir = (item) => {
+    const room = item.room || item.ruangan || item.location;
+    const mulai = parseApiDateValue(item.start_time || item.startTime || item.start_at || item.start);
+    const selesai = parseApiDateValue(item.end_time || item.endTime || item.end_at || item.end);
+    if (!mulai || !selesai) return false;
+
+    return blokirList.some((b) => {
+      const bm = parseApiDateValue(b.start_time);
+      const bs = parseApiDateValue(b.end_time);
+
+      return b.room === room && bm && bs && mulai < bs && selesai > bm;
+    });
   };
 
   const perbaruiUndanganRuang = (id, undangan) => {
@@ -1370,17 +1449,74 @@ const Meeting = () => {
               })()}
             </div>
           ) : null}
+          {selectedRoomDetail && canCancelZoom(selectedRoomDetail) && getRoomMeetingStatusMeta(selectedRoomDetail).label !== 'Finished' ? (
+            <div className="aksi-ubah-jadwal">
+              {bentrokBlokir(selectedRoomDetail) ? (
+                <Alert color="warning" className="mb-2 py-2">
+                  Ruangan ini dipakai direksi pada waktu rapat Anda. Mohon ganti ruangan atau waktu rapat.
+                </Alert>
+              ) : null}
+              <Button color="warning" outline size="sm" onClick={() => bukaUbahJadwal(selectedRoomDetail)}>
+                Ubah Ruangan / Waktu
+              </Button>
+            </div>
+          ) : null}
           {selectedRoomDetail ? (
             <PanelUndangan
               key={`undangan-ruang-${selectedRoomDetail.id}`}
               tipe="room"
               rapatId={selectedRoomDetail.id}
               undangan={selectedRoomDetail.undangan || []}
-              bolehTambah={canCancelZoom(selectedRoomDetail)}
+              bolehTambah={canCancelZoom(selectedRoomDetail) && getRoomMeetingStatusMeta(selectedRoomDetail).label !== 'Finished'}
+              selesai={getRoomMeetingStatusMeta(selectedRoomDetail).label === 'Finished'}
               pilihanPegawai={pilihanPegawai}
               onUbah={(u) => perbaruiUndanganRuang(selectedRoomDetail.id, u)}
             />
           ) : null}
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={!!ubahTarget} toggle={() => setUbahTarget(null)} centered>
+        <ModalHeader toggle={() => setUbahTarget(null)}>Ubah Ruangan / Waktu Rapat</ModalHeader>
+        <ModalBody>
+          <Form onSubmit={handleUbahSubmit}>
+            {ubahError ? <Alert color="danger">{ubahError}</Alert> : null}
+            <p className="text-muted small mb-3">
+              Rapat <strong>{ubahTarget ? getZoomValue(ubahTarget, ['topic', 'title', 'name']) : ''}</strong>. Setelah disimpan, peserta undangan dan PIC Konsumsi (bila ada
+              konsumsi) mendapat pemberitahuan ulang.
+            </p>
+            <FormGroup>
+              <Label for="ubahRoom">Ruangan</Label>
+              <Input id="ubahRoom" name="room" type="select" value={ubahForm.room} onChange={(e) => setUbahForm((p) => ({ ...p, room: e.target.value }))}>
+                <option value="Growth">Growth</option>
+                <option value="Harmoni">Harmoni</option>
+                <option value="Kopiah">Kopiah</option>
+                <option value="Internasional">Internasional</option>
+              </Input>
+            </FormGroup>
+            <Row>
+              <Col md="6">
+                <FormGroup>
+                  <Label for="ubahMulai">Waktu Mulai</Label>
+                  <Input id="ubahMulai" type="datetime-local" value={ubahForm.startTime} onChange={(e) => setUbahForm((p) => ({ ...p, startTime: e.target.value }))} required />
+                </FormGroup>
+              </Col>
+              <Col md="6">
+                <FormGroup>
+                  <Label for="ubahSelesai">Waktu Berakhir</Label>
+                  <Input id="ubahSelesai" type="datetime-local" value={ubahForm.endTime} onChange={(e) => setUbahForm((p) => ({ ...p, endTime: e.target.value }))} required />
+                </FormGroup>
+              </Col>
+            </Row>
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button color="secondary" type="button" onClick={() => setUbahTarget(null)}>
+                Batal
+              </Button>
+              <Button color="primary" type="submit" disabled={submittingUbah}>
+                {submittingUbah ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </Form>
         </ModalBody>
       </Modal>
 
@@ -1497,7 +1633,8 @@ const Meeting = () => {
               tipe="zoom"
               rapatId={selectedZoomDetail.id}
               undangan={selectedZoomDetail.undangan || []}
-              bolehTambah={canCancelZoom(selectedZoomDetail)}
+              bolehTambah={canCancelZoom(selectedZoomDetail) && getZoomMeetingStatusMeta(selectedZoomDetail).label !== 'Finished'}
+              selesai={getZoomMeetingStatusMeta(selectedZoomDetail).label === 'Finished'}
               pilihanPegawai={pilihanPegawai}
               onUbah={(u) => perbaruiUndanganZoom(selectedZoomDetail.id, u)}
             />
@@ -1629,6 +1766,20 @@ const Meeting = () => {
                           </Badge>
                         ) : null}
 
+                        {canCancelZoom(item) && roomStatusMeta.label !== 'Finished' ? (
+                          <Button
+                            color="primary"
+                            outline
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRoomDetailModal(item);
+                            }}
+                            title="Tambah undangan peserta"
+                          >
+                            + Undang
+                          </Button>
+                        ) : null}
                         {canCancelZoom(item) ? (
                           <Button
                             color="danger"
@@ -1684,6 +1835,16 @@ const Meeting = () => {
                       <Badge color={roomStatusMeta.color} className={roomStatusMeta.textClassName}>
                         Status: {roomStatusMeta.label}
                       </Badge>
+                      {(item.undangan || []).length ? (
+                        <Badge color="light" className="text-dark">
+                          {item.undangan.length} diundang
+                        </Badge>
+                      ) : null}
+                      {roomStatusMeta.label !== 'Finished' && bentrokBlokir(item) ? (
+                        <Badge color="warning" className="text-dark">
+                          Ruangan dipakai direksi - ganti ruangan/waktu
+                        </Badge>
+                      ) : null}
                       {getCreatorName(item) ? (
                         <Badge color="secondary" className="text-white">
                           Dibooking oleh: {getCreatorName(item)}
@@ -1742,6 +1903,20 @@ const Meeting = () => {
                         >
                           Zoom
                         </Badge>
+                        {canCancelZoom(item) && zoomStatusMeta.label !== 'Finished' ? (
+                          <Button
+                            color="primary"
+                            outline
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openZoomDetailModal(item);
+                            }}
+                            title="Tambah undangan peserta"
+                          >
+                            + Undang
+                          </Button>
+                        ) : null}
                         {canCancelZoom(item) ? (
                           <Button
                             color="danger"
@@ -1776,6 +1951,11 @@ const Meeting = () => {
                       <Badge color={zoomStatusMeta.color} className={zoomStatusMeta.textClassName}>
                         Status: {zoomStatusMeta.label}
                       </Badge>
+                      {(item.undangan || []).length ? (
+                        <Badge color="light" className="text-dark">
+                          {item.undangan.length} diundang
+                        </Badge>
+                      ) : null}
                       {getCreatorName(item) ? (
                         <Badge color="secondary" className="text-white">
                           Dibuat oleh: {getCreatorName(item)}
