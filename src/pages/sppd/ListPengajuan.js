@@ -10,6 +10,7 @@ import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan, tanggalValid } from '../../utils/tahun';
 import { lebarKolomTombol } from '../../utils/lebarTombol';
 import { pasKolom } from '../../utils/lebarKolom';
+import { setelanTabel } from '../../utils/setelanTabel';
 import AksiBaris from './AksiBaris';
 import ModalBatalEkstend from './ModalBatalEkstend';
 import './style.scss';
@@ -21,16 +22,6 @@ const LABEL_SUMBER_TIKET = {
   tidak_ada: 'Tidak ada tiket',
   pelaksana: 'Diupload pelaksana',
   admin: 'Diupload admin pengaju',
-};
-
-// gaya tabel baru (uji coba di tab Pengajuan): header berlatar lembut, baris lega dengan garis tipis, sorot saat hover
-const gayaTabel = {
-  table: { style: { borderRadius: '12px', overflow: 'hidden', border: '1px solid #e3e8ef' } },
-  headRow: { style: { backgroundColor: '#f1f5fb', minHeight: '46px', borderBottom: '1px solid #e3e8ef' } },
-  headCells: { style: { fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#4a5568' } },
-  rows: { style: { minHeight: '58px', fontSize: '13px', borderBottom: '1px solid #eef1f6', '&:hover': { backgroundColor: '#f7f9fd' } } },
-  cells: { style: { paddingTop: '8px', paddingBottom: '8px' } },
-  pagination: { style: { borderTop: '1px solid #e3e8ef', fontSize: '13px' } },
 };
 
 // tab Pengajuan: kolom selebar isinya (tanpa melar mengisi ruang kosong); hanya kolom teks panjang yang menampung sisa ruang
@@ -573,11 +564,8 @@ ${formatTanggal(row.created_at, 'DD MMM YYYY HH:mm')}`,
         keyField={value === '4' ? 'id_unique' : 'id'}
         columns={tampilanBaru ? rapatkan(pasKolom(kolomRapi(columns), listP)) : pasKolom(columns, listP)}
         data={listP}
-        customStyles={tampilanBaru ? gayaTabel : undefined}
-        highlightOnHover={tampilanBaru}
+        {...setelanTabel}
         pointerOnHover={false}
-        pagination
-        subHeader
         subHeaderComponent={
           <div className="baris-filter">
             <Input

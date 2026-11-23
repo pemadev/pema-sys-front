@@ -24,6 +24,7 @@ import Disposisi from "./Layuots/Diposisi";
 import GenerateDispo from "./Fungsi/GenerateDispo";
 import { lebarKolomTombol, terlebar } from "../../utils/lebarTombol";
 import { pasKolom } from "../../utils/lebarKolom";
+import { setelanTabel } from "../../utils/setelanTabel";
 import cetakAgenda from "../../utils/cetakAgenda";
 // import { width } from "@mui/system";
 // import { set } from "react-hook-form";
@@ -976,9 +977,8 @@ Alasan (boleh kosong):`);
                 keyField={type === 'approved' ? 'unique_id' : 'id'}
                 columns={pasKolom(kolomTabel, listP)}
                 data={listP}
-                pagination
+                {...setelanTabel}
                 onRowClicked={handleRowClick}
-                subHeader
                 conditionalRowStyles={
                     type === 'cc' ? ccRowStyles :
                         (valueNow === '2' && type === 'review' ? [...pointerRowStyles, ...reviewRowStyles] : undefined)

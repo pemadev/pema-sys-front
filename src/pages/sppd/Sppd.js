@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import Tab from '@mui/material/Tab';
-import Badge from '@mui/material/Badge';
 import { Card, CardBody } from 'reactstrap';
 import { useQueries } from '@tanstack/react-query';
 import MaterialIcon from '@material/react-material-icon';
@@ -14,6 +13,7 @@ import { alert } from '../../components/atoms/Toast';
 import useAxios from '../../hooks/useAxios';
 import useAuth from '../../hooks/useAuth';
 import Pengajuan from './Pengajuan';
+import { saringTahun, tahunBerjalan } from '../../utils/tahun';
 import ListPengajuan from './ListPengajuan';
 import EditSppd from './EditSppd';
 import 'aos/dist/aos.css';
@@ -97,9 +97,23 @@ const Sppd = () => {
   const [modalRe, setModalRe] = useState(false);
 
   // jumlah review
+  // hitungan tab mengikuti filter bawaan tabel (tahun berjalan, berdasarkan created_at)
+  const hitungTahunIni = (daftar) => saringTahun(daftar || [], tahunBerjalan(), ['created_at']).length;
   const [jMine, setJMine] = useState(0);
   const [jReview, setJReview] = useState(0);
   const [jProses, setJProses] = useState(0);
+  const [jPengajuan, setJPengajuan] = useState(0);
+  // label tab: judul + hitungan (angka 0 tetap tampil, redup) agar semua tab seragam
+  const labelTab = (teks, jumlah, warna) => (
+    <span className="label-tab">
+      <strong>{teks}</strong>
+      {jumlah === undefined ? null : (
+        <span className={`hitung-tab ${warna}${jumlah > 0 ? '' : ' kosong'}`} aria-label={`${jumlah} data`}>
+          {jumlah > 999 ? '999+' : jumlah}
+        </span>
+      )}
+    </span>
+  );
 
   // modall proses
   const [modalProses, setModalProses] = useState(false);
@@ -402,20 +416,21 @@ const Sppd = () => {
               return res.data.data;
             }),
       },
+      {
+        queryKey: ['list-pengajuan', 11],
+        // hitungan tab PENGAJUAN, hanya untuk AdminSPPD
+        enabled: !!auth?.user.roles.includes('AdminSPPD'),
+        queryFn: () => api.get(`dapi/sppd/pengajuan`).then((res) => res.data.data),
+      },
     ],
   });
 
-  const refetchNumber = useCallback(
-    () => {
-      re[8].refetch();
-      re[9].refetch();
-      if (auth?.user.roles.includes('UmumSppd') || auth?.user.roles.includes('KeuanganSppd')) {
-        re[10].refetch();
-      }
-    },
-    [re[8], re[9]],
-    re[10],
-  );
+  const refetchNumber = () => {
+    re[8].refetch();
+    re[9].refetch();
+    if (auth?.user.roles.includes('UmumSppd') || auth?.user.roles.includes('KeuanganSppd')) re[10].refetch();
+    if (auth?.user.roles.includes('AdminSPPD')) re[11].refetch();
+  };
 
   const refetchSubmitted = () => {
     getData(value);
@@ -431,9 +446,10 @@ const Sppd = () => {
     setKlasfikasi(re[5].data);
     setSumberBiaya(re[6].data);
     setRenbis(re[7].data);
-    setJMine(re[8].data?.length);
-    setJReview(re[9].data?.length);
-    setJProses(re[10].data?.length);
+    setJMine(hitungTahunIni(re[8].data));
+    setJReview(hitungTahunIni(re[9].data));
+    setJProses(hitungTahunIni(re[10].data));
+    setJPengajuan(hitungTahunIni(re[11].data));
   }, [re]);
 
   // ubah tiket SPPD yang sudah diproses UmumSppd (tetap bisa walau KeuanganSppd sudah memproses)
@@ -783,96 +799,26 @@ const Sppd = () => {
             scrollButtons="auto"
           >
             {auth?.user.roles.includes('AdminSPPD') ? (
-              <Tab
-                label={
-                  <Badge
-                    badgeContent={0}
-                    anchorOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    color="primary"
-                  >
-                    <strong>PENGAJUAN</strong> &nbsp;&nbsp;
-                  </Badge>
-                }
-                value="1"
-              />
+              <Tab label={labelTab('PENGAJUAN', jPengajuan, 'netral')} value="1" />
             ) : (
               ''
             )}
 
-            {auth?.user.roles.includes('Director') ||auth?.user.roles.includes('Manager') ?( <Tab
-              label={
-                <Badge
-                  badgeContent={0}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  color="primary"
-                >
-                  <strong>DASHBOARD</strong> &nbsp;&nbsp;
-                </Badge>
-              }
-              value="99"
-            />):''}
+            {auth?.user.roles.includes('Director') || auth?.user.roles.includes('Manager') ? (
+              <Tab label={labelTab('DASHBOARD')} value="99" />
+            ) : (
+              ''
+            )}
 
-            <Tab
-              label={
-                <Badge
-                  badgeContent={jMine}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  color="primary"
-                >
-                  <strong>SPPD SAYA</strong> &nbsp;&nbsp;
-                </Badge>
-              }
-              value="2"
-            />
+            <Tab label={labelTab('SPPD SAYA', jMine, 'netral')} value="2" />
 
-            <Tab
-              label={
-                <Badge
-                  badgeContent={jReview}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  color="warning"
-                >
-                  <strong>PERSETUJUAN SPPD</strong> &nbsp;&nbsp;
-                </Badge>
-              }
-              value="3"
-            />
+            <Tab label={labelTab('PERSETUJUAN SPPD', jReview, 'perhatian')} value="3" />
             {auth?.user.roles.includes('UmumSppd') || auth?.user.roles.includes('KeuanganSppd') ? (
-              <Tab
-                label={
-                  <Badge
-                    badgeContent={jProses}
-                    anchorOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    color="warning"
-                  >
-                    <strong>PERLU DIPROSES</strong> &nbsp;&nbsp;
-                  </Badge>
-                }
-                value="4"
-              />
+              <Tab label={labelTab('PERLU DIPROSES', jProses, 'perhatian')} value="4" />
             ) : (
               ''
             )}
-            {auth?.user.roles.includes('RekapSppd') ? (
-              <Tab label={<strong>REKAP SPPD</strong>} value="5" />
-            ) : (
-              ''
-            )}
+            {auth?.user.roles.includes('RekapSppd') ? <Tab label={labelTab('REKAP SPPD')} value="5" /> : ''}
           </TabList>
         </Card>
 

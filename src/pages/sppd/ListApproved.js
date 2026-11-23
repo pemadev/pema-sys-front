@@ -8,6 +8,7 @@ import TombolExcel from '../../components/atoms/TombolExcel';
 import { daftarTahun, formatTanggal, saringTahun, tahunBerjalan } from '../../utils/tahun';
 import { lebarKolomTombol } from '../../utils/lebarTombol';
 import { pasKolom } from '../../utils/lebarKolom';
+import { setelanTabel } from '../../utils/setelanTabel';
 import './style.scss';
 
 const ListApproved = ({
@@ -153,8 +154,8 @@ const ListApproved = ({
         keyField="id_unique"
         columns={pasKolom(columns, listP)}
         data={listP}
-        pagination
-        subHeader
+        {...setelanTabel}
+        pointerOnHover={false}
         subHeaderComponent={
           <div className="baris-filter baris-filter-judul">
             <h5 className="mb-0">Pengajuan yang Telah Saya Setujui</h5>

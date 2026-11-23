@@ -614,3 +614,32 @@
     white-space: normal;
   }
 }
+
+/* label tab dengan hitungan (SPPD) */
+.tampilan-pro .label-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tampilan-pro .hitung-tab {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  color: #fff;
+  background: var(--pro-aksen);
+}
+.tampilan-pro .hitung-tab.netral {
+  color: var(--pro-aksen);
+  background: var(--pro-aksen-lembut);
+}
+.tampilan-pro .hitung-tab.perhatian {
+  background: #f79009;
+}
+.tampilan-pro .hitung-tab.kosong {
+  color: var(--pro-teks-redup);
+  background: var(--pro-latar-hover);
+}
