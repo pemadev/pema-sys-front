@@ -548,11 +548,11 @@ const Sppd = () => {
       muat();
     }
   };
-  const lanjutkanVoucher = async ({ petugas, chequeGiro }) => {
+  const lanjutkanVoucher = async ({ petugas, chequeGiro, nomorCheque, tanggal }) => {
     setMenyiapkanDokumen('voucher');
     try {
       const { unduhVoucher } = await import('./dokumenKeuangan');
-      await unduhVoucher({ sppd: detailSppd, ringkasan, data: dialogVoucher.data, ekstend: !!detailSppd.mode_ekstend, petugas, chequeGiro, unit: dialogVoucher.unit });
+      await unduhVoucher({ sppd: detailSppd, ringkasan, data: dialogVoucher.data, ekstend: !!detailSppd.mode_ekstend, petugas, chequeGiro, nomorCheque, tanggal, unit: dialogVoucher.unit });
       setDialogVoucher(null);
     } catch (err) {
       alert('error', err?.message || 'Gagal membuat voucher');

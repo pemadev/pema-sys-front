@@ -21,7 +21,7 @@ export const KONFIG_VOUCHER = {
 };
 
 // pilihan Cheque / Giro pada voucher
-export const PILIHAN_CHEQUE_GIRO = ['CMS', 'Cek'];
+export const PILIHAN_CHEQUE_GIRO = ['CMS', 'Cheque'];
 
 const WARNA = { banner: 'FF0070C0', judulKolom: 'FF93CDDD', total: 'FFEDEDED', putih: 'FFFFFFFF', hitam: 'FF000000' };
 const FONT = 'Archivo';
@@ -339,13 +339,15 @@ const sebut = (bank) => {
   return `${nama} - ${bank.nomor_rekening}`;
 };
 
-// petugas: nama Petugas Transaksi (dipilih sebelum unduh); chequeGiro: salah satu PILIHAN_CHEQUE_GIRO
-export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, chequeGiro, unit }) => {
+// petugas: nama Petugas Transaksi (dipilih sebelum unduh); chequeGiro: salah satu PILIHAN_CHEQUE_GIRO;
+// nomorCheque: nomor cheque (teks) bila chequeGiro 'Cheque', tercetak "Cheque (nomor)"; tanggal: tanggal voucher (YYYY-MM-DD), bawaan hari ini
+export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, chequeGiro, nomorCheque, tanggal, unit }) => {
   const logo = await muatLogo(logoVoucher);
   const akhiran = hitungAkhiran({ unit, ekstend, ringkasan });
   const { kode, kodeBerkas, voucher } = pecahNomor(sppd?.nomor_sppd, akhiran);
   const total = Math.round(Number(unit ? unit.jumlah : ringkasan?.total) || 0);
-  const hariIni = dayjs().startOf('day').add(12, 'hour').toDate();
+  const tanggalVoucher = tanggal && dayjs(tanggal).isValid() ? dayjs(tanggal) : dayjs();
+  const hariIni = tanggalVoucher.startOf('day').add(12, 'hour').toDate();
   const judulDokumen = `UM ${ekstend ? 'Extend ' : ''}SPPD No ${kode} an ${sppd?.nama || '-'}`;
   const ket = `${judulDokumen}${unit ? ` Termin ${unit.no}` : ''}`;
   const namaBerkas = `UM ${ekstend ? 'Extend ' : ''}SPPD No ${kodeBerkas} an ${sppd?.nama || '-'}`;
@@ -432,7 +434,9 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
 
   // cheque / giro dan petugas transaksi (isian bergaris putus-putus)
   tulis(ws, 'C25', 'Cheque / Giro No.', { size: 18, rata: 'left' });
-  tulis(ws, 'E25', `: ${chequeGiro || PILIHAN_CHEQUE_GIRO[0]}`, { size: 18, rata: 'left' });
+  const jenisBayar = chequeGiro || PILIHAN_CHEQUE_GIRO[0];
+  const teksCheque = jenisBayar === 'Cheque' && String(nomorCheque || '').trim() ? `Cheque (${String(nomorCheque).trim()})` : jenisBayar;
+  tulis(ws, 'E25', `: ${teksCheque}`, { size: 18, rata: 'left' });
   tulis(ws, 'I25', 'A/C', { size: 18 });
   tulis(ws, 'J25', ':', { size: 18, rata: 'center' });
   tulis(ws, 'K25', k.rekeningPerusahaan, { size: 18, rata: 'left' });
