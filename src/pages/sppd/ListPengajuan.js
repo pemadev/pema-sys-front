@@ -481,13 +481,22 @@ const ListPengajuan = ({
         hasil.push({
           ...k,
           ukur: (row) => `${row.nomor_sppd || ''}
-${value !== '4' && row.jumlah_ekstend > 0 ? 'Extend 2x' : ''}`,
+${[value !== '4' && row.jumlah_ekstend > 0 ? 'Extend 2x' : '', row.jumlah_hotel30 > 0 ? 'Hotel 30%' : ''].filter(Boolean).join('   ')}`,
           selector: (row) => (
             <div className="sel-tumpuk">
               <span className="sel-utama">{row.nomor_sppd}</span>
-              {value !== '4' && row.jumlah_ekstend > 0 ? (
-                <span className="sel-extend" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
-                  Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
+              {(value !== '4' && row.jumlah_ekstend > 0) || row.jumlah_hotel30 > 0 ? (
+                <span className="sel-tanda">
+                  {value !== '4' && row.jumlah_ekstend > 0 ? (
+                    <span className="sel-extend" title={`Sudah mengajukan extend (${row.jumlah_ekstend}x)`}>
+                      Extend{row.jumlah_ekstend > 1 ? ` ${row.jumlah_ekstend}x` : ''}
+                    </span>
+                  ) : null}
+                  {row.jumlah_hotel30 > 0 ? (
+                    <span className="sel-extend sel-hotel30" title={`Sudah mengajukan Hotel 30% (${row.jumlah_hotel30} tujuan)`}>
+                      Hotel 30%
+                    </span>
+                  ) : null}
                 </span>
               ) : null}
             </div>

@@ -297,6 +297,14 @@
   padding: 1px 9px;
 }
 
+.sel-tanda { display: flex; flex-wrap: wrap; gap: 4px; }
+.sel-hotel30 { color: #0e7490; background: #ecfeff; }
+
+.bx-status { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; vertical-align: middle; white-space: nowrap; }
+.bx-status.setuju { color: #15803d; background: #dcfce7; }
+.bx-status.tunggu { color: #b45309; background: #fef3c7; }
+.bx-status.tolak { color: #64748b; background: #e2e8f0; }
+
 /* pilih extend yang dibatalkan */
 .bx-daftar { display: flex; flex-direction: column; gap: 8px; }
 .bx-opsi {

@@ -35,3 +35,25 @@
   .m30-aksi .btn { width: 100%; }
   .m30-tunggu .d-flex { width: 100%; }
 }
+
+.m30-peringatan { font-size: 0.85rem; border-radius: 12px; }
+
+/* daftar tujuan bercentang */
+.m30-daftar-tujuan { display: flex; flex-direction: column; gap: 8px; }
+.m30-tujuan { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; background: #fff; transition: border-color 0.15s, background 0.15s; }
+.m30-tujuan:hover { border-color: #94a3b8; }
+.m30-tujuan.aktif { border-color: #0e7490; background: #ecfeff; }
+.m30-tujuan input { width: 18px; height: 18px; accent-color: #0e7490; flex: 0 0 auto; }
+.m30-tujuan-nama { flex: 1 1 auto; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+
+/* beberapa rentang tanggal pada satu tujuan */
+.m30-baris-rentang { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 10px; }
+.m30-baris-rentang .m30-tanggal { flex: 1 1 auto; min-width: 0; }
+.m30-hapus { flex: 0 0 auto; width: 36px; height: 40px; border: 1px solid #fecaca; border-radius: 10px; background: #fff; color: #dc2626; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.m30-hapus:hover { background: #fef2f2; }
+
+/* pengajuan yang sudah ada: edit / batalkan */
+.m30-sudah { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
+.m30-sudah:last-child { border-bottom: 0; padding-bottom: 0; }
+.m30-sudah-teks { display: flex; flex-direction: column; min-width: 0; }
+.m30-sudah-teks small { color: #64748b; }

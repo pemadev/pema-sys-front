@@ -9,7 +9,7 @@ import './PanelEkstend.css';
 
 const tgl = (v) => (v && dayjs(v).isValid() ? dayjs(v).locale('id').format('DD MMM YYYY') : '-');
 
-// Pilih extend mana yang dibatalkan (admin SPPD / pengaju). Hanya extend yang belum diproses divisi umum/keuangan bisa dipilih.
+// Pilih extend mana yang dibatalkan (admin SPPD / pengaju). Hanya extend yang belum di-approve yang bisa dipilih; extend yang sudah di-approve tidak bisa dibatalkan lagi.
 const ModalBatalEkstend = ({ row, onTutup, onUbah }) => {
   const api = useAxios();
   const [daftar, setDaftar] = useState(null);
@@ -49,7 +49,14 @@ const ModalBatalEkstend = ({ row, onTutup, onUbah }) => {
       .finally(() => setMengirim(false));
   };
 
-  const alasanTidak = (x) => (x.status_approval === 'ditolak' ? 'Sudah ditolak' : !x.no_urut ? 'Extend lama yang sudah selesai' : 'Sudah diproses divisi umum/keuangan');
+  // tanda status approval extend pada lembar pembatalan
+  const TANDA = {
+    disetujui: { teks: 'Sudah diapprove', kelas: 'setuju' },
+    menunggu: { teks: 'Menunggu approval', kelas: 'tunggu' },
+    ditolak: { teks: 'Ditolak', kelas: 'tolak' },
+  };
+
+  const alasanTidak = (x) => (x.status_approval === 'ditolak' ? 'Sudah ditolak' : x.status_approval === 'disetujui' ? 'Sudah di-approve, tidak bisa dibatalkan' : !x.no_urut ? 'Extend lama yang sudah selesai' : 'Sudah diproses divisi umum/keuangan');
 
   return (
     <Modal isOpen={!!row} toggle={onTutup} centered>
@@ -76,7 +83,10 @@ const ModalBatalEkstend = ({ row, onTutup, onUbah }) => {
                     <input id={`bx-${x.id}`} type="radio" name="bx-pilih" disabled={!bisa} checked={aktif} onChange={() => setPilihan(x)} />
                     <span className="pe-nomor">{x.no_urut || 'L'}</span>
                     <span className="bx-teks">
-                      <span className="pe-judul">{judul}</span>
+                      <span className="pe-judul">
+                        {judul}
+                        {TANDA[x.status_approval] ? <span className={`bx-status ${TANDA[x.status_approval].kelas}`}>{TANDA[x.status_approval].teks}</span> : null}
+                      </span>
                       <span className="pe-meta">
                         {tgl(x.start)} - {tgl(x.end)} · {bisa ? 'Bisa dibatalkan' : alasanTidak(x)}
                       </span>

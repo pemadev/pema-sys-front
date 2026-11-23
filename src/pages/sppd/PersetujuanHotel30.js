@@ -58,7 +58,16 @@ const PersetujuanHotel30 = () => {
                 <tr><td>Jabatan</td><td>{info.jabatan || '-'}</td></tr>
                 <tr><td>Nomor SPPD</td><td>{info.nomor}</td></tr>
                 <tr><td>Tujuan</td><td>{info.tujuan || '-'}</td></tr>
-                <tr><td>Periode</td><td>{tanggal(info.mulai)} s.d. {tanggal(info.selesai)}</td></tr>
+                <tr>
+                  <td>Periode</td>
+                  <td>
+                    {(info.rentang?.length ? info.rentang : [{ mulai: info.mulai, selesai: info.selesai }]).map((r) => (
+                      <div key={`${r.mulai}-${r.selesai}`}>
+                        {tanggal(r.mulai)} s.d. {tanggal(r.selesai)}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
               </tbody>
             </table>
             <p>

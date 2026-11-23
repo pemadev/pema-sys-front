@@ -43,6 +43,12 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
 
   const [typeSign2, setTypeSign2] = useState('');
 
+  // penanda tangan menurut jenis langkah; pemohon yang tidak ada di daftar approval (pelaksana tamu bukan karyawan)
+  // memakai nama dan jabatan pelaksana SPPD agar tidak tertulis 'undefined'
+  const ambilTtd = (tipe) =>
+    (detailSppd?.approval || []).find((a) => a.type === tipe) ||
+    (tipe === 'pemohon' ? { first_name: detailSppd?.nama, position_name: detailSppd?.jabatan, status: null } : undefined);
+
   dayjs.locale('id');
   const api = useAxios();
   const qrCodeRef = useRef();
@@ -112,8 +118,8 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
         {
           stack: [
             {
-              text: `Banda Aceh, ${detailSppd?.approval.filter((a) => a.type === ts)[0]?.updated_at
-                ? dayjs(detailSppd?.approval.filter((a) => a.type === ts)[0]?.updated_at)
+              text: `Banda Aceh, ${ambilTtd(ts)?.updated_at
+                ? dayjs(ambilTtd(ts)?.updated_at)
                   .locale('id')
                   .format('DD MMMM YYYY')
                 : ' . . . . . . . . '
@@ -125,18 +131,18 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
               style: 'boldText',
             },
             {
-              image: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.status === 'approve'
+              image: `${ambilTtd(ts)?.status === 'approve'
                 ? qrcode
                 : image.placeholder
                 }`,
               width: 60, // Sesuaikan lebar logo sesuai kebutuhan
             },
             {
-              text: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.first_name}`,
+              text: `${ambilTtd(ts)?.first_name}`,
               style: 'boldText',
             },
             {
-              text: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.position_name}`,
+              text: `${ambilTtd(ts)?.position_name}`,
               style: 'normal',
             },
           ],
@@ -218,17 +224,17 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
               stack: [
                 { text: 'Pemohon,', style: 'normal', alignment: 'left', marginBottom: 5 },
                 {
-                  image: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.status === 'approve'
+                  image: `${ambilTtd(ts)?.status === 'approve'
                     ? qrcode
                     : image.placeholder
                     }`, width: 60, alignment: 'left'
                 },
                 {
-                  text: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.first_name}`,
+                  text: `${ambilTtd(ts)?.first_name}`,
                   style: 'boldText'
                 }
                 , {
-                  text: `${detailSppd?.approval.filter((a) => a.type === ts)[0]?.position_name}`,
+                  text: `${ambilTtd(ts)?.position_name}`,
                   style: 'normal',
                 }
               ],
@@ -241,17 +247,17 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
               stack: [
                 { text: 'Disetujui Oleh,', style: 'normal', alignment: 'left', marginBottom: 5 },
                 {
-                  image: `${detailSppd?.approval.filter((a) => a.type === ts2)[0]?.status === 'approve'
+                  image: `${ambilTtd(ts2)?.status === 'approve'
                     ? qrcode2
                     : image.placeholder
                     }`, width: 60, alignment: 'left'
                 },
                 {
-                  text: `${detailSppd?.approval.filter((a) => a.type === ts2)[0]?.first_name}`,
+                  text: `${ambilTtd(ts2)?.first_name}`,
                   style: 'boldText',alignment: 'left'
                 }
                 , {
-                  text: `${detailSppd?.approval.filter((a) => a.type === ts2)[0]?.position_name}`,
+                  text: `${ambilTtd(ts2)?.position_name}`,
                   style: 'normal',alignment: 'left',
                 }
               ],
@@ -1083,39 +1089,73 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
     }, 2000);
   };
 
-  const printHotelTigap = (id) => {
-    kindRef.current = `hotel-${id}`;
+  // teks rentang tanggal Hotel 30%: "01 - 02 November 2026", beberapa rentang digabung "..., ... dan ..."
+  const teksRentangHotel = (daftar) => {
+    const satu = (r) => {
+      const m = dayjs(r.mulai).locale('id');
+      const h = dayjs(r.selesai).locale('id');
+      if (m.isSame(h, 'day')) return m.format('DD MMMM YYYY');
+      if (m.isSame(h, 'month')) return `${m.format('DD')} - ${h.format('DD MMMM YYYY')}`;
+
+      return `${m.format('DD MMMM YYYY')} - ${h.format('DD MMMM YYYY')}`;
+    };
+    const teks = daftar.map(satu);
+
+    return teks.length > 1 ? `${teks.slice(0, -1).join(', ')} dan ${teks[teks.length - 1]}` : teks[0] || '-';
+  };
+
+  // satu dokumen Surat Keterangan untuk seluruh tujuan yang mengajukan Hotel 30% (tiap tujuan boleh punya beberapa rentang tanggal)
+  const printHotelTigap = () => {
+    const klaim = (detailSppd?.tujuan_sppd || [])
+      .filter((t) => t?.tigapuluh)
+      .map((t) => ({
+        id: t.id,
+        tujuan: t.detail_tujuan,
+        rentang: Array.isArray(t.tigapuluh.rentang) && t.tigapuluh.rentang.length ? t.tigapuluh.rentang : [{ mulai: t.tigapuluh.mulai, selesai: t.tigapuluh.selesai }],
+      }));
+    if (!klaim.length) {
+      alert('error', 'Belum ada pengajuan Hotel 30%');
+
+      return;
+    }
+    // satu tujuan satu rentang tetap memakai nama berkas lama (hotel-<id>) agar dokumen yang sudah ditandatangani tetap dipakai;
+    // selain itu nama berkas mengikuti isi (tujuan dan tanggal) supaya perubahan tanggal tidak memakai berkas lama
+    if (klaim.length === 1 && klaim[0].rentang.length === 1) {
+      kindRef.current = `hotel-${klaim[0].id}`;
+    } else {
+      const isi = JSON.stringify(klaim.map((k) => [k.id, k.rentang.map((r) => [r.mulai, r.selesai])]));
+      let hash = 5381;
+      for (let i = 0; i < isi.length; i += 1) hash = (hash * 33 + isi.charCodeAt(i)) % 4294967296;
+      kindRef.current = `hotel-gabungan-${hash.toString(36)}`;
+    }
     setLoading(true);
-    const tjn = detailSppd?.tujuan_sppd?.filter((f) => f.id === id)[0];
-    console.log(id);
     setTypeSign('pemohon');
     setTypeSign2('approval_hotel');
+    const tanggalST = dayjs(detailSppd?.mulai_tugas).locale('id').format('DD MMMM YYYY');
+    const permohonan = 'memohon untuk persetujuan pembayaran sebesar 30% dari standar anggaran penginapan yang sudah ditetapkan oleh perusahaan.';
+    // satu tujuan: satu kalimat; beberapa tujuan: daftar bernomor (tujuan dan tanggalnya) lalu kalimat permohonan
+    const kalimatTanggal =
+      klaim.length === 1
+        ? `pada tanggal ${teksRentangHotel(klaim[0].rentang)}, ${permohonan}</p>`
+        : `pada tanggal berikut:</p>${klaim
+            .map((k, i) => `<p style="margin-left:20px">${i + 1}. ${k.tujuan}: ${teksRentangHotel(k.rentang)}</p>`)
+            .join('')}<p>Memohon untuk persetujuan pembayaran sebesar 30% dari standar anggaran penginapan yang sudah ditetapkan oleh perusahaan.</p>`;
     const html = `<p style="text-align:center;"><strong style="text-decoration:underline">SURAT KETERANGAN</strong></p>
     <p>Yang bertanda tangan di bawah ini :</p>
     <table cellpadding="5" cellspacing="0" width="100%">
         <tbody>
         <tr style="border:none">
           <td style="width: 30%; text-align: left; height:15px; vertical-align:middle!important">Nama</td>
-          <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.nama
-      }</td>
+          <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.nama}</td>
         </tr>
         <tr style="border:none">
           <td style="width: 30%; text-align: left; height:15px; vertical-align:middle!important">Jabatan</td>
-          <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.jabatan
-      }</td>
+          <td style="width: 70%; text-align: left;height:15px; vertical-align:middle!important">: ${detailSppd?.jabatan}</td>
         </tr>
         </tbody>
       </table>
 
-    <p>Bahwa dalam melaksanakan Surat Tugas Nomor : ${detailSppd?.nomor_sppd} tanggal ${dayjs(
-        detailSppd?.mulai_tugas,
-      )
-        .locale('id')
-        .format('DD MMMM YYYY')} benar adanya tidak menginap di Hotel/Tempat Penginapan pada tanggal ${dayjs(
-          tjn?.tigapuluh?.mulai,
-        )
-          .locale('id')
-          .format('DD')} - ${dayjs(tjn?.tigapuluh?.selesai).locale('id').format('DD MMMM YYYY')}, memohon untuk persetujuan pembayaran sebesar 30% dari standar anggaran penginapan yang sudah ditetapkan oleh perusahaan.</p>
+    <p>Bahwa dalam melaksanakan Surat Tugas Nomor : ${detailSppd?.nomor_sppd} tanggal ${tanggalST} benar adanya tidak menginap di Hotel/Tempat Penginapan ${kalimatTanggal}
     <p>Demikian surat keterangan ini kami buat dengan sebenarnya untuk disetujui sebagaimana mestinya.</p>
 
       `;
@@ -1422,20 +1462,23 @@ const ModalDocs = ({ modalDoc, toggleDoc, sppdDetail, namaUnduh, selesaiUnduh, j
             </>
           ) : null}
 
-          {detailSppd?.tigap === true ? (
-            detailSppd?.tujuan_sppd?.map((i) => (
-              <Col sm={6} md={3} key={i.id} className="mt-3">
-                <Card className="mx-sm-1 p-3 col-card border border-secondary" on onClick={() => printHotelTigap(i.id)}>
-                  <Card className="bg-secondary my-card border shadow text-light p-3">
-                    <MaterialIcon icon="room" />
-                  </Card>
-                  <div className="text-center mt-3">
-                    <h6 className="text-secondary">Biaya Hotel 30%</h6>
-                    <small>{i?.detail_tujuan}</small>
-                  </div>
+          {detailSppd?.tigap === true && (detailSppd?.tujuan_sppd || []).some((t) => t?.tigapuluh) ? (
+            <Col sm={6} md={3} className="mt-3">
+              <Card className="mx-sm-1 p-3 col-card border border-secondary" onClick={printHotelTigap}>
+                <Card className="bg-secondary my-card border shadow text-light p-3">
+                  <MaterialIcon icon="room" />
                 </Card>
-              </Col>
-            ))
+                <div className="text-center mt-3">
+                  <h6 className="text-secondary">Biaya Hotel 30%</h6>
+                  <small>
+                    {(detailSppd?.tujuan_sppd || [])
+                      .filter((t) => t?.tigapuluh)
+                      .map((t) => t.detail_tujuan)
+                      .join(', ')}
+                  </small>
+                </div>
+              </Card>
+            </Col>
           ) : null}
 
         </Row>
