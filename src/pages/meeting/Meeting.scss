@@ -7,15 +7,170 @@
 }
 
 .halaman-meeting {
-  // kartu ruangan
-  .kartu-ruangan .card {
-    border: 1px solid #e4e7ec !important;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05) !important;
+  // huruf lebih ringan dan lembut: judul 500, label 500, angka 600
+  h5,
+  h6,
+  strong,
+  b {
+    font-weight: 500 !important;
+  }
+  .btn,
+  .badge,
+  .form-select,
+  .form-control,
+  .bar-tab-meeting [style*='font-weight'] {
+    font-weight: 500 !important;
+  }
+  .badge {
+    letter-spacing: 0.01em;
+  }
+  .meta-rapat span {
+    font-weight: 400;
+  }
+
+  // ringkasan ruangan (bisa diatur per bulan dan tahun)
+  .ringkasan-ruangan {
+    margin-bottom: 16px;
+    padding: 14px 16px 16px;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  }
+  .ringkasan-kepala {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 12px;
+
+    h6 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    small {
+      color: #667085;
+    }
+  }
+  .ringkasan-periode {
+    display: flex;
+    gap: 8px;
+
+    select {
+      width: auto;
+      min-width: 120px;
+      border-radius: 999px;
+    }
+  }
+  .kartu-ruangan {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .ruangan-item {
+    --warna: #2563eb;
+    --warna-lembut: #eff6ff;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px 14px;
+    background: var(--warna-lembut);
+    border: 1px solid transparent;
+    border-radius: 12px;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(16, 24, 40, 0.1) !important;
+      box-shadow: 0 8px 18px rgba(16, 24, 40, 0.08);
+    }
+    &.ruangan-success {
+      --warna: #16a34a;
+      --warna-lembut: #f0fdf4;
+    }
+    &.ruangan-warning {
+      --warna: #d97706;
+      --warna-lembut: #fffbeb;
+    }
+    &.ruangan-info {
+      --warna: #0891b2;
+      --warna-lembut: #ecfeff;
+    }
+  }
+  .ruangan-ikon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+  .ruangan-teks {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .ruangan-nama {
+    overflow: hidden;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #101828;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ruangan-jumlah {
+    font-size: 0.75rem;
+    color: #667085;
+
+    strong {
+      font-size: 1.3rem;
+      font-weight: 600 !important;
+      color: var(--warna);
+    }
+  }
+  .ruangan-bar {
+    height: 4px;
+    margin-top: 4px;
+    overflow: hidden;
+    background: rgba(16, 24, 40, 0.08);
+    border-radius: 999px;
+
+    i {
+      display: block;
+      height: 100%;
+      background: var(--warna);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+  }
+  @media (max-width: 991.98px) {
+    .kartu-ruangan {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 479.98px) {
+    .ringkasan-periode {
+      width: 100%;
+
+      select {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+    .ruangan-item {
+      padding: 10px;
+      gap: 8px;
+    }
+    .ruangan-ikon {
+      width: 36px;
+      height: 36px;
     }
   }
 
@@ -23,8 +178,8 @@
   .daftar-rapat {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 14px;
-    align-items: start;
+    gap: 2px 14px; // atas-bawah rapat, kiri-kanan tetap lega
+    align-items: stretch; // kartu satu baris sama tinggi
   }
   @media (min-width: 1200px) {
     .daftar-rapat {
@@ -37,6 +192,9 @@
 
   .kartu-rapat {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     overflow: hidden;
     border: 1px solid #e4e7ec !important;
     border-left: 4px solid #2563eb !important;
@@ -50,13 +208,25 @@
       transform: translateY(-2px);
       box-shadow: 0 10px 24px rgba(16, 24, 40, 0.1) !important;
     }
+    // judul dan deskripsi satu baris, kelebihannya jadi "..." agar tinggi kartu seragam
+    h5,
+    .deskripsi-rapat {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     h5 {
       font-size: 1rem;
-      font-weight: 600;
-      overflow-wrap: anywhere;
+      font-weight: 500;
     }
     .card-body {
-      padding: 1rem 1.1rem;
+      padding: 0.7rem 1.1rem;
+    }
+    // isi utama mengisi tinggi kartu, status selalu di dasar kartu
+    .card-body:first-child {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
     }
   }
 
@@ -64,15 +234,65 @@
   .kepala-rapat {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px 12px;
-    margin-bottom: 12px;
+    gap: 10px 14px;
+    margin-bottom: 6px;
+  }
+  .lencana-tanggal {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    padding: 2px 0;
+    margin-top: 2px;
+    line-height: 1.05;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+
+    small {
+      font-size: 0.64rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    strong {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    &.hijau {
+      color: #15803d;
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+  }
+  // warna garis kiri mengikuti status
+  .kartu-rapat.status-berjalan {
+    border-left-color: #16a34a !important;
+    background: linear-gradient(90deg, #f0fdf4 0%, #fff 40%);
+  }
+  .kartu-rapat.status-hariini {
+    border-left-color: #0ea5e9 !important;
+  }
+  .kartu-rapat.status-selesai {
+    border-left-color: #98a2b3 !important;
+    opacity: 0.88;
+
+    .lencana-tanggal {
+      color: #667085;
+      background: #f2f4f7;
+      border-color: #e4e7ec;
+    }
   }
   .judul-rapat {
     flex: 1 1 0;
     min-width: 0;
   }
   .aksi-rapat {
+    margin-left: auto;
     display: flex;
     flex: 0 0 auto;
     flex-wrap: wrap;
@@ -84,7 +304,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
-    padding: 10px 12px;
+    padding: 6px 12px;
     background: #f9fafb;
     border-radius: 10px;
 
@@ -93,16 +313,16 @@
     }
     small {
       display: block;
-      margin-bottom: 1px;
+      margin-bottom: 0;
       font-size: 0.68rem;
-      font-weight: 600;
+      font-weight: 500;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: #667085;
     }
     span {
       font-size: 0.82rem;
-      font-weight: 500;
+      font-weight: 400;
       color: #101828;
       overflow-wrap: anywhere;
     }
@@ -111,16 +331,27 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 12px;
+    margin-top: auto;
+    padding-top: 6px;
+  }
+  .meta-rapat {
+    margin-bottom: 0;
   }
 
   // layar kecil
   @media (max-width: 575.98px) {
     .kepala-rapat {
-      flex-direction: column;
+      flex-wrap: wrap;
+    }
+    .judul-rapat {
+      flex: 1 1 calc(100% - 70px);
     }
     .aksi-rapat {
+      flex: 1 1 100%;
       justify-content: flex-start;
+    }
+    .lencana-tanggal {
+      width: 48px;
     }
     .meta-rapat {
       grid-template-columns: 1fr 1fr;
@@ -144,7 +375,7 @@
       }
     }
     .kartu-rapat .card-body {
-      padding: 0.9rem;
+      padding: 0.6rem 0.9rem;
     }
   }
 }
@@ -157,4 +388,90 @@
       flex: 1 1 100%;
     }
   }
+}
+
+// peserta yang diundang (detail rapat / Zoom) dan pilihan peserta pada form
+.panel-undangan {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+
+  .panel-undangan-judul {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    strong {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .hitung {
+      padding: 0 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #1d4ed8;
+      background: #eff6ff;
+      border-radius: 999px;
+    }
+  }
+  .daftar-undangan {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip-undangan {
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    color: #344054;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 999px;
+
+    .cabut {
+      margin-left: 6px;
+      padding: 0 2px;
+      font-size: 1rem;
+      line-height: 1;
+      color: #98a2b3;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        color: #d92d20;
+      }
+    }
+  }
+  .tambah-undangan {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #d0d5dd;
+
+    > div:first-child {
+      width: 100%;
+    }
+  }
+}
+.pilih-peserta__control {
+  min-height: 38px;
+  border-color: #d0d5dd !important;
+  border-radius: 8px !important;
+}
+.pilih-peserta__multi-value {
+  background: #eff6ff !important;
+  border-radius: 999px !important;
+}
+.pilih-peserta__multi-value__label {
+  color: #1d4ed8 !important;
+  font-size: 0.8rem !important;
+}
+.pilih-peserta__menu {
+  z-index: 1060 !important;
 }

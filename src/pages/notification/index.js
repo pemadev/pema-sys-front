@@ -30,6 +30,7 @@ const NAMA_MODUL = {
   tender: 'Tender',
   vendor: 'Vendor',
   sistem: 'Sistem',
+  meeting: 'Rapat',
 };
 const namaModul = (m) => NAMA_MODUL[m] || m.charAt(0).toUpperCase() + m.slice(1);
 

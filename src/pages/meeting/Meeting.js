@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -15,8 +16,10 @@ import {
   ModalHeader,
   Row,
 } from 'reactstrap';
+import Select from 'react-select';
 import pdfMake from 'pdfmake/build/pdfmake';
 import HalamanPro from '../../components/HalamanPro';
+import PanelUndangan from './PanelUndangan';
 import './Meeting.scss';
 import useAxios from '../../hooks/useAxios';
 import { AuthContext } from '../../context/AuthContext';
@@ -43,6 +46,9 @@ const roomColors = {
   Kopiah: 'warning',
   Internasional: 'info',
 };
+
+const NAMA_RUANGAN = ['Growth', 'Harmoni', 'Kopiah', 'Internasional'];
+const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const roomIcons = {
   Growth: '📈',
@@ -88,6 +94,29 @@ const formatZoomDateTime = (value) => {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+};
+
+// lencana tanggal ala kalender di kiri kartu rapat
+const LencanaTanggal = ({ value, warna }) => {
+  const date = parseApiDateValue(value);
+  if (!date) return null;
+
+  return (
+    <div className={`lencana-tanggal ${warna || ''}`} aria-hidden="true">
+      <small>{date.toLocaleDateString('id-ID', { month: 'short' })}</small>
+      <strong>{date.getDate()}</strong>
+      <small>{date.toLocaleDateString('id-ID', { weekday: 'short' })}</small>
+    </div>
+  );
+};
+LencanaTanggal.propTypes = { value: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]), warna: PropTypes.string };
+
+const kelasStatus = (label) => {
+  if (label === 'Live Today') return 'status-berjalan';
+  if (label === 'Finished') return 'status-selesai';
+  if (label === 'Upcoming') return 'status-akan';
+
+  return 'status-hariini';
 };
 
 const getZoomValue = (item, keys) => {
@@ -232,6 +261,9 @@ const Meeting = () => {
   const { auth } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('meeting');
   const [scheduleFilter, setScheduleFilter] = useState(SCHEDULE_FILTER.LIVE_TODAY);
+  // periode ringkasan ruangan: tahun (default tahun ini) dan bulan ('' = semua bulan)
+  const [periodeTahun, setPeriodeTahun] = useState(String(new Date().getFullYear()));
+  const [periodeBulan, setPeriodeBulan] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
@@ -247,6 +279,10 @@ const Meeting = () => {
     room: 'Growth',
   });
   const [renbisList, setRenbisList] = useState([]);
+  // peserta yang diundang (notifikasi push + WhatsApp; link Zoom ikut dikirim bila ada)
+  const [pilihanPegawai, setPilihanPegawai] = useState([]);
+  const [undanganRapat, setUndanganRapat] = useState([]);
+  const [undanganZoom, setUndanganZoom] = useState([]);
   const [zoomFormData, setZoomFormData] = useState({
     topic: '',
     startTime: '',
@@ -421,6 +457,32 @@ const Meeting = () => {
     }
   };
 
+  const tahunRingkasan = useMemo(() => {
+    const kumpulan = new Set([String(new Date().getFullYear())]);
+    roomMeetings.forEach((item) => {
+      const d = parseApiDateValue(item.start_time || item.startTime || item.start_at || item.start);
+      if (d) kumpulan.add(String(d.getFullYear()));
+    });
+
+    return [...kumpulan].sort((a, b) => b - a);
+  }, [roomMeetings]);
+
+  const ringkasanRuangan = useMemo(() => {
+    const hitung = {};
+    NAMA_RUANGAN.forEach((r) => {
+      hitung[r] = 0;
+    });
+    roomMeetings.forEach((item) => {
+      const d = parseApiDateValue(item.start_time || item.startTime || item.start_at || item.start);
+      if (!d || String(d.getFullYear()) !== periodeTahun) return;
+      if (periodeBulan !== '' && d.getMonth() !== Number(periodeBulan)) return;
+      const room = item.room || item.ruangan || item.location;
+      if (room in hitung) hitung[room] += 1;
+    });
+
+    return hitung;
+  }, [roomMeetings, periodeTahun, periodeBulan]);
+
   const getScheduleBucket = (item) => {
     const startValue = getZoomValue(item, ['start_time', 'startTime', 'start_at', 'start']);
     const endValue = getZoomValue(item, ['end_time', 'endTime', 'end_at', 'end']);
@@ -543,6 +605,22 @@ const Meeting = () => {
 
 
 
+  useEffect(() => {
+    api
+      .get('api/employe/assignment-list?search=all')
+      .then((res) => {
+        const data = res?.data?.data ?? [];
+        setPilihanPegawai(
+          (Array.isArray(data) ? data : [])
+            .filter((p) => p.employe_id)
+            .map((p) => ({ value: String(p.employe_id), label: p.first_name || String(p.employe_id) }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        );
+      })
+      .catch(() => setPilihanPegawai([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleMeetingSubmit = (e) => {
     e.preventDefault();
     const submit = async () => {
@@ -563,6 +641,7 @@ const Meeting = () => {
           consumptionDetail: meetingFormData.consumption_detail,
           renbis_id: meetingFormData.consumption === '1' ? meetingFormData.renbis_id : null,
           room: meetingFormData.room,
+          invitees: undanganRapat.map((o) => o.value),
         });
         ensureApiSuccess(response, 'Gagal membuat booking ruang rapat.');
 
@@ -578,7 +657,8 @@ const Meeting = () => {
           renbis_id: '',
           room: 'Growth',
         });
-        setRoomSuccess('Booking ruang rapat berhasil.');
+        setUndanganRapat([]);
+        setRoomSuccess(undanganRapat.length ? `Booking ruang rapat berhasil. Undangan dikirim ke ${undanganRapat.length} peserta.` : 'Booking ruang rapat berhasil.');
         await fetchRoomMeetings();
         await fetchZoomMeetings();
       } catch (error) {
@@ -618,6 +698,18 @@ const Meeting = () => {
     setSelectedRoomDetail(item);
     setCopyMessage('');
     setIsRoomDetailModalOpen(true);
+  };
+
+  const perbaruiUndanganRuang = (id, undangan) => {
+    setSelectedRoomDetail((prev) => (prev && prev.id === id ? { ...prev, undangan } : prev));
+    setRoomMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, undangan } : m)));
+  };
+
+  // Zoom yang melekat pada booking ruangan berbagi daftar undangan dengan booking itu
+  const perbaruiUndanganZoom = (zoomId, undangan) => {
+    setSelectedZoomDetail((prev) => (prev && prev.id === zoomId ? { ...prev, undangan } : prev));
+    setZoomMeetings((prev) => prev.map((z) => (z.id === zoomId ? { ...z, undangan } : z)));
+    setRoomMeetings((prev) => prev.map((m) => (m.zoom_id === zoomId ? { ...m, undangan } : m)));
   };
 
   const closeRoomDetailModal = () => {
@@ -763,6 +855,7 @@ const Meeting = () => {
         startTime: zoomFormData.startTime,
         end_time: zoomFormData.endTime,
         endTime: zoomFormData.endTime,
+        invitees: undanganZoom.map((o) => o.value),
       });
       ensureApiSuccess(response, 'Gagal membuat booking zoom meeting.');
 
@@ -772,7 +865,8 @@ const Meeting = () => {
         startTime: '',
         endTime: '',
       });
-      setZoomSuccess('Zoom meeting berhasil dibooking.');
+      setUndanganZoom([]);
+      setZoomSuccess(undanganZoom.length ? `Zoom meeting berhasil dibooking. Undangan dikirim ke ${undanganZoom.length} peserta.` : 'Zoom meeting berhasil dibooking.');
       await fetchZoomMeetings();
     } catch (error) {
       setZoomError(getApiErrorMessage(error, 'Gagal membuat booking zoom meeting.'));
@@ -845,41 +939,56 @@ const Meeting = () => {
       }
     >
       <div className="halaman-meeting">
-      <Row className="g-3 mb-4 kartu-ruangan">
-        {['Growth', 'Harmoni', 'Kopiah', 'Internasional'].map((room) => {
-          const total = roomMeetings.filter((item) => (item.room || item.ruangan || item.location) === room).length || 0;
-          return (
-            <Col xs="12" sm="6" lg="3" key={room}>
-              <Card className="shadow-sm border-0 h-100" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)' }}>
-                <CardBody>
-                  <div className="d-flex justify-content-between align-items-start">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: '42px', height: '42px', backgroundColor: '#e9f2ff', fontSize: '20px' }}>
-                        {roomIcons[room]}
-                      </div>
-                      <div>
-                        <h6 className="mb-1">{room}</h6>
-                        <small className="text-muted">Ruangan</small>
-                      </div>
-                    </div>
-                    <span
-                      className="rounded-pill px-2 py-1"
-                      style={{
-                        background: '#eaf2ff',
-                        color: '#2563eb',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {total} rapat
-                    </span>
+      <div className="ringkasan-ruangan">
+        <div className="ringkasan-kepala">
+          <div>
+            <h6>Ringkasan Ruangan</h6>
+            <small>
+              {periodeBulan === '' ? `Sepanjang tahun ${periodeTahun}` : `${NAMA_BULAN[Number(periodeBulan)]} ${periodeTahun}`}
+              {' · '}
+              {Object.values(ringkasanRuangan).reduce((a, n) => a + n, 0)} rapat
+            </small>
+          </div>
+          <div className="ringkasan-periode">
+            <Input type="select" bsSize="sm" value={periodeBulan} onChange={(e) => setPeriodeBulan(e.target.value)} aria-label="Pilih bulan">
+              <option value="">Semua bulan</option>
+              {NAMA_BULAN.map((nama, i) => (
+                <option key={nama} value={i}>
+                  {nama}
+                </option>
+              ))}
+            </Input>
+            <Input type="select" bsSize="sm" value={periodeTahun} onChange={(e) => setPeriodeTahun(e.target.value)} aria-label="Pilih tahun">
+              {tahunRingkasan.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Input>
+          </div>
+        </div>
+        <div className="kartu-ruangan">
+          {NAMA_RUANGAN.map((room) => {
+            const total = ringkasanRuangan[room] || 0;
+            const tertinggi = Math.max(1, ...Object.values(ringkasanRuangan));
+
+            return (
+              <div className={`ruangan-item ruangan-${roomColors[room]}`} key={room}>
+                <div className="ruangan-ikon">{roomIcons[room]}</div>
+                <div className="ruangan-teks">
+                  <span className="ruangan-nama">{room}</span>
+                  <span className="ruangan-jumlah">
+                    <strong>{total}</strong> rapat
+                  </span>
+                  <div className="ruangan-bar" aria-hidden="true">
+                    <i style={{ width: `${(total / tertinggi) * 100}%` }} />
                   </div>
-                </CardBody>
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {blokirSuccess ? <Alert color="success" toggle={() => setBlokirSuccess('')}>{blokirSuccess}</Alert> : null}
       {blokirError && !isBlokirModalOpen ? <Alert color="danger" toggle={() => setBlokirError('')}>{blokirError}</Alert> : null}
@@ -1009,6 +1118,24 @@ const Meeting = () => {
               </Input>
             </FormGroup>
 
+            <FormGroup>
+              <Label>Undang Peserta <small className="text-muted">(opsional)</small></Label>
+              <Select
+                isMulti
+                classNamePrefix="pilih-peserta"
+                options={pilihanPegawai}
+                value={undanganRapat}
+                onChange={(v) => setUndanganRapat(v || [])}
+                placeholder="Cari dan pilih nama peserta..."
+                noOptionsMessage={() => 'Tidak ada nama'}
+                closeMenuOnSelect={false}
+                menuPlacement="auto"
+              />
+              <small className="text-muted d-block mt-1">
+                Peserta menerima undangan lewat notifikasi push dan WhatsApp. Jika rapat memakai Zoom, link Zoom ikut dikirim.
+              </small>
+            </FormGroup>
+
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button color="secondary" type="button" onClick={() => setIsMeetingModalOpen(false)}>
                 Batal
@@ -1094,6 +1221,24 @@ const Meeting = () => {
                 </FormGroup>
               </Col>
             </Row>
+
+            <FormGroup>
+              <Label>Undang Peserta <small className="text-muted">(opsional)</small></Label>
+              <Select
+                isMulti
+                classNamePrefix="pilih-peserta"
+                options={pilihanPegawai}
+                value={undanganZoom}
+                onChange={(v) => setUndanganZoom(v || [])}
+                placeholder="Cari dan pilih nama peserta..."
+                noOptionsMessage={() => 'Tidak ada nama'}
+                closeMenuOnSelect={false}
+                menuPlacement="auto"
+              />
+              <small className="text-muted d-block mt-1">
+                Rapat Zoom tanpa booking ruangan dikirim sebagai undangan rapat Zoom lewat notifikasi push dan WhatsApp beserta link Zoom.
+              </small>
+            </FormGroup>
 
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button color="secondary" type="button" onClick={() => setIsZoomModalOpen(false)}>
@@ -1225,6 +1370,17 @@ const Meeting = () => {
               })()}
             </div>
           ) : null}
+          {selectedRoomDetail ? (
+            <PanelUndangan
+              key={`undangan-ruang-${selectedRoomDetail.id}`}
+              tipe="room"
+              rapatId={selectedRoomDetail.id}
+              undangan={selectedRoomDetail.undangan || []}
+              bolehTambah={canCancelZoom(selectedRoomDetail)}
+              pilihanPegawai={pilihanPegawai}
+              onUbah={(u) => perbaruiUndanganRuang(selectedRoomDetail.id, u)}
+            />
+          ) : null}
         </ModalBody>
       </Modal>
 
@@ -1335,6 +1491,17 @@ const Meeting = () => {
               );
             })()
           ) : null}
+          {selectedZoomDetail ? (
+            <PanelUndangan
+              key={`undangan-zoom-${selectedZoomDetail.id}`}
+              tipe="zoom"
+              rapatId={selectedZoomDetail.id}
+              undangan={selectedZoomDetail.undangan || []}
+              bolehTambah={canCancelZoom(selectedZoomDetail)}
+              pilihanPegawai={pilihanPegawai}
+              onUbah={(u) => perbaruiUndanganZoom(selectedZoomDetail.id, u)}
+            />
+          ) : null}
         </ModalBody>
       </Modal>
 
@@ -1436,12 +1603,13 @@ const Meeting = () => {
               const roomStatusMeta = getRoomMeetingStatusMeta(item);
 
               return (
-                <Card key={id} className="kartu-rapat shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openRoomDetailModal(item)}>
+                <Card key={id} className={`kartu-rapat ${kelasStatus(roomStatusMeta.label)} shadow-sm border-0`} style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openRoomDetailModal(item)}>
                   <CardBody>
                     <div className="kepala-rapat">
+                      <LencanaTanggal value={item.start_time || item.startTime || item.start_at || item.start} />
                       <div className="judul-rapat">
-                        <h5 className="mb-1">{title}</h5>
-                        {description ? <div className="text-muted small">{description}</div> : null}
+                        <h5 className="mb-1" title={title}>{title}</h5>
+                        {description ? <div className="text-muted small deskripsi-rapat" title={description}>{description}</div> : null}
                       </div>
                       <div className="aksi-rapat">
                         <Badge color={roomColors[room]} pill>
@@ -1560,11 +1728,12 @@ const Meeting = () => {
               const zoomStatusMeta = getZoomMeetingStatusMeta(item);
 
               return (
-                <Card key={zid} className="kartu-rapat kartu-zoom shadow-sm border-0" style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openZoomDetailModal(item)}>
+                <Card key={zid} className={`kartu-rapat kartu-zoom ${kelasStatus(zoomStatusMeta.label)} shadow-sm border-0`} style={{ borderRadius: '16px', cursor: 'pointer' }} onClick={() => openZoomDetailModal(item)}>
                   <CardBody>
                     <div className="kepala-rapat">
+                      <LencanaTanggal value={getZoomValue(item, ['start_time', 'startTime', 'start_at'])} warna="hijau" />
                       <div className="judul-rapat">
-                        <h5 className="mb-1">{title}</h5>
+                        <h5 className="mb-1" title={title}>{title}</h5>
                       </div>
                       <div className="aksi-rapat">
                         <Badge
