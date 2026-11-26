@@ -364,6 +364,17 @@
 .lp-tabel tfoot td:first-child { border-radius: 10px 0 0 10px; }
 .lp-tabel tfoot td:last-child { border-radius: 0 10px 10px 0; }
 .lp-kanan { text-align: right; white-space: nowrap; }
+
+/* rekap pembayaran bila hotel dikirim ke admin: uang muka pelaksana, hotel, total */
+.lp-rekap { margin: 10px 0 0; padding: 4px 12px; border: 1px solid var(--lp-garis); border-radius: 10px; font-size: 0.86rem; }
+.lp-rekap > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--lp-garis); }
+.lp-rekap > div:last-child { border-bottom: 0; }
+.lp-rekap dt { margin: 0; font-weight: 500; }
+.lp-rekap dt small { display: block; margin-top: 1px; color: var(--lp-teks-redup); font-size: 0.74rem; font-weight: 500; }
+.lp-rekap dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.lp-rekap .lp-rekap-total { margin: 0 -12px; padding: 11px 12px; background: var(--lp-aksen-lembut); color: var(--lp-aksen); border-radius: 0 0 9px 9px; }
+.lp-rekap .lp-rekap-total dt, .lp-rekap .lp-rekap-total dd { font-weight: 700; }
+.lp-rekap .lp-rekap-total dt small { color: inherit; opacity: 0.75; }
 .lp-pct { display: block; color: var(--lp-teks-redup); font-size: 0.74rem; font-weight: 500; }
 .lp-tiket-ringkas, .lp-termin-baris { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 8px; font-size: 0.86rem; }
 .lp-tiket-ringkas { margin-top: 8px; border: 1px dashed var(--lp-garis-input); border-radius: 10px; }

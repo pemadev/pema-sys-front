@@ -160,7 +160,15 @@ const ModalDetail = ({ modalD, toggleDetail, sppdDetail }) => {
                         </tr>
                         <tr>
                           <td width="40%">Perlu Tiket </td>
-                          <td width="60%">{t.perlu_tiket === 0 ? 'Tidak (langsung ke divisi keuangan)' : 'Ya (diproses divisi umum)'}</td>
+                          <td width="60%">{t.perlu_tiket === 0 ? 'Tidak (langsung ke divisi keuangan)' : t.perlu_tiket === 2 ? 'Dipesan admin/mandiri (langsung ke divisi keuangan)' : 'Dipesan divisi umum'}</td>
+                        </tr>
+                        <tr>
+                          <td width="40%">Hotel dipesan oleh </td>
+                          <td width="60%">{t.hotel_oleh === 'admin' ? 'Admin (tidak termasuk uang muka)' : t.hotel_oleh === 'tidak' ? 'Tidak menginap' : 'Yang berangkat'}</td>
+                        </tr>
+                        <tr>
+                          <td width="40%">Transportasi Lokal </td>
+                          <td width="60%">{t.transport_lokal === 'vendor' ? 'Vendor (tidak termasuk uang muka)' : 'Mandiri'}</td>
                         </tr>
                         <tr>
                           <td width="40%">Uang Makan</td>

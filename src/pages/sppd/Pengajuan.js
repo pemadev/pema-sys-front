@@ -35,7 +35,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { confirmAlert } from 'react-confirm-alert';
 import MaterialIcon from '@material/react-material-icon';
 import Button from '@mui/material/Button';
-import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -45,6 +44,7 @@ import { alert } from '../../components/atoms/Toast';
 import useAxios from '../../hooks/useAxios';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 import './style.scss';
+import { OPSI_TIKET, OPSI_HOTEL, OPSI_TRANSPORT } from './opsiSppd';
 
 dayjs.locale("id");
 
@@ -84,6 +84,7 @@ const Pengajuan = ({
   const [bisnis, setBisnis] = React.useState('');
   const [biaya, setBiaya] = React.useState('');
   const [rkap, setRkap] = React.useState('');
+  const [rkapLainnya, setRkapLainnya] = React.useState('');
   const [alamat, setAlamat] = React.useState('');
   const [tugas, setTugas] = React.useState('');
   const [wb, setWb] = React.useState(dayjs());
@@ -106,8 +107,12 @@ const Pengajuan = ({
   // colums datatable
 
   const [cSelected, setCSelected] = useState([]);
-  // perlu tiket: ya = diproses UmumSppd (tiket) bersamaan dengan KeuanganSppd (uang muka), tidak = hanya KeuanganSppd
-  const [perluTiket, setPerluTiket] = useState(true);
+  // perlu tiket: 1 = dipesan divisi umum (UmumSppd, bersamaan dengan KeuanganSppd), 2 = dipesan admin/mandiri, 0 = tidak perlu tiket
+  const [perluTiket, setPerluTiket] = useState(1);
+  // hotel: sendiri = dipesan yang berangkat, admin = dipesan admin (tidak masuk uang muka)
+  const [hotelOleh, setHotelOleh] = useState('sendiri');
+  // transportasi lokal: mandiri, atau vendor (tidak masuk uang muka)
+  const [transportLokal, setTransportLokal] = useState('mandiri');
   // const [rSelected, setRSelected] = useState(null);
 
   const [listSppd, setListSppd] = useState([]);
@@ -158,7 +163,15 @@ const Pengajuan = ({
     },
     {
       name: 'Perlu Tiket',
-      selector: (row) => (row.perlu_tiket === 0 ? 'Tidak' : 'Ya'),
+      selector: (row) => OPSI_TIKET.find((o) => o.key === row.perlu_tiket)?.singkat || 'Ya',
+    },
+    {
+      name: 'Hotel',
+      selector: (row) => (OPSI_HOTEL.find((o) => o.key === row.hotel_oleh)?.singkat || 'Pemohon'),
+    },
+    {
+      name: 'Transport Lokal',
+      selector: (row) => (row.transport_lokal === 'vendor' ? 'Vendor' : 'Mandiri'),
     },
   ];
 
@@ -294,9 +307,12 @@ const Pengajuan = ({
         waktu_berangkat: wb,
         waktu_kembali: ws,
         file_undangan: undangan || '-',
-        renbis: rkap || null,
+        renbis: rkap === 'lainnya' ? null : rkap || null,
+        rkap_lainnya: rkap === 'lainnya' ? rkapLainnya.trim() || 'Lainnya' : null,
         moda: cSelected.toLocaleString(),
-        perlu_tiket: perluTiket ? 1 : 0,
+        perlu_tiket: perluTiket,
+        hotel_oleh: hotelOleh,
+        transport_lokal: transportLokal,
         ubbm: bbm || 0,
         shareWith: sId?.value || null,
       };
@@ -309,10 +325,13 @@ const Pengajuan = ({
       setKategori('');
       setAlamat('');
       setRkap('');
+      setRkapLainnya('');
       setUndangan('');
       setTugas('');
       setCSelected([]);
-      setPerluTiket(true);
+      setPerluTiket(1);
+      setHotelOleh('sendiri');
+      setTransportLokal('mandiri');
       setBbm(0);
       setSId(null);
       alert('success', 'Tujuan SPPD Berhasil ditambahkan');
@@ -371,6 +390,15 @@ const Pengajuan = ({
 
   return (
     <>
+      <section className="pj-seksi">
+        <header className="pj-judul">
+          <span className="pj-no">1</span>
+          <div className="pj-judul-teks">
+            <h6>Data pelaksana</h6>
+            <p>Identitas pelaksana perjalanan dinas dan narasi penugasan.</p>
+          </div>
+        </header>
+        <div className="pj-isi">
       <Box className="mb-3">
         <TextField
           select
@@ -388,7 +416,7 @@ const Pengajuan = ({
         </TextField>
       </Box>
 
-      <Box className="mb-5">
+      <Box className="mb-3">
         <TextField
           style={{ width: '100%' }}
           id="outlined-multiline-static"
@@ -544,45 +572,46 @@ const Pengajuan = ({
         // end pihak ekstenernal
         ''
       )}
-      <Box className="mt-5">
-        <Button
-          variant="outlined"
-          size="large"
-          style={{ width: tujuans.length === 0 ? '100%' : '30%' }}
-          className="float-end"
-          onClick={addTujuan}
-        >
-          Tambah Tujuan SPPD
-        </Button>
-      </Box>
+        </div>
+      </section>
 
-      {tujuans.length > 0 ? (
-        <>
-          <Box sx={{ p: 2, borderRadius: 2, marginTop: 15, border: '0.5px solid #C4C4C4' }}>
+      <section className="pj-seksi">
+        <header className="pj-judul">
+          <span className="pj-no">2</span>
+          <div className="pj-judul-teks">
+            <h6>Tujuan perjalanan dinas</h6>
+            <p>Tambahkan satu atau lebih tujuan. Setiap tujuan memiliki jadwal, tiket, hotel, dan transportasi lokal sendiri.</p>
+          </div>
+          <Button variant="outlined" className="pj-tambah" startIcon={<MaterialIcon icon="add" />} onClick={addTujuan}>
+            Tambah tujuan
+          </Button>
+        </header>
+        {tujuans.length > 0 ? (
+          <div className="pj-tabel">
             <DataTable columns={columns} data={tujuans} />
-          </Box>
+          </div>
+        ) : (
+          <div className="pj-kosong">
+            <MaterialIcon icon="flight_takeoff" />
+            <strong>Belum ada tujuan</strong>
+            <span>Klik &quot;Tambah tujuan&quot; untuk mengisi tujuan perjalanan dinas.</span>
+          </div>
+        )}
+      </section>
+      {tujuans.length > 0 ? (
+        <div className="pj-aksi">
+          <Button color="primary" variant="contained" size="large" onClick={savePengajuan} disabled={loading}>
+            {loading ? 'Loading . . .' : 'Submit Pengajuan'}
+          </Button>
+        </div>
+      ) : null}
 
-          <Box className="mt-5">
-            <Button
-              color="primary"
-              variant="contained"
-              size="large"
-              style={{ width: '100%' }}
-              className="float-end"
-              onClick={savePengajuan}
-              disabled={loading}
-            >
-              {loading?'Loading . . .':'Submit Pengajuan'}
-            </Button>
-          </Box>
-        </>
-      ) : (
-        ''
-      )}
       {/* modal tujuan */}
-      <Modal isOpen={modal} toggle={toggle} size="lg">
+      <Modal isOpen={modal} toggle={toggle} size="lg" scrollable className="modal-tujuan">
         <ModalHeader toggle={toggle}>Tujuan SPPD</ModalHeader>
         <ModalBody>
+          <div className="tj-bagian">Informasi dasar</div>
+          <div className="tj-grid">
           <Box className="mb-3">
             <TextField
               style={{ width: '100%' }}
@@ -616,6 +645,7 @@ const Pengajuan = ({
               ))}
             </TextField>
           </Box>
+          </div>
 
           {dasar === 2 ? (
             <>
@@ -654,8 +684,8 @@ const Pengajuan = ({
           )}
 
           {/* biaya */}
-
-          <Box className="mt-5 mb-3">
+          <div className="tj-bagian">Pembiayaan</div>
+          <Box className="mb-3">
             <TextField
               style={{ width: '100%' }}
               variant="outlined"
@@ -704,16 +734,34 @@ const Pengajuan = ({
                     <b>{item.renbis} </b> <i> &nbsp;tahun anggaran {item.tahun}</i>
                   </MenuItem>
                 ))}
+                <MenuItem value="lainnya">
+                  <b>Lainnya</b> <i> &nbsp;tulis manual</i>
+                </MenuItem>
               </TextField>
             </Box>
           ) : (
             <></>
           )}
 
+          {(biaya === 1 || biaya === 3) && rkap === 'lainnya' ? (
+            <Box className="mb-3">
+              <TextField
+                style={{ width: '100%' }}
+                variant="outlined"
+                label="RKAP lainnya (tulis manual)"
+                placeholder="Tuliskan nama RKAP / proyek. Tulisan ini yang akan tampil di Surat Tugas"
+                helperText="Akan tampil di Surat Tugas (ST) persis seperti yang ditulis. Bila dikosongkan, ST menampilkan 'Lainnya'."
+                value={rkapLainnya}
+                onChange={(e) => setRkapLainnya(e.target.value)}
+                inputProps={{ maxLength: 255 }}
+              />
+            </Box>
+          ) : null}
+
           {biaya === 3 ? (
             <>
-              <Box sx={{ p: 2, borderRadius: 2, marginTop: 2, border: '0.5px solid #C4C4C4' }}>
-                <h5>Ketentuan Sharing</h5>
+              <Box sx={{ p: 2, borderRadius: 2, marginTop: 2, border: '0.5px solid #C4C4C4' }} className="tj-kartu">
+                <h6 className="tj-sub">Ketentuan sharing</h6>
                 <Slider
                   step={5}
                   name="tiket"
@@ -875,7 +923,8 @@ const Pengajuan = ({
           )}
 
           {/* tujuan */}
-          <Box className="mt-5 mb-3">
+          <div className="tj-bagian">Tujuan &amp; jadwal</div>
+          <Box className="mb-3">
             <TextField
               style={{ width: '100%' }}
               variant="outlined"
@@ -925,8 +974,9 @@ Jakarta Pusat 10110"
 
               <Box>
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="id">
-                  <DemoContainer components={['DateTimePicker', 'DateTimePicker']}>
+                  <div className="tj-grid">
                     <DateTimePicker
+                      slotProps={{ textField: { fullWidth: true } }}
                       label="Waktu Keberangkatan"
                       ampm={false}
                       value={wb}
@@ -937,6 +987,7 @@ Jakarta Pusat 10110"
                       }}
                     />
                     <DateTimePicker
+                      slotProps={{ textField: { fullWidth: true } }}
                       ampm={false}
                       value={ws}
                       onChange={setWs}
@@ -946,19 +997,14 @@ Jakarta Pusat 10110"
                         minutes: renderTimeViewClock,
                       }}
                     />
-                  </DemoContainer>
+                  </div>
                 </LocalizationProvider>
               </Box>
 
+              <div className="tj-bagian">Layanan perjalanan</div>
               <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  p: 2,
-                  borderRadius: 2,
-                  border: '0.5px solid #C4C4C4',
-                }}
-                className=" mt-3 mb-3"
+                sx={{ p: 2, borderRadius: 2, border: '0.5px solid #C4C4C4' }}
+                className="tj-moda mb-3"
               >
                 <B
                   className="btn-sm"
@@ -991,7 +1037,7 @@ Jakarta Pusat 10110"
 
               <Box
                 sx={{ p: 2, borderRadius: 2, border: '0.5px solid #C4C4C4' }}
-                className="mb-3"
+                className="tj-kartu mb-3"
                 role="radiogroup"
                 aria-label="Perlu tiket"
               >
@@ -999,34 +1045,50 @@ Jakarta Pusat 10110"
                   Perlu tiket?
                 </div>
                 <div className="d-flex flex-wrap gap-2">
-                  <B
-                    className="btn-sm"
-                    color="success"
-                    outline
-                    role="radio"
-                    aria-checked={perluTiket}
-                    active={perluTiket}
-                    onClick={() => setPerluTiket(true)}
-                  >
-                    Perlu tiket
-                  </B>
-                  <B
-                    className="btn-sm"
-                    color="secondary"
-                    outline
-                    role="radio"
-                    aria-checked={!perluTiket}
-                    active={!perluTiket}
-                    onClick={() => setPerluTiket(false)}
-                  >
-                    Tidak perlu tiket
-                  </B>
+                  {OPSI_TIKET.map((o) => (
+                    <B
+                      key={o.key}
+                      className="btn-sm"
+                      color={o.warna}
+                      outline
+                      role="radio"
+                      aria-checked={perluTiket === o.key}
+                      active={perluTiket === o.key}
+                      onClick={() => setPerluTiket(o.key)}
+                    >
+                      {o.label}
+                    </B>
+                  ))}
                 </div>
-                <small className="text-muted d-block mt-2">
-                  {perluTiket
-                    ? 'Setelah disetujui, SPPD diproses divisi umum (pemesanan tiket) dan divisi keuangan (uang muka) secara bersamaan.'
-                    : 'Setelah disetujui, SPPD langsung masuk ke divisi keuangan tanpa melewati divisi umum.'}
-                </small>
+                <small className="text-muted d-block mt-2">{OPSI_TIKET.find((o) => o.key === perluTiket)?.ket}</small>
+              </Box>
+
+              <Box sx={{ p: 2, borderRadius: 2, border: '0.5px solid #C4C4C4' }} className="tj-kartu mb-3" role="radiogroup" aria-label="Hotel">
+                <div className="mb-2" style={{ fontWeight: 600 }}>
+                  Hotel
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  {OPSI_HOTEL.map((o) => (
+                    <B key={o.key} className="btn-sm" color="success" outline role="radio" aria-checked={hotelOleh === o.key} active={hotelOleh === o.key} onClick={() => setHotelOleh(o.key)}>
+                      {o.label}
+                    </B>
+                  ))}
+                </div>
+                <small className="text-muted d-block mt-2">{OPSI_HOTEL.find((o) => o.key === hotelOleh)?.ket}</small>
+              </Box>
+
+              <Box sx={{ p: 2, borderRadius: 2, border: '0.5px solid #C4C4C4' }} className="tj-kartu mb-3" role="radiogroup" aria-label="Transportasi lokal">
+                <div className="mb-2" style={{ fontWeight: 600 }}>
+                  Transportasi lokal
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  {OPSI_TRANSPORT.map((o) => (
+                    <B key={o.key} className="btn-sm" color="success" outline role="radio" aria-checked={transportLokal === o.key} active={transportLokal === o.key} onClick={() => setTransportLokal(o.key)}>
+                      {o.label}
+                    </B>
+                  ))}
+                </div>
+                <small className="text-muted d-block mt-2">{OPSI_TRANSPORT.find((o) => o.key === transportLokal)?.ket}</small>
               </Box>
 
               <Box className="mb-3">

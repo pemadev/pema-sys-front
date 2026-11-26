@@ -179,8 +179,11 @@ const bukuBaru = () => {
 // ---------------------------------------------------------------- Tabel Standar Biaya ("<nomor>. <nama>.xlsx")
 const URAIAN = { uang_makan: 'Uang Makan', uang_saku: 'Uang Saku', transport_lokal: 'Transportasi Lokal', hotel: 'Penginapan', bbm: 'BBM' };
 
+// komponen yang tidak masuk uang muka (hotel dipesan admin / tidak menginap, transportasi lokal via vendor): tetap dicantumkan dengan catatan
+const CATATAN_KECUALI = { hotel: 'tidak termasuk uang muka', transport_lokal: 'vendor, tidak termasuk uang muka' };
+
 // baris tabel dari satu termin (bagian per tujuan): periode memakai tanggal termin; penginapan hanya sebanyak malam termin itu
-const barisDariUnit = (unit) => {
+const barisDariUnit = (unit, adminNama) => {
   const baris = [];
   const urutan = ['uang_makan', 'hotel', 'transport_lokal', 'uang_saku', 'bbm'];
   unit.bagian.forEach((b) => {
@@ -188,9 +191,12 @@ const barisDariUnit = (unit) => {
       .sort((x, y) => urutan.indexOf(x.kode) - urutan.indexOf(y.kode))
       .forEach((k) => {
         const jumlah = Number(k.jumlah) || 0;
-        if (jumlah <= 0) return;
+        const kecuali = jumlah <= 0 && CATATAN_KECUALI[k.kode] && Number(k.persen) === 0 && Number(k.rate) > 0;
+        if (jumlah <= 0 && !kecuali) return;
         const qty = Number(k.qty) || 1;
         const persenEfektif = ((Number(k.persen) || 0) * (k.porsi === null || k.porsi === undefined ? 100 : Number(k.porsi))) / 100;
+        // hotel dipesan admin: biayanya ditampilkan dengan keterangan dikirim ke admin (tidak masuk uang muka pelaksana)
+        const keAdmin = kecuali && k.kode === 'hotel' && Number(b.hotelAdmin) > 0;
         const rate = Number(k.rate) > 0 ? Number(k.rate) : jumlah / ((persenEfektif / 100) * qty || 1);
         // penginapan: malam sebelum tiap hari termin kecuali hari pertama perjalanan (termin 2 dst mulai dari malam sebelum hari pertamanya)
         // tanggal malam pertama dari server (memuat malam penyambung extend); cadangan: aturan termin biasa
@@ -198,12 +204,12 @@ const barisDariUnit = (unit) => {
         const akhirHotel = awalHotel.add(Math.max(b.malam - 1, 0), 'day');
         const per = k.kode === 'bbm' ? '' : k.kode === 'hotel' ? periode(awalHotel, akhirHotel) : periode(b.mulai, b.selesai);
         baris.push({
-          uraian: `${URAIAN[k.kode] || k.nama}${per ? ` (${per})` : ''}${unit.banyakTujuan > 1 ? ` - ${b.tujuan}` : ''}`,
+          uraian: `${URAIAN[k.kode] || k.nama}${per ? ` (${per})` : ''}${unit.banyakTujuan > 1 ? ` - ${b.tujuan}` : ''}${keAdmin ? ` - dikirim ke admin${adminNama ? ` (${adminNama})` : ''}` : kecuali ? ` - ${CATATAN_KECUALI[k.kode]}` : ''}`,
           rate,
           qty,
           paket: k.satuan === 'paket',
-          persen: persenEfektif / 100,
-          jumlah,
+          persen: keAdmin ? (k.porsi === null || k.porsi === undefined ? 100 : Number(k.porsi)) / 100 : persenEfektif / 100,
+          jumlah: keAdmin ? Number(b.hotelAdmin) : jumlah,
         });
       });
   });
@@ -211,7 +217,7 @@ const barisDariUnit = (unit) => {
   return baris;
 };
 
-const barisBiaya = (ringkasan) => {
+const barisBiaya = (ringkasan, adminNama) => {
   const baris = [];
   (ringkasan?.rate || []).forEach((tj) => {
     // urutan seperti formulir: uang makan, penginapan, transportasi lokal, uang saku, BBM
@@ -221,19 +227,21 @@ const barisBiaya = (ringkasan) => {
       .forEach((k) => {
         const persenEfektif = ((Number(k.persen) || 0) * (k.porsi === null || k.porsi === undefined ? 100 : Number(k.porsi))) / 100;
         const jumlah = Number(k.jumlah) || 0;
-        if (jumlah <= 0) return;
+        const kecuali = jumlah <= 0 && CATATAN_KECUALI[k.kode] && Number(k.persen) === 0 && Number(k.rate) > 0;
+        if (jumlah <= 0 && !kecuali) return;
+        const keAdmin = kecuali && k.kode === 'hotel' && Number(tj.hotelAdmin) > 0;
         const qty = Number(k.qty) || 1;
         const rate = Number(k.rate) > 0 ? Number(k.rate) : Number(k.dasar) / qty;
         // penginapan: dari malam pertama (memuat malam penyambung extend) sebanyak malamnya; lainnya per hari perjalanan
         const hotelPer = k.kode === 'hotel' && tj.mulaiHotel ? periode(tj.mulaiHotel, dayjs(tj.mulaiHotel).add(Math.max(Math.round(Number(k.qty)) - 1, 0), 'day')) : null;
         const per = k.kode === 'bbm' ? '' : hotelPer || periode(tj.mulai, tj.selesai, k.kode === 'hotel' ? 1 : 0);
         baris.push({
-          uraian: `${URAIAN[k.kode] || k.nama}${per ? ` (${per})` : ''}${(ringkasan.rate || []).length > 1 ? ` - ${tj.tujuan}` : ''}`,
+          uraian: `${URAIAN[k.kode] || k.nama}${per ? ` (${per})` : ''}${(ringkasan.rate || []).length > 1 ? ` - ${tj.tujuan}` : ''}${keAdmin ? ` - dikirim ke admin${adminNama ? ` (${adminNama})` : ''}` : kecuali ? ` - ${CATATAN_KECUALI[k.kode]}` : ''}`,
           rate,
           qty,
           paket: k.satuan === 'paket',
-          persen: persenEfektif / 100,
-          jumlah,
+          persen: keAdmin ? (k.porsi === null || k.porsi === undefined ? 100 : Number(k.porsi)) / 100 : persenEfektif / 100,
+          jumlah: keAdmin ? Number(tj.hotelAdmin) : jumlah,
         });
       });
   });
@@ -245,7 +253,7 @@ export const unduhTabelBiaya = async ({ sppd, ringkasan, data, ekstend, unit }) 
   const logo = await muatLogo(logoTabel);
   const akhiran = hitungAkhiran({ unit, ekstend, ringkasan });
   const { urutBerkas, kode } = pecahNomor(sppd?.nomor_sppd, akhiran);
-  const baris = unit ? barisDariUnit(unit) : barisBiaya(ringkasan);
+  const baris = unit ? barisDariUnit(unit, data?.admin?.nama) : barisBiaya(ringkasan, data?.admin?.nama);
   const awal = unit ? unit.mulai : (ringkasan?.rate || []).map((t) => t.mulai).filter(Boolean).sort()[0];
   const akhir = unit ? unit.selesai : (ringkasan?.rate || []).map((t) => t.selesai).filter(Boolean).sort().slice(-1)[0];
   const tahun = dayjs(awal || undefined).year();
@@ -345,7 +353,16 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
   const logo = await muatLogo(logoVoucher);
   const akhiran = hitungAkhiran({ unit, ekstend, ringkasan });
   const { kode, kodeBerkas, voucher } = pecahNomor(sppd?.nomor_sppd, akhiran);
-  const total = Math.round(Number(unit ? unit.jumlah : ringkasan?.total) || 0);
+  // hotel dipesan admin: biayanya tidak masuk uang muka pelaksana, melainkan baris tersendiri yang dibayarkan ke rekening admin yang mengajukan SPPD
+  const totalUM = Math.round(Number(unit ? unit.jumlah : ringkasan?.total) || 0);
+  const adminHotel = data?.admin;
+  const jumlahHotel = adminHotel ? Math.round(Number(unit ? unit.hotelAdmin : ringkasan?.hotelAdmin) || 0) : 0;
+  const adaHotel = jumlahHotel > 0;
+  const total = totalUM + jumlahHotel;
+  // dengan baris hotel: nama dan rekening admin (2 baris) serta 2 baris debit/kredit tambahan menggeser seluruh isi di bawahnya
+  const geser = adaHotel ? 4 : 0;
+  const geserKunci = (peta) => Object.fromEntries(Object.entries(peta).map(([r, v]) => [Number(r) >= 17 ? Number(r) + geser : r, v]));
+  const g = (a) => a.replace(/([A-Z]+)(\d+)/g, (m, kol, baris) => `${kol}${Number(baris) >= 17 ? Number(baris) + geser : baris}`);
   const tanggalVoucher = tanggal && dayjs(tanggal).isValid() ? dayjs(tanggal) : dayjs();
   const hariIni = tanggalVoucher.startOf('day').add(12, 'hour').toDate();
   const judulDokumen = `UM ${ekstend ? 'Extend ' : ''}SPPD No ${kode} an ${sppd?.nama || '-'}`;
@@ -387,9 +404,16 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
   tulis(ws, 'J11', ':', { size: 18, rata: 'center' });
   tulis(ws, 'K11', voucher, { size: 18, rata: 'left' });
   tinggi(ws, { 10: 25.5, 11: 26.25 });
+  if (adaHotel) {
+    tulis(ws, 'E12', adminHotel.nama || '-', { size: 18, bold: true });
+    tulis(ws, 'C13', 'Nomor Rekening', { size: 18 });
+    tulis(ws, 'D13', ':', { size: 18, rata: 'center' });
+    tulis(ws, 'E13', sebut(adminHotel.bank), { size: 18 });
+    tinggi(ws, { 12: 25.5, 13: 26.25 });
+  }
 
   // tabel akun (garis luar ganda seperti formulir)
-  const h = 12;
+  const h = adaHotel ? 14 : 12;
   const judul = (rentang, teks) => {
     tulis(ws, rentang, teks, { bold: true, size: 18, rata: 'center', bungkus: true });
     kotak(ws, rentang, kotakTipis);
@@ -400,19 +424,30 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
   judul(`H${h}`, 'Kredit');
   judul(`I${h}:K${h}`, 'Keterangan');
 
-  tulis(ws, `C${h + 1}:D${h + 1}`, k.akunUangMuka.kode, { size: 20, rata: 'center', bungkus: true });
-  tulis(ws, `E${h + 1}:F${h + 1}`, k.akunUangMuka.nama, { size: 18, rata: 'left', bungkus: true });
-  tulis(ws, `G${h + 1}`, total, { size: 18, fmt: FMT_AKUNTANSI });
-  tulis(ws, `I${h + 1}:K${h + 1}`, ket, { size: 18, rata: 'center', bungkus: true });
-  tulis(ws, `C${h + 2}:D${h + 2}`, k.akunBank.kode, { size: 20, rata: 'center', bungkus: true });
-  tulis(ws, `E${h + 2}:F${h + 2}`, k.akunBank.nama, { size: 18, rata: 'left', bungkus: true });
-  tulis(ws, `H${h + 2}`, { formula: `G${h + 1}`, result: total }, { size: 18, fmt: FMT_AKUNTANSI });
-  kotak(ws, `C${h + 1}:K${h + 2}`, kotakTipis);
+  // satu baris debit uang muka (+ satu baris debit hotel bila dipesan admin), lalu baris kredit bank dengan jumlah yang sama
+  const daftarDebit = [{ jumlah: totalUM, ket }];
+  if (adaHotel) daftarDebit.push({ jumlah: jumlahHotel, ket: `${ket} (Hotel)` });
+  const nDebit = daftarDebit.length;
+  daftarDebit.forEach((d, n) => {
+    const r = h + 1 + n;
+    tulis(ws, `C${r}:D${r}`, k.akunUangMuka.kode, { size: 20, rata: 'center', bungkus: true });
+    tulis(ws, `E${r}:F${r}`, k.akunUangMuka.nama, { size: 18, rata: 'left', bungkus: true });
+    tulis(ws, `G${r}`, d.jumlah, { size: 18, fmt: FMT_AKUNTANSI });
+    tulis(ws, `I${r}:K${r}`, d.ket, { size: 18, rata: 'center', bungkus: true });
+  });
+  daftarDebit.forEach((d, n) => {
+    const r = h + 1 + nDebit + n;
+    tulis(ws, `C${r}:D${r}`, k.akunBank.kode, { size: 20, rata: 'center', bungkus: true });
+    tulis(ws, `E${r}:F${r}`, k.akunBank.nama, { size: 18, rata: 'left', bungkus: true });
+    tulis(ws, `H${r}`, { formula: `G${h + 1 + n}`, result: d.jumlah }, { size: 18, fmt: FMT_AKUNTANSI });
+    if (adaHotel && n === 0) tulis(ws, `I${r}:K${r}`, d.ket, { size: 18, rata: 'center', bungkus: true });
+  });
+  kotak(ws, `C${h + 1}:K${h + 2 * nDebit}`, kotakTipis);
 
-  const rTotal = h + 3;
+  const rTotal = h + 2 * nDebit + 1;
   tulis(ws, `C${rTotal}:F${rTotal}`, 'T o t a l', { bold: true, size: 18, rata: 'center' });
-  tulis(ws, `G${rTotal}`, { formula: `SUM(G${h + 1}:G${h + 2})`, result: total }, { bold: true, size: 18, fmt: FMT_AKUNTANSI });
-  tulis(ws, `H${rTotal}`, { formula: `SUM(H${h + 2}:H${h + 2})`, result: total }, { bold: true, size: 18, fmt: FMT_AKUNTANSI });
+  tulis(ws, `G${rTotal}`, { formula: `SUM(G${h + 1}:G${h + 2 * nDebit})`, result: total }, { bold: true, size: 18, fmt: FMT_AKUNTANSI });
+  tulis(ws, `H${rTotal}`, { formula: `SUM(H${h + nDebit + 1}:H${h + 2 * nDebit})`, result: total }, { bold: true, size: 18, fmt: FMT_AKUNTANSI });
   tulis(ws, `I${rTotal}:K${rTotal}`, null, { size: 18 });
   kotak(ws, `C${rTotal}:K${rTotal}`, kotakTipis);
 
@@ -420,45 +455,46 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
   tulis(ws, `C${rBayar}:H${rBayar}`, 'Total yang Harus Dibayarkan', { bold: true, size: 18, rata: 'center', fill: WARNA.judulKolom });
   tulis(ws, `I${rBayar}:K${rBayar}`, { formula: `H${rTotal}`, result: total }, { bold: true, size: 18, rata: 'left', fill: WARNA.judulKolom, fmt: FMT_RP_VOUCHER });
   kotak(ws, `C${rBayar}:K${rBayar}`, kotakTipis, WARNA.judulKolom);
-  tinggi(ws, { 12: 54, 13: 91.5, 14: 91.5, 15: 54, 16: 54 });
+  tinggi(ws, { [h]: 54, [rBayar]: 54, [rTotal]: 54 });
+  for (let r = h + 1; r <= h + 2 * nDebit; r += 1) tinggi(ws, { [r]: adaHotel ? 70 : 91.5 });
 
   // terbilang: label di kiri, kotak berwarna (bentuk di file contoh) berisi tulisan 16 pt tebal
-  tulis(ws, 'C18:C19', 'Terbilang', { size: 18, rata: 'left' });
-  tulis(ws, 'E18', ':', { size: 18, rata: 'center' });
-  tulis(ws, 'F17:K21', terbilang(total), { size: 16, bold: true, rata: 'center', bungkus: true, fill: WARNA.judulKolom });
-  kotak(ws, 'F17:K21', null, WARNA.judulKolom);
+  tulis(ws, g('C18:C19'), 'Terbilang', { size: 18, rata: 'left' });
+  tulis(ws, g('E18'), ':', { size: 18, rata: 'center' });
+  tulis(ws, g('F17:K21'), terbilang(total), { size: 16, bold: true, rata: 'center', bungkus: true, fill: WARNA.judulKolom });
+  kotak(ws, g('F17:K21'), null, WARNA.judulKolom);
 
   // catatan: kotak hanya selebar kolom C sampai H
-  tulis(ws, 'C22', 'Catatan :', { size: 20 });
-  tulis(ws, 'C23:H23', '', { size: 18 });
+  tulis(ws, g('C22'), 'Catatan :', { size: 20 });
+  tulis(ws, g('C23:H23'), '', { size: 18 });
 
   // cheque / giro dan petugas transaksi (isian bergaris putus-putus)
-  tulis(ws, 'C25', 'Cheque / Giro No.', { size: 18, rata: 'left' });
+  tulis(ws, g('C25'), 'Cheque / Giro No.', { size: 18, rata: 'left' });
   const jenisBayar = chequeGiro || PILIHAN_CHEQUE_GIRO[0];
   const teksCheque = jenisBayar === 'Cheque' && String(nomorCheque || '').trim() ? `Cheque (${String(nomorCheque).trim()})` : jenisBayar;
-  tulis(ws, 'E25', `: ${teksCheque}`, { size: 18, rata: 'left' });
-  tulis(ws, 'I25', 'A/C', { size: 18 });
-  tulis(ws, 'J25', ':', { size: 18, rata: 'center' });
-  tulis(ws, 'K25', k.rekeningPerusahaan, { size: 18, rata: 'left' });
-  tulis(ws, 'C26', 'Petugas Transaksi', { size: 18, rata: 'left' });
-  tulis(ws, 'E26', `: ${petugas || ''}`, { size: 18, rata: 'left' });
-  tulis(ws, 'I26', 'Tgl', { size: 18 });
-  tulis(ws, 'J26', ':', { size: 18, rata: 'center' });
-  tulis(ws, 'K26', { formula: 'K10', result: hariIni }, { size: 18, rata: 'left', fmt: 'dd-mm-yy' });
+  tulis(ws, g('E25'), `: ${teksCheque}`, { size: 18, rata: 'left' });
+  tulis(ws, g('I25'), 'A/C', { size: 18 });
+  tulis(ws, g('J25'), ':', { size: 18, rata: 'center' });
+  tulis(ws, g('K25'), k.rekeningPerusahaan, { size: 18, rata: 'left' });
+  tulis(ws, g('C26'), 'Petugas Transaksi', { size: 18, rata: 'left' });
+  tulis(ws, g('E26'), `: ${petugas || ''}`, { size: 18, rata: 'left' });
+  tulis(ws, g('I26'), 'Tgl', { size: 18 });
+  tulis(ws, g('J26'), ':', { size: 18, rata: 'center' });
+  tulis(ws, g('K26'), { formula: g('K10'), result: hariIni }, { size: 18, rata: 'left', fmt: 'dd-mm-yy' });
 
   // tanda tangan: Disajikan Oleh (pengguna yang mengunduh) dan Diperiksa dan Disetujui Oleh (Manajer Keuangan, dari sistem)
-  tulis(ws, 'C30:E30', 'Disajikan Oleh,', { bold: true, size: 18 });
-  tulis(ws, 'F32', 'Tgl:              /                 /2026', { bold: true, size: 18 });
-  tulis(ws, 'C36:E36', data?.pencetak?.nama || '..............................', { bold: true, size: 18, underline: true });
-  tulis(ws, 'C37:E37', data?.pencetak?.jabatan || '', { size: 18 });
-  tulis(ws, 'C40:E40', 'Diperiksa dan Disetujui Oleh,', { bold: true, size: 18 });
-  tulis(ws, 'F42', { formula: 'F32', result: 'Tgl:              /                 /2026' }, { bold: true, size: 18 });
-  tulis(ws, 'C46:E46', data?.manajer_keuangan?.nama || '..............................', { bold: true, size: 18, underline: true });
-  tulis(ws, 'C47:E47', data?.manajer_keuangan?.jabatan || '', { size: 18 });
-  tulis(ws, 'C48:K48', '*Catatan : Tidak Berlaku Apabila Belum Ada Persetujuan', { size: 16, bold: true });
+  tulis(ws, g('C30:E30'), 'Disajikan Oleh,', { bold: true, size: 18 });
+  tulis(ws, g('F32'), 'Tgl:              /                 /2026', { bold: true, size: 18 });
+  tulis(ws, g('C36:E36'), data?.pencetak?.nama || '..............................', { bold: true, size: 18, underline: true });
+  tulis(ws, g('C37:E37'), data?.pencetak?.jabatan || '', { size: 18 });
+  tulis(ws, g('C40:E40'), 'Diperiksa dan Disetujui Oleh,', { bold: true, size: 18 });
+  tulis(ws, g('F42'), { formula: g('F32'), result: 'Tgl:              /                 /2026' }, { bold: true, size: 18 });
+  tulis(ws, g('C46:E46'), data?.manajer_keuangan?.nama || '..............................', { bold: true, size: 18, underline: true });
+  tulis(ws, g('C47:E47'), data?.manajer_keuangan?.jabatan || '', { size: 18 });
+  tulis(ws, g('C48:K48'), '*Catatan : Tidak Berlaku Apabila Belum Ada Persetujuan', { size: 16, bold: true });
 
   // tinggi baris mengikuti file contoh
-  tinggi(ws, { 17: 26.25, 18: 25.5, 20: 12.75, 22: 28.5, 23: 24, 25: 25.5, 26: 25.5, 27: 25.5, 28: 21, 30: 25.5, 31: 25.5, 32: 25.5, 36: 25.5, 37: 25.5, 40: 25.5, 41: 25.5, 42: 25.5, 43: 25.5, 44: 25.5, 45: 25.5, 46: 25.5, 47: 25.5, 48: 24 });
+  tinggi(ws, geserKunci({ 17: 26.25, 18: 25.5, 20: 12.75, 22: 28.5, 23: 24, 25: 25.5, 26: 25.5, 27: 25.5, 28: 21, 30: 25.5, 31: 25.5, 32: 25.5, 36: 25.5, 37: 25.5, 40: 25.5, 41: 25.5, 42: 25.5, 43: 25.5, 44: 25.5, 45: 25.5, 46: 25.5, 47: 25.5, 48: 24 }));
 
   // ---- garis (dipasang terakhir agar tidak tertimpa): tepi tabel akun ganda, bingkai tebal di kiri-kanan bagian bawah
   const ganda = garis('double');
@@ -467,19 +503,19 @@ export const unduhVoucher = async ({ sppd, ringkasan, data, ekstend, petugas, ch
   tepi(ws, `C${h}:K${h}`, 'top', ganda);
   tepi(ws, `C${h}:C${rBayar}`, 'left', ganda);
   tepi(ws, `C${rBayar}:K${rBayar}`, 'bottom', ganda);
-  [[h, ganda], [h + 1, tipis], [h + 2, tipis], [rTotal, ganda], [rBayar, ganda]].forEach(([r, gaya]) => tepi(ws, `K${r}`, 'right', gaya));
-  tepi(ws, 'C17:C48', 'left', tebal);
-  tepi(ws, 'K17:K48', 'right', tebal);
-  tepi(ws, 'C28:K28', 'bottom', tipis);
-  tepi(ws, 'C48:K48', 'bottom', tebal);
+  [[h, ganda], ...Array.from({ length: 2 * nDebit }, (_, n) => [h + 1 + n, tipis]), [rTotal, ganda], [rBayar, ganda]].forEach(([r, gaya]) => tepi(ws, `K${r}`, 'right', gaya));
+  tepi(ws, g('C17:C48'), 'left', tebal);
+  tepi(ws, g('K17:K48'), 'right', tebal);
+  tepi(ws, g('C28:K28'), 'bottom', tipis);
+  tepi(ws, g('C48:K48'), 'bottom', tebal);
   // kotak catatan (C22:H23)
-  tepi(ws, 'C22:H22', 'top', tipis);
-  tepi(ws, 'C23:H23', 'bottom', tipis);
-  tepi(ws, 'H22:H23', 'right', tipis);
+  tepi(ws, g('C22:H22'), 'top', tipis);
+  tepi(ws, g('C23:H23'), 'bottom', tipis);
+  tepi(ws, g('H22:H23'), 'right', tipis);
   // garis putus-putus di bawah isian cheque/giro dan petugas
-  ['E25', 'E26', 'K25', 'K26'].forEach((a) => tepi(ws, a, 'bottom', garis('dashed')));
+  [g('E25'), g('E26'), g('K25'), g('K26')].forEach((a) => tepi(ws, a, 'bottom', garis('dashed')));
 
-  siapkanKertas(ws, 'B1:L48');
+  siapkanKertas(ws, g('B1:L48'));
 
   return simpan(wb, `${namaAman(namaBerkas)}.xlsx`);
 };

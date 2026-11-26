@@ -12,3 +12,334 @@
   --bs-btn-hover-color: #2f3d4a;
     --bs-btn-hover-bg: #fff;
 }
+
+// ---------- Modal Tujuan SPPD (Pengajuan & EditSppd): responsif dan rapi ----------
+.modal-tujuan {
+  .modal-content {
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 18px 48px rgba(16, 24, 40, 0.18);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e9f0;
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .modal-footer {
+    padding: 14px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e5e9f0;
+    gap: 8px;
+  }
+
+  // dua kolom di layar lebar, satu kolom di layar sempit
+  .tj-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+
+    > * {
+      min-width: 0;
+    }
+  }
+
+  // kartu pilihan (tiket, hotel, transportasi lokal)
+  .tj-kartu {
+    background: #fff;
+    border-color: #e1e6ee !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: #c5ceda !important;
+      box-shadow: 0 2px 8px rgba(16, 24, 40, 0.05);
+    }
+
+    .btn {
+      flex: 1 1 auto;
+      white-space: normal;
+    }
+
+    small {
+      line-height: 1.5;
+    }
+  }
+
+  // pilihan moda transportasi: turun ke baris berikutnya bila sempit
+  .tj-moda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: #fff;
+    border-color: #e1e6ee !important;
+
+    .btn {
+      flex: 1 1 160px;
+    }
+  }
+
+  .btn.active,
+  .btn:active {
+    box-shadow: none;
+  }
+
+  // layar sedang ke bawah: modal memenuhi layar, satu kolom
+  @media (max-width: 767.98px) {
+    margin: 0;
+    max-width: none;
+    min-height: 100%;
+
+    .modal-content {
+      min-height: 100vh;
+      border-radius: 0;
+    }
+
+    .modal-header,
+    .modal-footer {
+      padding: 12px 16px;
+    }
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .tj-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .modal-footer .btn,
+    .modal-footer button {
+      flex: 1 1 auto;
+    }
+  }
+}
+
+// ---------- Halaman form Pengajuan / Edit SPPD ----------
+.pj-seksi {
+  background: #fff;
+  border: 1px solid #e1e6ee;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  margin-bottom: 20px;
+  overflow: hidden;
+
+  .pj-judul {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e9f0;
+  }
+
+  .pj-no {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #2f3d4a;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pj-judul-teks {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    h6 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    p {
+      margin: 2px 0 0;
+      font-size: 0.82rem;
+      color: #6b7280;
+    }
+  }
+
+  .pj-tambah {
+    flex: 0 0 auto;
+    text-transform: none;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+
+  .pj-isi {
+    padding: 20px;
+  }
+
+  .pj-tabel {
+    padding: 8px 12px 12px;
+    overflow-x: auto;
+  }
+
+  .pj-kosong {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 36px 20px;
+    color: #6b7280;
+    text-align: center;
+
+    .material-icons {
+      font-size: 40px;
+      color: #9aa5b4;
+      margin-bottom: 6px;
+    }
+
+    strong {
+      color: #374151;
+    }
+
+    span {
+      font-size: 0.85rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .pj-judul {
+      flex-wrap: wrap;
+      padding: 14px 16px;
+    }
+
+    .pj-tambah {
+      width: 100%;
+    }
+
+    .pj-isi {
+      padding: 16px;
+    }
+  }
+}
+
+.pj-aksi {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+
+  .MuiButton-root {
+    min-width: 240px;
+    text-transform: none;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 575.98px) {
+    .MuiButton-root {
+      width: 100%;
+    }
+  }
+}
+
+// judul bagian di dalam modal tujuan
+.modal-tujuan {
+  .tj-bagian {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e5e9f0;
+    }
+  }
+
+  .tj-sub {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+  }
+}
+
+// ---------- Font form: ikut font aplikasi (Poppins), komponen MUI memakai Roboto bila tidak diatur ----------
+.pj-seksi,
+.modal-tujuan {
+  .MuiInputBase-root,
+  .MuiInputLabel-root,
+  .MuiFormLabel-root,
+  .MuiFormHelperText-root,
+  .MuiFormControlLabel-label,
+  .MuiTypography-root,
+  .MuiButton-root,
+  .MuiAutocomplete-root,
+  .MuiSlider-valueLabel,
+  .btn,
+  small {
+    font-family: inherit;
+  }
+
+  .MuiInputBase-root {
+    font-size: 0.9rem;
+  }
+
+  .MuiInputLabel-root {
+    font-size: 0.9rem;
+  }
+
+  .MuiTypography-body2 {
+    font-size: 0.8rem;
+  }
+
+  .btn {
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+
+  .tj-kartu small,
+  .text-muted {
+    font-size: 0.78rem;
+  }
+}
+
+// menu dropdown, daftar Autocomplete, dan kalender dirender di luar modal/halaman (portal)
+.MuiPopover-root,
+.MuiAutocomplete-popper,
+.MuiPickersPopper-root {
+  .MuiMenuItem-root,
+  .MuiAutocomplete-option,
+  .MuiAutocomplete-noOptions,
+  .MuiPickersDay-root,
+  .MuiTypography-root,
+  .MuiButton-root,
+  .MuiDayCalendar-weekDayLabel {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .MuiMenuItem-root,
+  .MuiAutocomplete-option {
+    font-size: 0.88rem;
+  }
+}

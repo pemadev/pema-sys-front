@@ -10,7 +10,13 @@ const ringkasUangMuka = (detail) => {
   let malam = 0;
   let tiket = 0;
   let total = 0;
-  rincian.forEach(({ r }) => {
+  // hotel (dipesan admin / tidak menginap) dan transportasi lokal via vendor tidak masuk uang muka: tetap ditampilkan dengan catatan
+  const dikecualikan = { hotel: [], transport_lokal: [] };
+  rincian.forEach(({ t, r }) => {
+    // dibaca dari persentase komponen (berlaku juga untuk extend yang tidak membawa pilihan hotel/transport)
+    const persenKomponen = (kode) => (r.komponen || []).find((k) => k.kode === kode)?.persen;
+    if (t.hotel_oleh === 'admin' || t.hotel_oleh === 'tidak' || Number(persenKomponen('hotel')) === 0) dikecualikan.hotel.push(t.hotel_oleh || 'admin');
+    if (t.transport_lokal === 'vendor' || Number(persenKomponen('transport_lokal')) === 0) dikecualikan.transport_lokal.push('vendor');
     malam += Number(r.malam) || 0;
     tiket += Number(r.tiket?.jumlah) || 0;
     total += Number(r.total) || 0;
@@ -21,7 +27,27 @@ const ringkasUangMuka = (detail) => {
       peta.set(k.kode, ada);
     });
   });
-  const komponen = Array.from(peta.values()).map((k) => (k.kode === 'hotel' ? { ...k, catatan: `${malam} malam` } : k));
+  const hotelAdmin = rincian.reduce((a, { r }) => a + (Number(r.hotel_admin) || 0), 0);
+  const semuaTujuan = rincian.length;
+  const catatanKecuali = (kode, teks) => {
+    const n = dikecualikan[kode].length;
+    if (n === 0) return null;
+    return n === semuaTujuan ? teks : `${teks} (sebagian tujuan)`;
+  };
+  const komponen = Array.from(peta.values()).map((k) => {
+    if (k.kode === 'hotel') {
+      const kecuali = catatanKecuali('hotel', dikecualikan.hotel.every((x) => x === 'tidak') ? 'Tidak menginap, biaya hotel tidak termasuk dalam uang muka' : 'Biaya hotel tidak termasuk dalam uang muka');
+      // hotel dipesan admin: biayanya dikirim ke admin (bukan ke pelaksana)
+      if (hotelAdmin > 0) return { ...k, dikirimAdmin: hotelAdmin, catatan: 'Dikirim ke admin pengaju SPPD, tidak masuk uang muka pelaksana' };
+
+      return { ...k, catatan: kecuali || `${malam} malam` };
+    }
+    if (k.kode === 'transport_lokal') {
+      const kecuali = catatanKecuali('transport_lokal', 'Menggunakan vendor, biaya transportasi lokal tidak termasuk dalam uang muka');
+      return kecuali ? { ...k, catatan: kecuali } : k;
+    }
+    return k;
+  });
 
   // termin per tujuan (satu termin bila SPPD sampai 4 hari), lengkap dengan bukti transfer yang sudah diupload
   const bertahap = rincian.some(({ r }) => (r.termin || []).length > 1);
@@ -34,6 +60,7 @@ const ringkasUangMuka = (detail) => {
     mulaiHotel: r.termin && r.termin[0] ? r.termin[0].mulai_hotel : undefined,
     hari: r.hari,
     malam: r.malam,
+    hotelAdmin: Number(r.hotel_admin) || 0,
     kategori: r.kategori || {},
     komponen: (r.komponen || []).map((k) => ({ kode: k.kode, nama: k.nama, rate: k.rate, porsi: k.porsi, qty: k.qty, satuan: k.satuan, dasar: Number(k.dasar) || 0, persen: Number(k.persen) || 0, jumlah: Number(k.jumlah) || 0 })),
   }));
@@ -44,7 +71,7 @@ const ringkasUangMuka = (detail) => {
       const no = Number(x.no ?? Number(x.id) + 1);
       // termin extend memakai kunci "e<id extend>" agar tidak bentrok dengan termin tujuan SPPD awal
       const idTujuan = x.id_ekstend ? `e${x.id_ekstend}` : Number(x.id_tujuan ?? t.id);
-      return { no, idTujuan, kunci: `${idTujuan}:${no}`, tgl: x.tgl_bayar, ket: x.keterangan, jumlah: Number(x.jumlah) || 0, bukti: x.bukti || null, aktual: x.aktual || null, mulai: x.mulai, selesai: x.selesai, mulaiHotel: x.mulai_hotel, malam: Number(x.malam) || 0, komponen: x.komponen || [] };
+      return { no, idTujuan, kunci: `${idTujuan}:${no}`, tgl: x.tgl_bayar, ket: x.keterangan, jumlah: Number(x.jumlah) || 0, bukti: x.bukti || null, aktual: x.aktual || null, mulai: x.mulai, selesai: x.selesai, mulaiHotel: x.mulai_hotel, malam: Number(x.malam) || 0, komponen: x.komponen || [], hotelAdmin: Number(x.hotel_admin) || 0 };
     }),
   }));
   // tiket yang diupload UmumSppd (pergi/pulang per tujuan) beserta file untuk diunduh
@@ -58,10 +85,12 @@ const ringkasUangMuka = (detail) => {
     file: x.file || null,
   }));
   // status tiket: tanpa (tidak ada tujuan yang perlu tiket), mandiri (tidak dibeli umum), umum (diupload UmumSppd), menunggu
-  const perluTiket = tujuan.some((t) => Number(t.perlu_tiket) !== 0);
+  // perlu_tiket: 1 = dipesan divisi umum, 2 = dipesan admin/mandiri, 0 = tidak perlu
+  const perluTiket = tujuan.some((t) => Number(t.perlu_tiket) === 1);
+  const tiketMandiri = tujuan.some((t) => Number(t.perlu_tiket) === 2);
   const sumberTiket = (detail?.proses || []).find((p) => p.as === 'umum')?.sumber_tiket || null;
   let statusTiket = 'menunggu';
-  if (!perluTiket) statusTiket = 'tanpa';
+  if (!perluTiket) statusTiket = tiketMandiri ? 'mandiri' : 'tanpa';
   else if (sumberTiket === 'mandiri') statusTiket = 'mandiri';
   else if (sumberTiket === 'umum' || daftarTiket.length > 0) statusTiket = 'umum';
   const semuaTermin = termin.flatMap((x) => x.daftar);
@@ -70,7 +99,7 @@ const ringkasUangMuka = (detail) => {
   // uang muka bertermin atau tidak: pengaturan ketetapan (Setting > Biaya & Ketetapan SPPD); tanpa termin pembayarannya satu kali
   const terminAktif = !rincian.some(({ r }) => r.termin_aktif === false);
 
-  return { ekstend: !!detail?.adalahEkstend, terminAktif, komponen, rate, tiket: { jumlah: tiket, ada: tiket > 0, daftar: daftarTiket, status: statusTiket }, total, termin, bertahap, selesai };
+  return { ekstend: !!detail?.adalahEkstend, hotelAdmin, terminAktif, komponen, rate, tiket: { jumlah: tiket, ada: tiket > 0, daftar: daftarTiket, status: statusTiket }, total, termin, bertahap, selesai };
 };
 
 // detail "semu" dari extend yang disetujui (tiket + uang muka terpisah dari SPPD awal) agar ringkasUangMuka dapat dipakai ulang
@@ -96,11 +125,11 @@ export const unitDokumen = (ringkasan) => {
     const bagian = per
       .map((tj) => ({ tujuan: tj.tujuan, d: tj.daftar.find((x) => x.no === no) }))
       .filter((x) => x.d)
-      .map(({ tujuan, d }) => ({ tujuan, mulai: d.mulai, selesai: d.selesai, mulaiHotel: d.mulaiHotel, malam: d.malam, ket: d.ket, komponen: d.komponen, jumlah: d.jumlah }));
+      .map(({ tujuan, d }) => ({ tujuan, mulai: d.mulai, selesai: d.selesai, mulaiHotel: d.mulaiHotel, malam: d.malam, ket: d.ket, komponen: d.komponen, jumlah: d.jumlah, hotelAdmin: d.hotelAdmin || 0 }));
     const mulai = bagian.map((b) => b.mulai).filter(Boolean).sort()[0];
     const selesai = bagian.map((b) => b.selesai).filter(Boolean).sort().slice(-1)[0];
 
-    return { no, urutan: i, jumlahUnit: maks, banyakTujuan: per.length, bagian, jumlah: bagian.reduce((a2, b) => a2 + b.jumlah, 0), ket: bagian.map((b) => b.ket).join('; '), mulai, selesai };
+    return { no, urutan: i, jumlahUnit: maks, banyakTujuan: per.length, bagian, jumlah: bagian.reduce((a2, b) => a2 + b.jumlah, 0), hotelAdmin: bagian.reduce((a2, b) => a2 + b.hotelAdmin, 0), ket: bagian.map((b) => b.ket).join('; '), mulai, selesai };
   });
 };
 

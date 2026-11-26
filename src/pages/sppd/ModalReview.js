@@ -100,7 +100,11 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
   const totalHari = tujuan.reduce((a, t) => a + (Number(t.jumlah_hari) || 0), 0);
   // rincian biaya hanya ditampilkan pada tahap verifikasi biaya
   const tampilBiaya = tipe === 'verifikasi_biaya';
-  const adaTiket = tujuan.some((t) => t.perlu_tiket !== 0);
+  const adaTiket = tujuan.some((t) => t.perlu_tiket === 1);
+  const tiketMandiri = !adaTiket && tujuan.some((t) => t.perlu_tiket === 2);
+  const adaHotelAdmin = tujuan.some((t) => t.hotel_oleh === 'admin');
+  const adaHotelTidak = tujuan.some((t) => t.hotel_oleh === 'tidak');
+  const adaVendor = tujuan.some((t) => t.transport_lokal === 'vendor');
   const fileLaporan = detailSppd?.realisasi?.doc_file;
 
   return (
@@ -140,7 +144,10 @@ const ModalReview = ({ modalR, toggleR, sppdDetail, refetchNumber, refetchSubmit
                   <Baris nama="Internal / Eksternal">{detailSppd.pihak_name}</Baris>
                   <Baris nama="Diajukan">{tgl(detailSppd.created_at, 'DD MMM YYYY HH:mm')}</Baris>
                   <Baris nama="Aturan perusahaan">{detailSppd.dasar_ketetapan}</Baris>
-                  <Baris nama="Tiket">{adaTiket ? 'Perlu (diproses divisi umum)' : 'Tidak perlu'}</Baris>
+                  <Baris nama="Tiket">{adaTiket ? 'Dipesan divisi umum' : tiketMandiri ? 'Dipesan admin/mandiri' : 'Tidak perlu'}</Baris>
+                  {adaHotelAdmin ? <Baris nama="Hotel">Dipesan admin (tidak termasuk uang muka)</Baris> : null}
+                  {adaHotelTidak ? <Baris nama="Hotel">Tidak menginap</Baris> : null}
+                  {adaVendor ? <Baris nama="Transport lokal">Vendor (tidak termasuk uang muka)</Baris> : null}
                 </div>
               </div>
             </div>

@@ -144,7 +144,7 @@ const RingkasanBiaya = ({ ringkasan, memuat, baseUrl }) => (
                   </small>
                 </td>
                 <td className="lp-kanan">{rupiah(k.dasar)}</td>
-                <td className="lp-kanan">{rupiah(k.jumlah)}</td>
+                <td className="lp-kanan">{k.dikirimAdmin > 0 ? <em>Dikirim ke admin</em> : rupiah(k.jumlah)}</td>
               </tr>
             ))}
           </tbody>
@@ -155,6 +155,31 @@ const RingkasanBiaya = ({ ringkasan, memuat, baseUrl }) => (
             </tr>
           </tfoot>
         </table>
+        {ringkasan.hotelAdmin > 0 ? (
+          <dl className="lp-rekap">
+            <div>
+              <dt>
+                Uang muka pelaksana
+                <small>Ke rekening pelaksana</small>
+              </dt>
+              <dd>{rupiah(ringkasan.total)}</dd>
+            </div>
+            <div>
+              <dt>
+                Hotel
+                <small>Dikirim ke admin pengaju SPPD</small>
+              </dt>
+              <dd>{rupiah(ringkasan.hotelAdmin)}</dd>
+            </div>
+            <div className="lp-rekap-total">
+              <dt>
+                Total dibayarkan
+                <small>Sesuai voucher</small>
+              </dt>
+              <dd>{rupiah(Number(ringkasan.total) + Number(ringkasan.hotelAdmin))}</dd>
+            </div>
+          </dl>
+        ) : null}
         <div className={`lp-status-tiket ${(STATUS_TIKET[ringkasan.tiket.status] || STATUS_TIKET.menunggu).kelas}`}>
           <MaterialIcon icon={(STATUS_TIKET[ringkasan.tiket.status] || STATUS_TIKET.menunggu).ikon} />
           <span>
@@ -206,6 +231,7 @@ const ringkasanShape = PropTypes.shape({
   rate: PropTypes.arrayOf(PropTypes.shape({ tujuan: PropTypes.string, hari: PropTypes.number, malam: PropTypes.number, kategori: PropTypes.shape({}), komponen: PropTypes.arrayOf(PropTypes.shape({})) })),
   tiket: PropTypes.shape({ jumlah: PropTypes.number, ada: PropTypes.bool, daftar: PropTypes.arrayOf(PropTypes.shape({})), status: PropTypes.string }),
   total: PropTypes.number,
+  hotelAdmin: PropTypes.number,
   bertahap: PropTypes.bool,
   termin: PropTypes.arrayOf(PropTypes.shape({ tujuan: PropTypes.string, daftar: PropTypes.arrayOf(PropTypes.shape({ no: PropTypes.number, tgl: PropTypes.string, ket: PropTypes.string, jumlah: PropTypes.number })) })),
 });
